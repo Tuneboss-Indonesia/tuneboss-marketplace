@@ -1,0 +1,28 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+---
+
+<head>
+  <title data-i18n="page.terms.title">Ketentuan Layanan | TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+    <section class="mx-auto max-w-4xl">
+      <p class="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-primary">TuneBoss.ID</p>
+      <h1 class="mb-10 font-display text-4xl uppercase md:text-6xl">Ketentuan Layanan</h1>
+
+      <div class="space-y-8 text-sm leading-relaxed text-primary md:text-base">
+        <p>Dengan menggunakan TuneBoss Marketplace, pelanggan menyetujui proses pemesanan, pembayaran, dan pengiriman sesuai informasi yang tersedia saat transaksi.</p>
+        <p>Produk ECU dan tuning harus dipasang serta digunakan secara benar. Kerusakan akibat pemasangan yang salah, modifikasi ekstrem, atau penggunaan di luar spesifikasi bukan tanggung jawab TuneBoss.</p>
+        <p>Harga, stok, dan detail produk dapat berubah tanpa pemberitahuan sebelumnya. Pesanan dianggap berlaku setelah pembayaran dikonfirmasi.</p>
+        <p>Untuk bantuan pesanan, garansi, atau konsultasi produk, hubungi hello@tuneboss.id atau WhatsApp +62 817-5792-805.</p>
+      </div>
+    </section>
+  </main>
+</TuneBossChrome>

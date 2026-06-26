@@ -41,8 +41,10 @@ http://localhost:4321
 ```bash
 npm run lint
 npm run doctor
+npx @santi020k/astro-doctor --no-score
 npm run typecheck
 npm run build
 ```
 
 `npm run doctor` runs React Doctor locally with score/telemetry disabled.
+`npx @santi020k/astro-doctor --no-score` runs Astro Doctor locally to check Astro anti-patterns and performance issues.

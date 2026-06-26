@@ -1,0 +1,56 @@
+---
+import { Image } from "astro:assets";
+import ecuImage from "../../public/images/tuneboss-motorcycle-ecu.png";
+import logoImage from "../../public/tuneboss-logo.png";
+
+const {
+  imageUrl,
+  videoUrl = "",
+  title,
+  subtitle = "",
+  subtitleHighlight = "",
+  pretext = "",
+  heightClass = "h-screen",
+  overlayClass = "bg-black/20",
+  imageClass = "scale-105 object-cover",
+  titleLayout = "bottom",
+  pretextKey = "",
+  titleKey = "",
+  subtitleKey = "",
+  subtitleHighlightKey = "",
+  titleClass = "",
+} = Astro.props;
+
+const imageSrc = imageUrl === "/images/tuneboss-motorcycle-ecu.png" ? ecuImage : imageUrl === "/tuneboss-logo.png" ? logoImage : null;
+---
+
+<section class:list={["relative w-full overflow-hidden", heightClass]} data-reveal>
+  <div class:list={["absolute inset-0 z-10", overlayClass]} aria-hidden="true"></div>
+  {videoUrl ? (
+    <video class:list={["h-full w-full", imageClass]} autoplay muted loop playsinline preload="metadata" aria-hidden="true">
+      <source src={videoUrl} type="video/mp4" />
+    </video>
+  ) : imageSrc ? (
+    <Image src={imageSrc} alt="" loading="eager" class:list={["h-full w-full", imageClass]} aria-hidden="true" />
+  ) : (
+    <>
+      <Image src={imageUrl} alt="" loading="eager" decoding="async" inferSize={true} class:list={["h-full w-full", imageClass]} aria-hidden="true" />
+    </>
+  )}
+
+  {titleLayout === "bottom" ? (
+    <div class="absolute bottom-10 left-5 right-5 z-20 md:bottom-12 md:left-12 md:right-auto">
+      {pretext && <p data-i18n={pretextKey || undefined} class="mb-4 text-xs font-bold uppercase tracking-[0.4em] text-white/60">{pretext}</p>}
+      <h1 class="w-full max-w-full break-words font-display text-[clamp(2.5rem,10vw,6rem)] font-black uppercase leading-[0.9] tracking-normal text-white drop-shadow-2xl md:w-auto md:text-[clamp(3.5rem,7vw,6.5rem)]">
+        <span data-i18n={titleKey || undefined} class={titleClass}>{title}</span> <br /> <span data-i18n={subtitleKey || undefined} class="font-light text-white/70">{subtitle}</span>
+      </h1>
+    </div>
+  ) : (
+    <div class="absolute inset-0 z-20 flex flex-col items-center justify-center px-10 text-center">
+      {pretext && <p data-i18n={pretextKey || undefined} class="mb-4 text-xs font-bold uppercase tracking-[0.4em] text-white/60">{pretext}</p>}
+      <h1 class="font-display text-[clamp(2rem,9vw,3.5rem)] font-light uppercase tracking-[0.08em] text-white md:text-6xl">
+        <span data-i18n={titleKey || undefined}>{title}</span> <span data-i18n={subtitleHighlightKey || undefined} class="font-bold">{subtitleHighlight}</span>
+      </h1>
+    </div>
+  )}
+</section>

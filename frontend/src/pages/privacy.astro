@@ -1,0 +1,28 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+---
+
+<head>
+  <title data-i18n="page.privacy.title">Kebijakan Privasi | TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+    <section class="mx-auto max-w-4xl">
+      <p class="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-primary">TuneBoss.ID</p>
+      <h1 class="mb-10 font-display text-4xl uppercase md:text-6xl">Kebijakan Privasi</h1>
+
+      <div class="space-y-8 text-sm leading-relaxed text-primary md:text-base">
+        <p>Kami menggunakan informasi pelanggan untuk memproses pesanan, menghubungi terkait layanan, dan meningkatkan pengalaman belanja TuneBoss.</p>
+        <p>Data yang dapat kami kumpulkan meliputi nama, kontak, alamat pengiriman, riwayat pesanan, serta komunikasi yang dikirimkan melalui website.</p>
+        <p>Kami tidak menjual data pribadi pelanggan. Data hanya dibagikan kepada pihak yang diperlukan untuk pembayaran, pengiriman, dukungan teknis, atau kewajiban hukum.</p>
+        <p>Untuk permintaan akses, perubahan, atau penghapusan data, hubungi kami melalui email hello@tuneboss.id atau WhatsApp +62 817-5792-805.</p>
+      </div>
+    </section>
+  </main>
+</TuneBossChrome>

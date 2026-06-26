@@ -1,0 +1,40 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+---
+
+<head>
+  <title data-i18n="page.404.title">404 - Halaman Tidak Ditemukan | TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-background pt-24">
+    <div class="relative z-10 flex flex-col items-center justify-center px-6 text-center">
+      <h1 data-i18n="error.404" data-reveal class="mb-4 font-display font-black uppercase leading-none tracking-tighter text-primary/80" style="font-size: clamp(5rem, 12vw, 10rem);">
+        404
+      </h1>
+      <h2 data-i18n="error.notFound" data-reveal class="mb-6 font-display text-2xl font-light uppercase tracking-widest text-foreground/80 md:text-3xl">
+        Halaman Tidak Ditemukan
+      </h2>
+      <p data-i18n="error.notFoundCopy" data-reveal class="mx-auto mb-10 max-w-md text-sm font-light leading-relaxed text-foreground/60 md:text-base">
+        Maaf, halaman yang Anda cari mungkin telah dihapus, namanya diubah, atau sementara tidak tersedia.
+      </p>
+      
+      <div data-reveal>
+        <a href="/" class="group flex items-center justify-center border border-primary bg-background px-10 py-4 text-xs font-bold uppercase tracking-[0.2em] text-foreground transition-all duration-300 hover:bg-primary hover:text-background">
+          <span data-i18n="error.backHome" class="mr-2">Kembali ke Beranda</span>
+          <span class="transition-transform duration-300 group-hover:translate-x-1">&rsaquo;</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Decorative background elements -->
+    <div class="absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2">
+      <div class="h-[600px] w-[600px] rounded-full bg-primary/5 blur-[100px] filter"></div>
+    </div>
+  </main>
+</TuneBossChrome>

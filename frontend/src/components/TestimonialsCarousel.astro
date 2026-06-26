@@ -1,0 +1,61 @@
+---
+type Testimonial = {
+  name: string;
+  quote: string;
+};
+
+type Props = {
+  testimonials: Testimonial[];
+};
+
+const { testimonials } = Astro.props;
+const rows = [testimonials, testimonials.slice().reverse()];
+---
+
+<div class="group relative w-full overflow-hidden border-y border-primary/10 py-4">
+  <div class="pointer-events-none absolute left-0 top-0 z-10 h-full w-20 bg-gradient-to-r from-background to-transparent md:w-32" aria-hidden="true"></div>
+  <div class="pointer-events-none absolute right-0 top-0 z-10 h-full w-20 bg-gradient-to-l from-background to-transparent md:w-32" aria-hidden="true"></div>
+
+  {rows.map((row, index) => (
+    <div class={`testimonial-row flex w-max gap-6 px-6 py-3 ${index === 1 ? "testimonial-row-reverse" : ""}`}>
+      {[...row, ...row, ...row, ...row].map(({ name, quote }) => (
+        <figure class="testimonial-card w-[320px] flex-none border border-primary/10 bg-background/70 p-6 shadow-sm md:w-[420px]">
+          <div class="mb-5 flex gap-1 text-primary" aria-label="5 stars">
+            {Array.from({ length: 5 }).map(() => <span class="text-base leading-none">&#9733;</span>)}
+          </div>
+          <figcaption class="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-primary">{name}</figcaption>
+          <blockquote class="text-lg font-light leading-relaxed md:text-xl">"{quote}"</blockquote>
+        </figure>
+      ))}
+    </div>
+  ))}
+</div>
+
+<style>
+  .testimonial-row {
+    animation: testimonial-scroll 42s linear infinite;
+  }
+
+  .testimonial-row-reverse {
+    animation-direction: reverse;
+    animation-duration: 48s;
+  }
+
+  .testimonial-card {
+    transition: transform 0.25s ease;
+  }
+
+  .testimonial-card:hover {
+    transform: scale(1.04) rotate(1deg);
+  }
+
+  @keyframes testimonial-scroll {
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(-50%);
+    }
+  }
+</style>

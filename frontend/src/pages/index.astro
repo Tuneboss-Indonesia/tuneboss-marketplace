@@ -1,11 +1,151 @@
 ---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import PageHero from "@/components/PageHero.astro";
+import ProductCard from "@/components/ProductCard.astro";
+import TestimonialsCarousel from "@/components/TestimonialsCarousel.astro";
+import { ClientRouter } from "astro:transitions";
 import "@/styles/global.css";
+
+const products = [
+  { id: 1, brand: "TuneBoss", name: "Motorcycle ECU", price: "Rp. 599.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 2, brand: "TuneBoss", name: "ECU Flash Kit", price: "Rp. 299.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 3, brand: "TuneBoss", name: "Race Tuning Pack", price: "Rp. 449.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 4, brand: "TuneBoss", name: "Street Tune Pack", price: "Rp. 349.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 5, brand: "TuneBoss", name: "Quickshifter Module", price: "Rp. 249.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 6, brand: "TuneBoss", name: "Launch Control", price: "Rp. 399.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 7, brand: "TuneBoss", name: "Data Logger", price: "Rp. 199.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 8, brand: "TuneBoss", name: "Wiring Harness", price: "Rp. 149.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+];
+
+const testimonials = [
+  { name: "Rafi", quote: "Tarikan motor lebih responsif, setting terasa rapi, dan instalasinya cepat." },
+  { name: "Dimas", quote: "ECU TuneBoss bikin mapping harian tetap enak tapi siap dipakai gas lebih serius." },
+  { name: "Andra", quote: "Data real-time membantu banget buat baca karakter mesin setelah upgrade." },
+  { name: "Bagas", quote: "Produk solid, tampilan premium, dan aftersales-nya jelas." },
+  { name: "Yoga", quote: "Respons throttle lebih halus, enak dipakai harian dan tetap galak saat dibutuhkan." },
+  { name: "Fajar", quote: "Pemasangan mudah, hasil tuning terasa langsung dari putaran bawah." },
+];
 ---
 
-<main>
-  <section class="mx-auto grid min-h-[88vh] max-w-6xl content-center gap-10 px-5 py-8">
-    <div class="max-w-2xl">
-      <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-tune">TuneBoss Marketplace</p>
-    </div>
-  </section>
-</main>
+<head>
+  <title data-i18n="page.home.title">TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen w-full bg-background">
+    <PageHero
+      imageUrl="/tuneboss-logo.png"
+      videoUrl="/videos/motorcycle-ecu-tuneboss.mp4"
+      title="Performance"
+      subtitle="At Your Finger Tips."
+      titleKey="home.heroTitle"
+      subtitleKey="home.heroSubtitle"
+      heightClass="h-screen"
+      overlayClass="bg-black/35"
+      imageClass="object-cover object-top scale-[2] -translate-y-28 md:scale-150 md:-translate-y-24"
+      titleClass="text-primary"
+    />
+
+    <section class="mx-auto max-w-[1600px] overflow-hidden border-b border-primary/5 px-6 py-14 pb-20 md:px-12 md:py-24 md:pb-32">
+      <div class="flex flex-col gap-10 lg:flex-row lg:gap-32">
+        <div class="w-full shrink-0 lg:w-[38%]" data-reveal>
+          <h2 data-i18n="home.differenceEyebrow" class="mb-4 flex items-center text-xs font-bold uppercase tracking-[0.3em] text-primary">The TUNEBOSS Difference</h2>
+          <h3 class="mb-8 font-display text-3xl font-light uppercase leading-tight tracking-normal md:text-5xl">
+            <span data-i18n="home.beyond">Beyond</span> <br /><span data-i18n="home.ordinary" class="font-bold">Ordinary</span>
+          </h3>
+          <p data-i18n="home.differenceCopy" class="mb-10 text-sm font-light leading-relaxed text-primary">
+            We curate premium products with the same luxury retail rhythm: sharp visuals, deliberate motion, and a focused buying path.
+          </p>
+        </div>
+
+        <div class="grid w-full grid-cols-1 gap-x-16 gap-y-12 md:grid-cols-2 md:gap-y-20 lg:w-[62%]">
+          {[
+            ["home.feature1", "ECU Precision"],
+            ["home.feature2", "Real-Time Data"],
+            ["home.feature3", "Track-Ready Setup"],
+            ["home.feature4", "Reliable Control"],
+          ].map(([key, title]) => (
+            <div class="group" data-reveal>
+              <h4 data-i18n={key} class="mb-5 text-base font-bold uppercase tracking-widest md:text-lg">{title}</h4>
+              <p data-i18n="home.featureCopy" class="text-sm font-light leading-relaxed text-primary md:text-base">
+                A minimal, premium shopping surface with sharp visuals, deliberate motion, and a focused buying path.
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-[1600px] px-6 py-24 md:px-12">
+      <div class="mb-16 flex items-end justify-between border-b border-primary/10 pb-6">
+        <h2 data-i18n="home.ourProducts" class="font-display text-3xl font-light uppercase tracking-normal md:text-5xl" aria-label="Our Products">Our Products</h2>
+        <a data-i18n="home.viewAllProducts" href="/products" class="product-view-link hidden text-sm font-bold uppercase tracking-widest md:block">View All Products</a>
+      </div>
+      <div data-loadable data-load-delay="700">
+        <div data-skeleton class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 md:gap-12" aria-label="Loading products">
+          {Array.from({ length: 8 }).map(() => (
+            <div class="border border-primary/5 bg-background p-2 md:p-4">
+              <div class="skeleton-block aspect-[4/3] md:aspect-[16/10]"></div>
+              <div class="mt-8 space-y-4">
+                <div class="skeleton-block h-3 w-20"></div>
+                <div class="skeleton-block h-8 w-3/4"></div>
+                <div class="mt-10 flex items-end justify-between">
+                  <div class="space-y-3">
+                    <div class="skeleton-block h-3 w-10"></div>
+                    <div class="skeleton-block h-6 w-24"></div>
+                  </div>
+                  <div class="skeleton-block h-9 w-9"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div data-loaded-content class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 md:gap-12">
+          {products.slice(0, 8).map((item) => <ProductCard item={item} />)}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-[1600px] border-t border-primary/5 bg-secondary/10 py-24 dark:bg-black/20">
+      <div class="mb-16 flex flex-col items-center justify-center text-center">
+        <h2 data-i18n="home.partners" class="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-primary" aria-label="Testimonials">Testimonials</h2>
+        <h3 class="font-display text-3xl font-light uppercase tracking-normal md:text-5xl" aria-label="Rider Stories"><span data-i18n="home.worldClass">Rider</span> <strong data-i18n="home.engineering" class="font-bold">Stories</strong></h3>
+      </div>
+      <div data-loadable data-load-delay="900">
+        <div data-skeleton class="overflow-hidden border-y border-primary/10 py-4" aria-label="Loading testimonials">
+          {Array.from({ length: 2 }).map(() => (
+            <div class="flex w-max gap-6 px-6 py-3">
+              {Array.from({ length: 5 }).map(() => (
+                <div class="w-[320px] flex-none border border-primary/10 bg-background/70 p-6 md:w-[420px]">
+                  <div class="mb-5 flex gap-1">
+                    {Array.from({ length: 5 }).map(() => <div class="skeleton-block h-4 w-4"></div>)}
+                  </div>
+                  <div class="skeleton-block mb-4 h-3 w-24"></div>
+                  <div class="space-y-3">
+                    <div class="skeleton-block h-5 w-full"></div>
+                    <div class="skeleton-block h-5 w-4/5"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div data-loaded-content>
+          <TestimonialsCarousel testimonials={testimonials} />
+        </div>
+      </div>
+    </section>
+  </main>
+</TuneBossChrome>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    document.querySelectorAll("[data-loadable]").forEach((section) => {
+      section.classList.remove("is-loaded");
+      window.setTimeout(() => section.classList.add("is-loaded"), Number(section.getAttribute("data-load-delay") || 600));
+    });
+  });
+</script>

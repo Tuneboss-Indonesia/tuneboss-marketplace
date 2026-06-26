@@ -1,0 +1,51 @@
+---
+import { Image } from "astro:assets";
+import { ShoppingCart, Sparkles } from "lucide-react";
+import ecuImage from "../../public/images/tuneboss-motorcycle-ecu.png";
+import logoImage from "../../public/tuneboss-logo.png";
+
+const { item, recommended = false } = Astro.props;
+const imageSrc = item.image === "/images/tuneboss-motorcycle-ecu.png" ? ecuImage : item.image === "/tuneboss-logo.png" ? logoImage : null;
+---
+
+<div class="group relative h-full cursor-pointer" data-reveal>
+  <a href={`/products/${item.id}`} class="relative block h-full">
+    {recommended && (
+      <div class="absolute right-4 top-4 z-20 flex items-center space-x-2 border border-primary/20 bg-background/80 px-3 py-1.5 shadow-xl backdrop-blur-md">
+        <Sparkles size={12} className="text-primary" />
+        <span data-i18n="product.forYou" class="text-[10px] font-bold uppercase tracking-widest text-primary">For You</span>
+      </div>
+    )}
+    <div class="flex h-full flex-col overflow-hidden border border-transparent bg-background transition-all duration-500 hover:border-primary/10 group-hover:shadow-lg">
+      <div class="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-transparent p-2 md:aspect-[16/10] md:p-4">
+        {imageSrc ? (
+          <Image src={imageSrc} alt={item.name} loading="lazy" decoding="async" class="relative z-0 h-full w-full object-contain transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-2 group-hover:scale-110" />
+        ) : (
+          <>
+            <Image src={item.image} alt={item.name} loading="lazy" decoding="async" inferSize={true} class="relative z-0 h-full w-full object-contain transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-2 group-hover:scale-110" />
+          </>
+        )}
+      </div>
+      <div class="relative flex flex-grow flex-col justify-between border-b border-primary/5 bg-background px-4 pb-4 pt-6 transition-colors duration-500 group-hover:border-primary/30 md:px-5">
+        <div class="flex flex-col space-y-1">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{item.brand}</p>
+          </div>
+          <div class="flex items-end justify-between pb-2">
+            <p class="text-xl font-bold uppercase leading-none tracking-wide md:text-2xl">{item.name}</p>
+          </div>
+        </div>
+        <div class="mt-6 flex items-end justify-between pr-12">
+          <div>
+            <p data-i18n="product.from" class="mb-1 text-xs font-light text-primary">From</p>
+            <span class="text-lg font-light md:text-xl">{item.price}</span>
+          </div>
+          <span class="text-[10px] font-bold uppercase tracking-widest transition-colors group-hover:text-primary"><span data-i18n="product.explore">EXPLORE</span> &rsaquo;</span>
+        </div>
+      </div>
+    </div>
+  </a>
+  <button data-add-cart data-product-id={item.id} data-product-name={item.name} data-product-price={item.price} data-product-image={item.image} class="absolute bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center border border-primary/20 bg-background text-foreground transition-all duration-300 hover:border-primary hover:bg-primary hover:text-background md:right-5" type="button" aria-label={`Tambah ${item.name} ke keranjang`}>
+    <ShoppingCart size={17} strokeWidth={1.8} />
+  </button>
+</div>

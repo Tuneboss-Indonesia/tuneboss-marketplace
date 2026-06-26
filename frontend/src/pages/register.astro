@@ -1,0 +1,87 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+---
+
+<head>
+  <title data-i18n="page.register.title">Buat Akun | TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+    <section class="mx-auto max-w-2xl">
+      <div class="mb-10">
+        <p data-i18n="account.title" class="mb-5 text-xs font-bold uppercase tracking-[0.35em] text-primary">Account</p>
+        <h1 data-i18n="auth.registerTitle" class="font-display text-4xl uppercase md:text-6xl">Create Account</h1>
+        <p data-i18n="auth.registerCopy" class="mt-6 max-w-lg text-base leading-relaxed text-primary md:text-lg">Create an account to save your TuneBoss orders and details.</p>
+      </div>
+
+      <form class="w-full space-y-6">
+        <label class="block">
+          <span data-i18n="auth.name" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Name</span>
+          <input data-i18n-placeholder="auth.namePlaceholder" class="auth-page-input" type="text" placeholder="TuneBoss Rider" required />
+        </label>
+
+        <label class="block">
+          <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
+          <input data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input" type="email" placeholder="hello@tuneboss.id" required />
+        </label>
+
+        <label class="block">
+          <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
+          <span class="relative block">
+            <input data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input pr-12" type="password" placeholder="Enter your password" required />
+            <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
+              <Eye data-eye-show size={20} strokeWidth={1.8} />
+              <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
+            </button>
+          </span>
+        </label>
+
+        <button data-i18n="auth.createAccount" class="w-full bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Create Account</button>
+
+        <a href="/login" class="flex items-center justify-center gap-3 border border-primary/20 px-5 py-4 text-sm font-bold uppercase tracking-[0.22em] transition-colors hover:border-primary hover:text-primary">
+          <LogIn size={17} strokeWidth={1.7} />
+          <span data-i18n="auth.backToSignin">Back to Sign In</span>
+        </a>
+      </form>
+    </section>
+  </main>
+</TuneBossChrome>
+
+<style>
+  .auth-page-input {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    background: transparent;
+    padding: 1rem;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .auth-page-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+</style>
+
+<script>
+  document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = button.parentElement?.querySelector("[data-auth-password]");
+      if (!(input instanceof HTMLInputElement)) return;
+      const visible = input.type === "text";
+      input.type = visible ? "password" : "text";
+      button.querySelector("[data-eye-show]")?.classList.toggle("hidden", !visible);
+      button.querySelector("[data-eye-hide]")?.classList.toggle("hidden", visible);
+    });
+  });
+
+  document.querySelector("form")?.addEventListener("submit", (event) => event.preventDefault());
+</script>
