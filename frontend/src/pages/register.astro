@@ -9,6 +9,7 @@ export const prerender = false;
 
 <head>
   <title data-i18n="page.register.title">Buat Akun | TuneBoss ID</title>
+  <meta name="description" content="Buat akun TuneBoss ID untuk menyimpan detail pesanan dan mempercepat proses checkout." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
   <ClientRouter />
@@ -39,7 +40,7 @@ export const prerender = false;
         <label class="block">
           <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
           <span class="relative block">
-            <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input pr-12" type="password" placeholder="Kata sandi Anda" />
+            <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input pr-12" type="password" autocomplete="new-password" placeholder="Kata sandi Anda" />
             <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
               <Eye data-eye-show size={20} strokeWidth={1.8} />
               <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -51,7 +52,7 @@ export const prerender = false;
         <label class="block">
           <span data-i18n="auth.confirmPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Confirm Password</span>
           <span class="relative block">
-            <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-page-input pr-12" type="password" placeholder="Konfirmasi sandi Anda" />
+            <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-page-input pr-12" type="password" autocomplete="new-password" placeholder="Konfirmasi sandi Anda" />
             <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
               <Eye data-eye-show size={20} strokeWidth={1.8} />
               <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />

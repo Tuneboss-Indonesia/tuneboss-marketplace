@@ -16,7 +16,6 @@ import logo from "../../public/tuneboss-logo.png";
   }
 </style>
 
-
 <nav data-navbar class="fixed left-0 top-0 z-40 w-full border-b border-primary/10 bg-background/95 py-4 text-foreground shadow-sm backdrop-blur-lg transition-all duration-500">
   <div class="mx-auto flex max-w-[1600px] items-center justify-between px-5 md:px-12">
     <div class="flex flex-1 justify-start">
@@ -186,7 +185,7 @@ import logo from "../../public/tuneboss-logo.png";
       <label class="block">
         <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
         <span class="relative block">
-          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" placeholder="Kata sandi Anda" />
+          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" autocomplete="current-password" placeholder="Kata sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -238,7 +237,7 @@ import logo from "../../public/tuneboss-logo.png";
       <label class="block">
         <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
         <span class="relative block">
-          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" placeholder="Kata sandi Anda" />
+          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" autocomplete="new-password" placeholder="Kata sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -249,7 +248,7 @@ import logo from "../../public/tuneboss-logo.png";
       <label class="block">
         <span data-i18n="auth.confirmPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Confirm Password</span>
         <span class="relative block">
-          <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-input pr-12" type="password" placeholder="Konfirmasi sandi Anda" />
+          <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-input pr-12" type="password" autocomplete="new-password" placeholder="Konfirmasi sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
