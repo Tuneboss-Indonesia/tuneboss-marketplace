@@ -1,6 +1,6 @@
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
-import node from "@astrojs/node";
+import vercel from "@astrojs/vercel";
 import { defineConfig, envField } from "astro/config";
 
 export default defineConfig({
@@ -9,9 +9,7 @@ export default defineConfig({
       PUBLIC_API_URL: envField.string({ context: "client", access: "public", default: "http://localhost:8000/api" }),
     },
   },
-  adapter: node({
-    mode: "standalone"
-  }),
+  adapter: vercel(),
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],

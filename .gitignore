@@ -7,3 +7,5 @@ dist
 .agents/
 .omx/
 .codex/
+.vercel
+.vercel/
