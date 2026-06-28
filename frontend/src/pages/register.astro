@@ -27,13 +27,13 @@ export const prerender = false;
       <form class="w-full space-y-6" novalidate>
         <label class="block">
           <span data-i18n="auth.name" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Name</span>
-          <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-page-input" type="text" placeholder="Nama Anda" />
+          <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-page-input" type="text" autocomplete="name" placeholder="Nama Anda" />
           <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
         <label class="block">
           <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input" type="email" placeholder="Email Anda" />
+          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input" type="email" autocomplete="username" placeholder="Email Anda" />
           <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
