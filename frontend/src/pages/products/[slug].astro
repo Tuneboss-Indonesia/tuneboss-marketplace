@@ -1,8 +1,10 @@
 ---
+import { Image } from "astro:assets";
 import { ClientRouter } from "astro:transitions";
 import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Star, Tag } from "lucide-react";
 import ProductCard from "@/components/ProductCard.astro";
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import ecuImage from "../../../public/images/tuneboss-motorcycle-ecu.png";
 import "@/styles/global.css";
 
 export function getStaticPaths() {
@@ -194,7 +196,7 @@ const reviews = [
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background pt-24">
-    <section data-loadable data-load-delay="700" class="mx-auto max-w-[1500px] px-6 pb-24 md:px-12">
+    <section data-loadable data-load-delay="700" class="is-loaded mx-auto max-w-[1500px] px-6 pb-24 md:px-12">
       <div data-skeleton class="grid gap-10 lg:grid-cols-2">
         <div class="space-y-5">
           <div class="skeleton-block h-4 w-56"></div>
@@ -248,7 +250,7 @@ const reviews = [
               <button data-gallery-prev class="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-primary/15 bg-background/80 transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button" aria-label="Gambar sebelumnya">
                 <ChevronLeft size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>
-              <img data-gallery-main src={gallery[0]} alt={product.name} decoding="async" class="h-full w-full object-contain transition-transform duration-700 hover:scale-105" />
+              <Image data-gallery-main src={ecuImage} alt={product.name} loading="eager" class="h-full w-full object-contain transition-transform duration-700 hover:scale-105" />
               <button data-gallery-next class="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-primary/15 bg-background/80 transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button" aria-label="Gambar berikutnya">
                 <ChevronRight size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>

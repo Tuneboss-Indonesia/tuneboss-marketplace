@@ -4,6 +4,7 @@ import vercel from "@astrojs/vercel";
 import { defineConfig, envField } from "astro/config";
 
 export default defineConfig({
+  site: "https://dev.fe-marketplace.panjiihsanudinfajri.my.id",
   env: {
     schema: {
       PUBLIC_API_URL: envField.string({ context: "client", access: "public", default: "http://localhost:8000/api" }),
