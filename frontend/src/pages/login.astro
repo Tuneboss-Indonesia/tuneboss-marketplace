@@ -10,7 +10,7 @@ import "@/styles/global.css";
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
   <ClientRouter />
-  <script>
+  <script is:inline>
     if (localStorage.getItem("tuneboss-auth") === "true") {
       window.location.replace("/dashboard");
     }
