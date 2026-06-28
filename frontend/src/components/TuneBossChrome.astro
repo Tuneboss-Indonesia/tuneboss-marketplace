@@ -1090,7 +1090,7 @@ import logo from "../../public/tuneboss-logo.png";
       showToast(copy[lang][titleKey], copy[lang][copyKey]);
       form.closest("dialog")?.close();
 
-      localStorage.setItem("tuneboss-auth", "true");
+      document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
       if (typeof window.checkAuthStatus === "function") window.checkAuthStatus();
       else window.location.reload();
     }, { signal });
@@ -1167,7 +1167,7 @@ import logo from "../../public/tuneboss-logo.png";
   setLanguage(localStorage.getItem("lang") === "en" ? "en" : "id");
 
   window.checkAuthStatus = () => {
-    const isLoggedIn = localStorage.getItem("tuneboss-auth") === "true";
+    const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
     document.querySelectorAll("[data-auth-guest]").forEach(el => el.classList.toggle("hidden", isLoggedIn));
     document.querySelectorAll("[data-auth-user]").forEach(el => {
       if (isLoggedIn) {
@@ -1202,7 +1202,7 @@ import logo from "../../public/tuneboss-logo.png";
 
   document.querySelectorAll("[data-auth-logout]").forEach(btn => {
     btn.addEventListener("click", () => {
-      localStorage.removeItem("tuneboss-auth");
+      document.cookie = "tuneboss-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       window.checkAuthStatus();
       setMenu(false);
       window.location.href = "/";
@@ -1236,21 +1236,6 @@ import logo from "../../public/tuneboss-logo.png";
 
   initTuneBossChrome();
   document.addEventListener("astro:page-load", initTuneBossChrome);
-
-  document.addEventListener("astro:before-preparation", (event) => {
-    const url = event.to;
-    const isAuthPage = url.pathname === "/login" || url.pathname === "/register";
-    const isProtectedRoute = url.pathname === "/dashboard" || url.pathname === "/cart";
-    const isLoggedIn = localStorage.getItem("tuneboss-auth") === "true";
-
-    if (isAuthPage && isLoggedIn) {
-      event.preventDefault();
-      window.location.replace("/dashboard");
-    } else if (isProtectedRoute && !isLoggedIn) {
-      event.preventDefault();
-      window.location.replace("/login");
-    }
-  });
 
   document.addEventListener("astro:before-swap", (event) => {
     const safeLang = localStorage.getItem("lang") === "en" ? "en" : "id";

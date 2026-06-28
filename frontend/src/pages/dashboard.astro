@@ -2,6 +2,8 @@
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import { ClientRouter } from "astro:transitions";
 import "@/styles/global.css";
+
+export const prerender = false;
 ---
 
 <head>
@@ -9,11 +11,6 @@ import "@/styles/global.css";
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
   <ClientRouter />
-  <script is:inline>
-    if (localStorage.getItem("tuneboss-auth") !== "true") {
-      window.location.replace("/login");
-    }
-  </script>
 </head>
 
 <TuneBossChrome>

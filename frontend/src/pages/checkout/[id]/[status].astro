@@ -111,14 +111,4 @@ export const prerender = false;
     
     observer.observe(document.documentElement, { attributes: true });
   });
-
-  const protectCheckout = () => {
-    if (localStorage.getItem("tuneboss-auth") !== "true") {
-      window.location.replace("/login");
-    }
-    // You can also add more strict checks here, such as verifying the orderId in a database or local state.
-  };
-
-  protectCheckout();
-  document.addEventListener("astro:page-load", protectCheckout);
 </script>
