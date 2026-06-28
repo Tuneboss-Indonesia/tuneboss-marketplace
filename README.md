@@ -58,6 +58,8 @@ npm run build
 cd ../frontend
 npm run lint
 npm run doctor
+npx @santi020k/astro-doctor
+npx astro check
 npm run typecheck
 npm run build
 ```

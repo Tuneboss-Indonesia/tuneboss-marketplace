@@ -41,7 +41,8 @@ http://localhost:4321
 ```bash
 npm run lint
 npm run doctor
-npx @santi020k/astro-doctor --no-score
+npx @santi020k/astro-doctor
+npx astro check
 npm run typecheck
 npm run build
 ```
