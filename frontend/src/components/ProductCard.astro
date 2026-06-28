@@ -6,10 +6,17 @@ import logoImage from "../../public/tuneboss-logo.png";
 
 const { item, recommended = false } = Astro.props;
 const imageSrc = item.image === "/images/tuneboss-motorcycle-ecu.png" ? ecuImage : item.image === "/tuneboss-logo.png" ? logoImage : null;
+const slugify = (value: string) =>
+  String(value)
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+const productHref = `/products/${item.slug ?? slugify(item.name)}`;
 ---
 
 <div class="group relative h-full cursor-pointer" data-reveal>
-  <a href={`/products/${item.id}`} class="relative block h-full">
+  <a href={productHref} class="relative block h-full">
     {recommended && (
       <div class="absolute right-4 top-4 z-20 flex items-center space-x-2 border border-primary/20 bg-background/80 px-3 py-1.5 shadow-xl backdrop-blur-md">
         <Sparkles size={12} className="text-primary" />

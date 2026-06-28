@@ -10,6 +10,11 @@ import "@/styles/global.css";
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
   <ClientRouter />
+  <script>
+    if (localStorage.getItem("tuneboss-auth") === "true") {
+      window.location.replace("/dashboard");
+    }
+  </script>
 </head>
 
 <TuneBossChrome>
@@ -21,21 +26,23 @@ import "@/styles/global.css";
         <p data-i18n="auth.loginCopy" class="mt-6 max-w-lg text-base leading-relaxed text-primary md:text-lg">Sign in to view your TuneBoss account and orders.</p>
       </div>
 
-      <form class="w-full space-y-6">
+      <form class="w-full space-y-6" novalidate>
         <label class="block">
           <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-          <input data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input" type="email" placeholder="hello@tuneboss.id" required />
+          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input" type="email" placeholder="Email Anda" />
+          <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
         <label class="block">
           <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
           <span class="relative block">
-            <input data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input pr-12" type="password" placeholder="Enter your password" required />
+            <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input pr-12" type="password" placeholder="Kata sandi Anda" />
             <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
               <Eye data-eye-show size={20} strokeWidth={1.8} />
               <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
             </button>
           </span>
+          <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
         <div class="flex items-center justify-between gap-4 text-sm">
@@ -43,7 +50,7 @@ import "@/styles/global.css";
             <input class="h-4 w-4 accent-primary" type="checkbox" />
             <span data-i18n="auth.remember">Remember me</span>
           </label>
-          <button data-i18n="auth.forgot" class="tuneboss-link text-[10px]" type="button">Forgot password?</button>
+          <button data-i18n="auth.forgot" class="text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-primary" type="button">Forgot password?</button>
         </div>
 
         <button data-i18n="auth.signin" class="w-full bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Sign In</button>
@@ -75,16 +82,61 @@ import "@/styles/global.css";
 </style>
 
 <script>
-  document.querySelectorAll("[data-password-toggle]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const input = button.parentElement?.querySelector("[data-auth-password]");
-      if (!(input instanceof HTMLInputElement)) return;
-      const visible = input.type === "text";
-      input.type = visible ? "password" : "text";
-      button.querySelector("[data-eye-show]")?.classList.toggle("hidden", !visible);
-      button.querySelector("[data-eye-hide]")?.classList.toggle("hidden", visible);
-    });
-  });
+  import { z } from "zod";
 
-  document.querySelector("form")?.addEventListener("submit", (event) => event.preventDefault());
+  const bindLoginPage = () => {
+    if (localStorage.getItem("tuneboss-auth") === "true") {
+      window.location.replace("/dashboard");
+      return;
+    }
+
+    const form = document.querySelector("form");
+    if (form instanceof HTMLFormElement && form.dataset.bound !== "true") {
+      form.dataset.bound = "true";
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const emailInput = form.elements.namedItem("email");
+        const passwordInput = form.elements.namedItem("password");
+
+        form.querySelectorAll(".auth-error").forEach(el => {
+          el.textContent = "";
+          el.classList.add("hidden");
+        });
+
+        const schema = z.object({
+          email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
+          password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+        });
+
+        const formData = {
+          email: emailInput instanceof HTMLInputElement ? emailInput.value : "",
+          password: passwordInput instanceof HTMLInputElement ? passwordInput.value : "",
+        };
+
+        const result = schema.safeParse(formData);
+
+        if (!result.success) {
+          result.error.issues.forEach(issue => {
+            const field = String(issue.path[0]);
+            const input = form.elements.namedItem(field);
+            if (input instanceof HTMLElement) {
+              const errorContainer = input.closest("label")?.querySelector(".auth-error");
+              if (errorContainer) {
+                errorContainer.textContent = issue.message;
+                errorContainer.classList.remove("hidden");
+              }
+            }
+          });
+          return;
+        }
+
+        localStorage.setItem("tuneboss-auth", "true");
+        window.location.replace("/dashboard");
+      });
+    }
+  };
+
+  bindLoginPage();
+  document.addEventListener("astro:page-load", bindLoginPage);
 </script>

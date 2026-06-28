@@ -7,23 +7,23 @@ import { ClientRouter } from "astro:transitions";
 import "@/styles/global.css";
 
 const products = [
-  { id: 1, brand: "TuneBoss", name: "Motorcycle ECU", price: "Rp. 599.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 2, brand: "TuneBoss", name: "ECU Flash Kit", price: "Rp. 299.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 3, brand: "TuneBoss", name: "Race Tuning Pack", price: "Rp. 449.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 4, brand: "TuneBoss", name: "Street Tune Pack", price: "Rp. 349.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 5, brand: "TuneBoss", name: "Quickshifter Module", price: "Rp. 249.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 6, brand: "TuneBoss", name: "Launch Control", price: "Rp. 399.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 7, brand: "TuneBoss", name: "Data Logger", price: "Rp. 199.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 8, brand: "TuneBoss", name: "Wiring Harness", price: "Rp. 149.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 9, brand: "TuneBoss", name: "Fuel Controller", price: "Rp. 329.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 10, brand: "TuneBoss", name: "Ignition Module", price: "Rp. 279.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 11, brand: "TuneBoss", name: "Pit Limiter", price: "Rp. 189.000", image: "/images/tuneboss-motorcycle-ecu.png" },
-  { id: 12, brand: "TuneBoss", name: "Race Harness", price: "Rp. 229.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 1, brand: "Honda", name: "Motorcycle ECU", price: "Rp. 599.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 2, brand: "Yamaha", name: "ECU Flash Kit", price: "Rp. 299.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 3, brand: "Kawasaki", name: "Race Tuning Pack", price: "Rp. 449.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 4, brand: "Suzuki", name: "Street Tune Pack", price: "Rp. 349.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 5, brand: "Honda", name: "Quickshifter Module", price: "Rp. 249.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 6, brand: "Yamaha", name: "Launch Control", price: "Rp. 399.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 7, brand: "Kawasaki", name: "Data Logger", price: "Rp. 199.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 8, brand: "Suzuki", name: "Wiring Harness", price: "Rp. 149.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 9, brand: "Honda", name: "Fuel Controller", price: "Rp. 329.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 10, brand: "Yamaha", name: "Ignition Module", price: "Rp. 279.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 11, brand: "Kawasaki", name: "Pit Limiter", price: "Rp. 189.000", image: "/images/tuneboss-motorcycle-ecu.png" },
+  { id: 12, brand: "Suzuki", name: "Race Harness", price: "Rp. 229.000", image: "/images/tuneboss-motorcycle-ecu.png" },
 ];
 
 const pageSize = 9;
 const pageCount = Math.ceil(products.length / pageSize);
-const filters = [
+const filters: [string, string, string[]][] = [
   ["products.brand", "Filter by Brand", ["All Brands", "Honda", "Kawasaki", "Suzuki", "Yamaha"]],
   ["products.year", "Sort by Add", ["Default", "Oldest to Newest", "Newest to Oldest"]],
   ["products.price", "Sort by Price", ["Default", "Lowest to Highest", "Highest to Lowest"]],
@@ -32,7 +32,7 @@ const filters = [
 ---
 
 <head>
-  <title data-i18n="page.products.title">Produk | TuneBoss</title>
+  <title data-i18n="page.products.title">Produk | TuneBoss ID</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
   <ClientRouter />
@@ -153,7 +153,7 @@ const filters = [
     const buttons = document.querySelectorAll("[data-page-button]");
     const searchInput = document.querySelector("[data-i18n-placeholder='products.searchPlaceholder']");
 
-    const showPage = (page) => {
+    const showPage = (page: string) => {
       cards.forEach((card) => card.classList.toggle("hidden", card.getAttribute("data-page") !== page));
       buttons.forEach((button) => {
         const active = button.getAttribute("data-page-button") === page;
@@ -168,7 +168,7 @@ const filters = [
       const trigger = select.querySelector("[data-select-button]");
       const menu = select.querySelector("[data-select-menu]");
       const value = select.querySelector("[data-select-value]");
-      const setOpen = (open) => {
+      const setOpen = (open: boolean) => {
         trigger?.setAttribute("aria-expanded", String(open));
         menu?.classList.toggle("visible", open);
         menu?.classList.toggle("opacity-100", open);

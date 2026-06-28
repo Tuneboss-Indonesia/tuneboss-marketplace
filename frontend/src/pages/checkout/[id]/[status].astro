@@ -1,0 +1,124 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+
+export const prerender = false;
+---
+
+<head>
+  <title>Status Pesanan | TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12 flex flex-col items-center justify-center">
+    <section class="mx-auto w-full max-w-2xl text-center">
+      <div id="status-container" class="opacity-0 transition-opacity duration-700">
+        <!-- Text Content -->
+        <div class="mb-10">
+          <p data-i18n="checkout.eyebrow" class="mb-5 text-xs font-bold uppercase tracking-[0.35em] text-primary">Checkout</p>
+          <h1 id="status-title" class="font-display text-4xl uppercase tracking-wider md:text-6xl">Memuat...</h1>
+          <p id="status-message" class="mx-auto mt-6 max-w-lg text-base leading-relaxed text-foreground/70 md:text-lg">
+            Mohon tunggu, kami sedang memeriksa status pesanan Anda.
+          </p>
+          <p id="status-order-id" class="mt-8 text-sm font-bold tracking-widest text-primary"></p>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</TuneBossChrome>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    const container = document.getElementById("status-container");
+    const statusTitle = document.getElementById("status-title");
+    const statusMessage = document.getElementById("status-message");
+    
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    // Path: /checkout/[id]/[status] => parts: ["checkout", id, status]
+    const orderId = parts[1] || "TB-UNKNOWN";
+    const rawStatus = parts[2] || "success";
+    const status = (["success", "failed", "pending"].includes(rawStatus) ? rawStatus : "success") as "success" | "failed" | "pending";
+
+    const content = {
+      id: {
+        success: {
+          title: "Pembayaran Berhasil",
+          message: "Terima kasih! Pesanan Anda telah berhasil diproses dan sedang kami siapkan untuk pengiriman.",
+        },
+        failed: {
+          title: "Pembayaran Gagal",
+          message: "Maaf, kami tidak dapat memproses pembayaran Anda. Silakan coba lagi atau gunakan metode pembayaran lain.",
+        },
+        pending: {
+          title: "Menunggu Pembayaran",
+          message: "Pesanan Anda sedang menunggu penyelesaian pembayaran. Silakan selesaikan pembayaran sesuai instruksi.",
+        }
+      },
+      en: {
+        success: {
+          title: "Payment Successful",
+          message: "Thank you! Your order has been successfully processed and is being prepared for shipment.",
+        },
+        failed: {
+          title: "Payment Failed",
+          message: "Sorry, we couldn't process your payment. Please try again or use a different payment method.",
+        },
+        pending: {
+          title: "Awaiting Payment",
+          message: "Your order is awaiting payment completion. Please complete the payment according to the instructions.",
+        }
+      }
+    };
+
+    const updateContent = () => {
+      const lang = document.documentElement.lang === "en" ? "en" : "id";
+      const currentContent = content[lang][status] || content[lang].success;
+
+      // Apply Content
+      if (statusTitle) statusTitle.textContent = currentContent.title;
+      if (statusMessage) statusMessage.textContent = currentContent.message;
+      
+      const orderIdEl = document.getElementById("status-order-id");
+      if (orderIdEl) {
+        orderIdEl.textContent = lang === "en" ? `ORDER ID: ${orderId}` : `ID PESANAN: ${orderId}`;
+      }
+      
+      // Apply Tab Title
+      document.title = `${currentContent.title} | TuneBoss ID`;
+    };
+
+    updateContent();
+
+    // Show Container with animation
+    requestAnimationFrame(() => {
+      if (container) {
+        container.classList.remove("opacity-0");
+        container.classList.add("opacity-100");
+      }
+    });
+
+    // Listen for language toggles which update html lang attribute
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "lang") updateContent();
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+  });
+
+  const protectCheckout = () => {
+    if (localStorage.getItem("tuneboss-auth") !== "true") {
+      window.location.replace("/login");
+    }
+    // You can also add more strict checks here, such as verifying the orderId in a database or local state.
+  };
+
+  protectCheckout();
+  document.addEventListener("astro:page-load", protectCheckout);
+</script>

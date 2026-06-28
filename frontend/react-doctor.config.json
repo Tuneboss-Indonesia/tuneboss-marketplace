@@ -1,0 +1,6 @@
+{
+  "ignore": [
+    "**/AlertDialog.astro",
+    "**/package.json"
+  ]
+}

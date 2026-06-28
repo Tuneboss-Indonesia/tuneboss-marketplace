@@ -1,0 +1,10 @@
+{
+  "ignore": [
+    "**/package.json",
+    "**\\package.json",
+    "prefer-pnpm"
+  ],
+  "rules": {
+    "deslop/unused-dependency": "off"
+  }
+}

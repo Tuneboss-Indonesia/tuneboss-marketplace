@@ -76,6 +76,19 @@ button {
   font: inherit;
 }
 
+input,
+textarea {
+  color: var(--foreground);
+}
+
+input::placeholder,
+textarea::placeholder,
+.auth-input::placeholder,
+.auth-page-input::placeholder {
+  color: color-mix(in srgb, var(--foreground) 58%, transparent);
+  opacity: 1;
+}
+
 .product-view-link {
   transition: color 0.3s ease;
 }

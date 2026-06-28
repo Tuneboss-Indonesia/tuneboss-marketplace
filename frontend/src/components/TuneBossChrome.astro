@@ -1,9 +1,21 @@
 ---
 import { Image } from "astro:assets";
-import { ArrowUp, ChevronRight, Eye, EyeOff, Home, LogIn, Moon, Package, ShoppingBag, Sun, User, UserPlus, X, Truck } from "lucide-react";
-import { FaFacebookF, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa6";
+import { ArrowUp, ChevronRight, Eye, EyeOff, Home, LogIn, Moon, Package, ShoppingBag, Sun, User, UserPlus, X, Truck, LogOut } from "lucide-react";
+import { FaFacebookF, FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa6";
 import logo from "../../public/tuneboss-logo.png";
 ---
+<script is:inline>
+  if (localStorage.getItem("lang") === "en") {
+    document.documentElement.classList.add("lang-en-loading");
+  }
+</script>
+<style is:inline>
+  html.lang-en-loading body {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+</style>
+
 
 <nav data-navbar class="fixed left-0 top-0 z-40 w-full border-b border-primary/10 bg-background/95 py-4 text-foreground shadow-sm backdrop-blur-lg transition-all duration-500">
   <div class="mx-auto flex max-w-[1600px] items-center justify-between px-5 md:px-12">
@@ -24,7 +36,7 @@ import logo from "../../public/tuneboss-logo.png";
 
     <div class="z-50 flex flex-1 items-center justify-end space-x-4 md:space-x-6">
       <button data-lang-toggle class="hidden text-xs font-bold uppercase tracking-widest transition-colors hover:text-primary md:block md:text-sm" type="button" aria-label="Toggle Language">ID</button>
-      <button data-theme-toggle class="hidden transition-transform duration-500 hover:rotate-180 md:block" type="button" aria-label="Toggle Theme">
+      <button data-theme-toggle class="group hidden transition-transform duration-500 hover:rotate-180 hover:text-primary md:block" type="button" aria-label="Toggle Theme">
         <Sun data-sun size={20} strokeWidth={2} className="hidden transition-colors group-hover:text-primary dark:block" />
         <Moon data-moon size={20} strokeWidth={2} className="block transition-colors group-hover:text-primary dark:hidden" />
       </button>
@@ -32,9 +44,12 @@ import logo from "../../public/tuneboss-logo.png";
         <ShoppingBag size={20} strokeWidth={2} className="transition-colors group-hover:text-primary" />
         <span data-cart-badge class="invisible absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">0</span>
       </button>
-      <button data-auth-open="login" class="group transition-transform duration-300 hover:scale-110" type="button" aria-label="Account">
+      <button data-auth-open="login" data-auth-icon-guest class="group transition-transform duration-300 hover:scale-110" type="button" aria-label="Account">
         <User size={20} strokeWidth={2} className="transition-colors group-hover:text-primary" />
       </button>
+      <a href="/dashboard" data-auth-icon-user class="hidden group transition-transform duration-300 hover:scale-110" aria-label="Dashboard">
+        <User size={20} strokeWidth={2} className="text-primary transition-colors hover:text-primary/80" />
+      </a>
     </div>
   </div>
 </nav>
@@ -47,19 +62,22 @@ import logo from "../../public/tuneboss-logo.png";
       <a href="/" aria-label="TuneBoss Home">
         <Image src={logo} alt="TuneBoss" class="h-9 w-auto object-contain" loading="eager" />
       </a>
-      <button data-menu-close class="group flex h-11 w-11 items-center justify-center rounded-full border border-primary/10 bg-secondary/10 transition-all duration-300 hover:rotate-90 hover:border-primary hover:bg-primary/10" type="button" aria-label="Close menu">
-        <X size={20} strokeWidth={1.5} className="transition-colors group-hover:text-primary" />
+      <button data-menu-close class="group p-2 transition-colors hover:text-primary" type="button" aria-label="Close menu">
+        <X size={22} strokeWidth={1.6} className="transition-colors group-hover:text-primary" />
       </button>
     </div>
 
     <div class="flex-grow overflow-y-auto px-10 py-6">
       <ul class="flex flex-col space-y-2">
-        {[
-          ["Home", "/", Home],
-          ["Products", "/products", Package],
-          ["Keranjang", "/cart", ShoppingBag],
-          ["Lacak Pesanan", "/tracking", Truck],
-        ].map(([name, path, Icon], index) => (
+        {(
+          [
+            ["Home", "/", Home],
+            ["Products", "/products", Package],
+            ["Keranjang", "/cart", ShoppingBag],
+            ["Lacak Pesanan", "/tracking", Truck],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ] as [string, string, any][]
+        ).map(([name, path, Icon], index) => (
           <li class="translate-x-[-2rem] opacity-0 transition-all duration-500" data-menu-item style={`transition-delay: ${100 + index * 100}ms`}>
             <a href={path} aria-label={name} class="group relative flex items-center justify-between overflow-hidden border-b border-primary/5 py-5 transition-colors duration-300 hover:border-primary/30">
               <span class="flex items-center gap-4 text-2xl font-light tracking-wide transition-all duration-300 group-hover:translate-x-2 group-hover:text-primary">
@@ -82,7 +100,7 @@ import logo from "../../public/tuneboss-logo.png";
         </button>
       </div>
       <p data-i18n="account.title" class="mb-4 text-[10px] uppercase tracking-[0.3em] text-primary">Account</p>
-      <div class="flex flex-col space-y-4">
+      <div data-auth-guest class="flex flex-col space-y-4">
         <a href="/login" aria-label="Sign In" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest">
           <LogIn size={16} strokeWidth={1.5} />
           <span data-i18n="account.signin">Sign In</span>
@@ -91,6 +109,16 @@ import logo from "../../public/tuneboss-logo.png";
           <UserPlus size={16} strokeWidth={1.5} />
           <span data-i18n="account.create">Create Account</span>
         </a>
+      </div>
+      <div data-auth-user class="hidden flex-col space-y-4">
+        <a href="/dashboard" aria-label="Dashboard" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest">
+          <User size={16} strokeWidth={1.5} />
+          <span data-i18n="account.dashboard">Dashboard</span>
+        </a>
+        <button data-auth-logout aria-label="Sign Out" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest" type="button">
+          <LogOut size={16} strokeWidth={1.5} />
+          <span data-i18n="account.signout">Sign Out</span>
+        </button>
       </div>
     </div>
   </aside>
@@ -121,15 +149,19 @@ import logo from "../../public/tuneboss-logo.png";
       </div>
       <div class="grid grid-cols-2 gap-3">
         <button data-cart-close class="border border-primary/20 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">Lanjut Belanja</button>
-        <button class="bg-primary px-4 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" type="button">Checkout</button>
+        <button data-cart-checkout-btn class="bg-primary px-4 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" type="button">Checkout</button>
       </div>
     </div>
   </aside>
 </div>
 
-<button data-back-top class="invisible fixed bottom-8 right-5 z-50 flex h-11 w-11 translate-y-3 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#c95b04] md:right-8" type="button" aria-label="Back to top">
+<button data-back-top class="invisible fixed bottom-16 right-5 z-50 flex h-11 w-11 translate-y-3 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#c95b04] md:bottom-8 md:right-8" type="button" aria-label="Back to top">
   <ArrowUp size={18} strokeWidth={1.8} />
 </button>
+
+<a data-wa-float href="https://wa.me/628175792805" target="_blank" rel="noreferrer" class="fixed bottom-16 left-5 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#c95b04] md:bottom-8 md:left-8" aria-label="Hubungi TuneBoss via WhatsApp">
+  <FaWhatsapp size={20} className="text-white" aria-hidden="true" />
+</a>
 
 <div data-toast-root class="fixed right-4 top-24 z-[60] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 md:right-8"></div>
 
@@ -140,24 +172,27 @@ import logo from "../../public/tuneboss-logo.png";
     </button>
     <div class="mb-6 flex flex-col items-center gap-3 text-center">
       <div>
+        <Image src={logo} alt="TuneBoss" class="mx-auto mb-6 h-6 w-auto object-contain md:h-8" loading="eager" />
         <h2 data-i18n="auth.loginTitle" class="text-2xl font-bold uppercase tracking-[0.18em]" aria-label="Sign In">Sign In</h2>
         <p data-i18n="auth.loginCopy" class="mt-3 text-base leading-relaxed text-foreground/70">Enter your credentials to access your account.</p>
       </div>
     </div>
-    <form data-auth-form="login" class="space-y-5">
+    <form data-auth-form="login" class="space-y-5" novalidate>
       <label class="block">
         <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-        <input data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" placeholder="hello@tuneboss.id" required />
+        <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" placeholder="Email Anda" />
+        <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="block">
         <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
         <span class="relative block">
-          <input data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" placeholder="Enter your password" required />
+          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" placeholder="Kata sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
           </button>
         </span>
+        <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <div class="flex items-center justify-between gap-4 text-sm">
         <label class="flex items-center gap-2 text-foreground/70">
@@ -184,28 +219,43 @@ import logo from "../../public/tuneboss-logo.png";
     </button>
     <div class="mb-6 flex flex-col items-center gap-3 text-center">
       <div>
+        <Image src={logo} alt="TuneBoss" class="mx-auto mb-6 h-6 w-auto object-contain md:h-8" loading="eager" />
         <h2 data-i18n="auth.registerTitle" class="text-2xl font-bold uppercase tracking-[0.18em]" aria-label="Create Account">Create Account</h2>
         <p data-i18n="auth.registerCopy" class="mt-3 text-base leading-relaxed text-foreground/70">Create your TuneBoss account to continue.</p>
       </div>
     </div>
-    <form data-auth-form="register" class="space-y-5">
+    <form data-auth-form="register" class="space-y-5" novalidate>
       <label class="block">
         <span data-i18n="auth.name" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Name</span>
-        <input data-i18n-placeholder="auth.namePlaceholder" class="auth-input" type="text" placeholder="TuneBoss Rider" required />
+        <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-input" type="text" placeholder="Nama Anda" />
+        <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="block">
         <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-        <input data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" placeholder="hello@tuneboss.id" required />
+        <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" placeholder="Email Anda" />
+        <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="block">
         <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
         <span class="relative block">
-          <input data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" placeholder="Enter your password" required />
+          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" placeholder="Kata sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
           </button>
         </span>
+        <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
+      </label>
+      <label class="block">
+        <span data-i18n="auth.confirmPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Confirm Password</span>
+        <span class="relative block">
+          <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-input pr-12" type="password" placeholder="Konfirmasi sandi Anda" />
+          <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
+            <Eye data-eye-show size={20} strokeWidth={1.8} />
+            <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
+          </button>
+        </span>
+        <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <button data-i18n="auth.createAccount" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Create Account</button>
     </form>
@@ -257,7 +307,7 @@ import logo from "../../public/tuneboss-logo.png";
     </div>
 
     <div class="flex flex-col items-center justify-between space-y-4 border-t border-primary/10 pt-8 md:flex-row md:space-y-0">
-      <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">&copy; 2026 TUNEBOSS.ID</p>
+      <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary md:pl-20">&copy; 2026 TUNEBOSS.ID</p>
       <div class="flex space-x-6 md:pr-32">
         <a data-i18n="footer.privacy" class="tuneboss-link" href="/privacy">Privacy Policy</a>
         <a data-i18n="footer.terms" class="tuneboss-link" href="/terms">Terms of Service</a>
@@ -368,34 +418,13 @@ import logo from "../../public/tuneboss-logo.png";
 </style>
 
 <script>
-  let tuneBossChromeController;
+  import { z } from "zod";
 
-  const initTuneBossChrome = () => {
-  tuneBossChromeController?.abort();
-  tuneBossChromeController = new AbortController();
-  const { signal } = tuneBossChromeController;
-
-  const root = document.documentElement;
-  const navbar = document.querySelector("[data-navbar]");
-  const menu = document.querySelector("[data-menu]");
-  const panel = document.querySelector("[data-menu-panel]");
-  const menuItems = document.querySelectorAll("[data-menu-item]");
-  const openButtons = document.querySelectorAll("[data-menu-open]");
-  const closeButtons = document.querySelectorAll("[data-menu-close]");
-  const backTopButton = document.querySelector("[data-back-top]");
-  const toastRoot = document.querySelector("[data-toast-root]");
-  const cartDrawer = document.querySelector("[data-cart-drawer]");
-  const cartPanel = document.querySelector("[data-cart-panel]");
-  const cartBadge = document.querySelector("[data-cart-badge]");
-  const cartItemsRoot = document.querySelector("[data-cart-items]");
-  const cartSummary = document.querySelector("[data-cart-summary]");
-  const cartTotal = document.querySelector("[data-cart-total]");
-  const authDialogs = {
-    login: document.querySelector('[data-auth-dialog="login"]'),
-    register: document.querySelector('[data-auth-dialog="register"]'),
-  };
-  let authScrollY = 0;
-  let cart = [];
+  declare global {
+    interface Window {
+      checkAuthStatus: () => void;
+    }
+  }
 
   const copy = {
     id: {
@@ -406,6 +435,8 @@ import logo from "../../public/tuneboss-logo.png";
       "account.title": "Akun",
       "account.signin": "Masuk",
       "account.create": "Buat Akun",
+      "account.dashboard": "Dashboard",
+      "account.signout": "Keluar",
       "auth.loginTitle": "Masuk",
       "auth.loginCopy": "Masuk untuk melihat akun dan pesanan TuneBoss Anda.",
       "auth.registerTitle": "Buat Akun",
@@ -419,9 +450,11 @@ import logo from "../../public/tuneboss-logo.png";
       "auth.createAccount": "Buat Akun",
       "auth.backToSignin": "Kembali Masuk",
       "auth.or": "Atau",
-      "auth.namePlaceholder": "Rider TuneBoss",
-      "auth.emailPlaceholder": "hello@tuneboss.id",
-      "auth.passwordPlaceholder": "Masukkan kata sandi",
+      "auth.namePlaceholder": "Nama Anda",
+      "auth.emailPlaceholder": "Email Anda",
+      "auth.passwordPlaceholder": "Kata sandi Anda",
+      "auth.confirmPassword": "Konfirmasi Sandi",
+      "auth.confirmPasswordPlaceholder": "Konfirmasi sandi Anda",
       "auth.signinToast": "Masuk berhasil",
       "auth.signinToastCopy": "Anda sudah masuk ke TuneBoss.",
       "auth.registerToast": "Akun dibuat",
@@ -454,6 +487,31 @@ import logo from "../../public/tuneboss-logo.png";
       "product.forYou": "Untuk Anda",
       "product.from": "Mulai",
       "product.explore": "Jelajahi",
+      "detail.backProducts": "Kembali ke Produk",
+      "detail.stock": "Stok",
+      "detail.units": "unit",
+      "detail.quantity": "Jumlah",
+      "detail.addCart": "Tambah Keranjang",
+      "detail.officialStore": "Toko Resmi",
+      "detail.rating": "rating",
+      "detail.reviewEyebrow": "Komentar Produk",
+      "detail.reviewTitle": "Ulasan Pembeli",
+      "detail.reviewFrom": "dari",
+      "detail.reviews": "ulasan",
+      "detail.sortRecent": "Terbaru",
+      "detail.sortHelpful": "Paling Membantu",
+      "detail.basedOn": "Berdasarkan",
+      "detail.loadMore": "Muat Lagi",
+      "detail.reviewDate1": "26 Juni 2026",
+      "detail.reviewDate2": "24 Juni 2026",
+      "detail.reviewDate3": "20 Juni 2026",
+      "detail.reviewDate4": "18 Juni 2026",
+      "detail.reviewDate5": "14 Juni 2026",
+      "detail.reviewDate6": "10 Juni 2026",
+      "detail.reviewDate7": "4 Juni 2026",
+      "detail.reviewDate8": "28 Mei 2026",
+      "detail.relatedEyebrow": "Produk Lainnya",
+      "detail.relatedTitle": "Produk Terkait",
       "products.heroPretext": "Koleksi",
       "products.heroTitle": "Produk",
       "products.heroHighlight": "Ringkasan",
@@ -473,6 +531,9 @@ import logo from "../../public/tuneboss-logo.png";
       "error.serverError": "Terjadi Kesalahan Server",
       "error.serverErrorCopy": "Maaf, sistem kami mengalami kendala teknis saat memproses permintaan Anda.",
       "error.tryAgain": "Coba Lagi",
+      "checkout.eyebrow": "Checkout",
+      "checkout.viewOrder": "Lihat Pesanan",
+      "checkout.continueShopping": "Lanjut Belanja",
       "page.home.title": "Beranda | TuneBoss",
       "page.products.title": "Produk | TuneBoss",
       "page.404.title": "404 - Halaman Tidak Ditemukan | TuneBoss",
@@ -481,6 +542,16 @@ import logo from "../../public/tuneboss-logo.png";
       "page.register.title": "Buat Akun | TuneBoss ID",
       "page.privacy.title": "Kebijakan Privasi | TuneBoss ID",
       "page.terms.title": "Ketentuan Layanan | TuneBoss ID",
+      "privacy.heading": "Kebijakan Privasi",
+      "privacy.copy1": "Kami menggunakan informasi pelanggan untuk memproses pesanan, menghubungi terkait layanan, dan meningkatkan pengalaman belanja TuneBoss.",
+      "privacy.copy2": "Data yang dapat kami kumpulkan meliputi nama, kontak, alamat pengiriman, riwayat pesanan, serta komunikasi yang dikirimkan melalui website.",
+      "privacy.copy3": "Kami tidak menjual data pribadi pelanggan. Data hanya dibagikan kepada pihak yang diperlukan untuk pembayaran, pengiriman, dukungan teknis, atau kewajiban hukum.",
+      "privacy.copy4": "Untuk permintaan akses, perubahan, atau penghapusan data, hubungi kami melalui email hello@tuneboss.id atau WhatsApp +62 817-5792-805.",
+      "terms.heading": "Ketentuan Layanan",
+      "terms.copy1": "Dengan menggunakan TuneBoss Marketplace, pelanggan menyetujui proses pemesanan, pembayaran, dan pengiriman sesuai informasi yang tersedia saat transaksi.",
+      "terms.copy2": "Produk ECU dan tuning harus dipasang serta digunakan secara benar. Kerusakan akibat pemasangan yang salah, modifikasi ekstrem, atau penggunaan di luar spesifikasi bukan tanggung jawab TuneBoss.",
+      "terms.copy3": "Harga, stok, dan detail produk dapat berubah tanpa pemberitahuan sebelumnya. Pesanan dianggap berlaku setelah pembayaran dikonfirmasi.",
+      "terms.copy4": "Untuk bantuan pesanan, garansi, atau konsultasi produk, hubungi hello@tuneboss.id atau WhatsApp +62 817-5792-805.",
     },
     en: {
       "nav.home": "Home",
@@ -490,6 +561,8 @@ import logo from "../../public/tuneboss-logo.png";
       "account.title": "Account",
       "account.signin": "Sign In",
       "account.create": "Create Account",
+      "account.dashboard": "Dashboard",
+      "account.signout": "Sign Out",
       "auth.loginTitle": "Sign In",
       "auth.loginCopy": "Sign in to view your TuneBoss account and orders.",
       "auth.registerTitle": "Create Account",
@@ -503,9 +576,11 @@ import logo from "../../public/tuneboss-logo.png";
       "auth.createAccount": "Create Account",
       "auth.backToSignin": "Back to Sign In",
       "auth.or": "Or",
-      "auth.namePlaceholder": "TuneBoss Rider",
-      "auth.emailPlaceholder": "hello@tuneboss.id",
-      "auth.passwordPlaceholder": "Enter your password",
+      "auth.namePlaceholder": "Your name",
+      "auth.emailPlaceholder": "Your email",
+      "auth.passwordPlaceholder": "Your password",
+      "auth.confirmPassword": "Confirm Password",
+      "auth.confirmPasswordPlaceholder": "Confirm your password",
       "auth.signinToast": "Signed in",
       "auth.signinToastCopy": "You are signed in to TuneBoss.",
       "auth.registerToast": "Account created",
@@ -538,6 +613,31 @@ import logo from "../../public/tuneboss-logo.png";
       "product.forYou": "For You",
       "product.from": "From",
       "product.explore": "EXPLORE",
+      "detail.backProducts": "Back to Products",
+      "detail.stock": "Stock",
+      "detail.units": "units",
+      "detail.quantity": "Quantity",
+      "detail.addCart": "Add to Cart",
+      "detail.officialStore": "Official Store",
+      "detail.rating": "ratings",
+      "detail.reviewEyebrow": "Product Comments",
+      "detail.reviewTitle": "Buyer Reviews",
+      "detail.reviewFrom": "of",
+      "detail.reviews": "reviews",
+      "detail.sortRecent": "Most Recent",
+      "detail.sortHelpful": "Most Helpful",
+      "detail.basedOn": "Based on",
+      "detail.loadMore": "Load More",
+      "detail.reviewDate1": "June 26, 2026",
+      "detail.reviewDate2": "June 24, 2026",
+      "detail.reviewDate3": "June 20, 2026",
+      "detail.reviewDate4": "June 18, 2026",
+      "detail.reviewDate5": "June 14, 2026",
+      "detail.reviewDate6": "June 10, 2026",
+      "detail.reviewDate7": "June 4, 2026",
+      "detail.reviewDate8": "May 28, 2026",
+      "detail.relatedEyebrow": "You might also like",
+      "detail.relatedTitle": "Related Products",
       "products.heroPretext": "The Collection",
       "products.heroTitle": "Product",
       "products.heroHighlight": "Overview",
@@ -557,6 +657,9 @@ import logo from "../../public/tuneboss-logo.png";
       "error.serverError": "Server Error Occurred",
       "error.serverErrorCopy": "Sorry, our system encountered a technical issue while processing your request.",
       "error.tryAgain": "Try Again",
+      "checkout.eyebrow": "Checkout",
+      "checkout.viewOrder": "View Order",
+      "checkout.continueShopping": "Continue Shopping",
       "page.home.title": "Home | TuneBoss",
       "page.products.title": "Products | TuneBoss",
       "page.404.title": "404 - Page Not Found | TuneBoss",
@@ -565,10 +668,51 @@ import logo from "../../public/tuneboss-logo.png";
       "page.register.title": "Create Account | TuneBoss ID",
       "page.privacy.title": "Privacy Policy | TuneBoss ID",
       "page.terms.title": "Terms of Service | TuneBoss ID",
+      "privacy.heading": "Privacy Policy",
+      "privacy.copy1": "We use customer information to process orders, contact customers about services, and improve the TuneBoss shopping experience.",
+      "privacy.copy2": "The data we may collect includes name, contact details, shipping address, order history, and messages sent through the website.",
+      "privacy.copy3": "We do not sell customer personal data. Data is only shared with parties needed for payment, delivery, technical support, or legal obligations.",
+      "privacy.copy4": "For data access, correction, or deletion requests, contact us at hello@tuneboss.id or WhatsApp +62 817-5792-805.",
+      "terms.heading": "Terms of Service",
+      "terms.copy1": "By using TuneBoss Marketplace, customers agree to the order, payment, and delivery process shown at the time of transaction.",
+      "terms.copy2": "ECU and tuning products must be installed and used correctly. Damage from incorrect installation, extreme modification, or use outside specification is not TuneBoss responsibility.",
+      "terms.copy3": "Prices, stock, and product details may change without prior notice. Orders are valid after payment is confirmed.",
+      "terms.copy4": "For order support, warranty, or product consultation, contact hello@tuneboss.id or WhatsApp +62 817-5792-805.",
     },
   };
 
-  const setMenu = (open) => {
+  let tuneBossChromeController: AbortController | undefined;
+
+  const initTuneBossChrome = () => {
+  tuneBossChromeController?.abort();
+  tuneBossChromeController = new AbortController();
+  const { signal } = tuneBossChromeController;
+
+  const root = document.documentElement;
+  const navbar = document.querySelector("[data-navbar]");
+  const menu = document.querySelector("[data-menu]");
+  const panel = document.querySelector("[data-menu-panel]");
+  const menuItems = document.querySelectorAll("[data-menu-item]");
+  const openButtons = document.querySelectorAll("[data-menu-open]");
+  const closeButtons = document.querySelectorAll("[data-menu-close]");
+  const backTopButton = document.querySelector("[data-back-top]");
+  const waFloat = document.querySelector("[data-wa-float]");
+  const toastRoot = document.querySelector("[data-toast-root]");
+  const cartDrawer = document.querySelector("[data-cart-drawer]");
+  const cartPanel = document.querySelector("[data-cart-panel]");
+  const cartBadge = document.querySelector("[data-cart-badge]");
+  const cartItemsRoot = document.querySelector("[data-cart-items]");
+  const cartSummary = document.querySelector("[data-cart-summary]");
+  const cartTotal = document.querySelector("[data-cart-total]");
+  const authDialogs = {
+    login: document.querySelector('[data-auth-dialog="login"]'),
+    register: document.querySelector('[data-auth-dialog="register"]'),
+  };
+  let authScrollY = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cart: any[] = [];
+
+  const setMenu = (open: boolean) => {
     document.body.style.overflow = open ? "hidden" : "";
     menu?.setAttribute("aria-hidden", open ? "false" : "true");
     menu?.toggleAttribute("inert", !open);
@@ -584,6 +728,7 @@ import logo from "../../public/tuneboss-logo.png";
       item.classList.toggle("translate-x-[-2rem]", !open);
       item.classList.toggle("opacity-0", !open);
     });
+    waFloat?.classList.toggle("hidden", open);
   };
 
   const syncNav = () => {
@@ -599,27 +744,36 @@ import logo from "../../public/tuneboss-logo.png";
     backTopButton?.classList.toggle("translate-y-3", !showBackTop);
   };
 
-  const setLanguage = (lang) => {
+  const setLanguage = (lang: string) => {
     const safeLang = lang === "en" ? "en" : "id";
     root.lang = safeLang;
     localStorage.setItem("lang", safeLang);
     document.querySelectorAll("[data-lang-toggle]").forEach((btn) => { btn.textContent = safeLang.toUpperCase(); });
 
     document.querySelectorAll("[data-i18n]").forEach((node) => {
-      const key = node.getAttribute("data-i18n");
+      const key = node.getAttribute("data-i18n") as keyof typeof copy["en"];
       if (key && copy[safeLang][key]) node.textContent = copy[safeLang][key];
     });
 
     document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
-      const key = node.getAttribute("data-i18n-placeholder");
+      const key = node.getAttribute("data-i18n-placeholder") as keyof typeof copy["en"];
       if (key && copy[safeLang][key]) node.setAttribute("placeholder", copy[safeLang][key]);
     });
+
+    document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+      const key = node.getAttribute("data-i18n-title") as keyof typeof copy["en"];
+      if (key && copy[safeLang][key]) document.title = `${copy[safeLang][key]} | TuneBoss ID`;
+    });
+    
+    root.classList.remove("lang-en-loading");
   };
 
-  const escapeHtml = (value) =>
-    String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
+  const escapeHtml = (value: string | undefined | null) => {
+    const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+    return String(value || "").replace(/[&<>"']/g, (char) => map[char as keyof typeof map] || char);
+  };
 
-  const showToast = (title, description) => {
+  const showToast = (title: string, description: string) => {
     if (!toastRoot) return;
 
     const toast = document.createElement("div");
@@ -650,8 +804,8 @@ import logo from "../../public/tuneboss-logo.png";
     window.setTimeout(close, 3200);
   };
 
-  const formatRupiah = (value) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
-  const parseRupiah = (value) => Number(String(value).replace(/[^\d]/g, "")) || 0;
+  const formatRupiah = (value: number) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
+  const parseRupiah = (value: string | number) => Number(String(value).replace(/[^\d]/g, "")) || 0;
   const cartCount = () => cart.reduce((total, item) => total + item.quantity, 0);
 
   const saveCart = () => localStorage.setItem("tuneboss-cart", JSON.stringify(cart));
@@ -663,13 +817,19 @@ import logo from "../../public/tuneboss-logo.png";
 
   const renderCart = () => {
     const count = cartCount();
+    const productCount = cart.length;
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     if (cartBadge) {
       cartBadge.textContent = String(count);
       cartBadge.classList.toggle("invisible", count === 0);
     }
-    if (cartSummary) cartSummary.textContent = count === 0 ? "Keranjang kosong" : `${count} produk di keranjang`;
+    if (cartSummary) {
+      const isEnglish = root.lang === "en";
+      cartSummary.textContent = count === 0
+        ? (isEnglish ? "Cart is empty" : "Keranjang kosong")
+        : (isEnglish ? `${productCount} products, ${count} items` : `${productCount} produk, ${count} item`);
+    }
     if (cartTotal) cartTotal.textContent = formatRupiah(total);
     if (!cartItemsRoot) return;
 
@@ -702,7 +862,16 @@ import logo from "../../public/tuneboss-logo.png";
             <div class="mt-4 flex items-center justify-between">
               <div class="flex items-center border border-primary/20">
                 <button data-cart-dec="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white" type="button" aria-label="Kurangi ${escapeHtml(item.name)}">${icon.minus}</button>
-                <span class="flex h-9 min-w-10 items-center justify-center border-x border-primary/20 text-sm">${item.quantity}</span>
+                <input
+                  data-cart-input="${escapeHtml(item.id)}"
+                  class="h-9 w-12 border-x border-primary/20 bg-transparent text-center text-sm outline-none transition-colors focus:border-primary focus:text-primary"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  value="${item.quantity}"
+                  max="${Number(item.max || 99)}"
+                  aria-label="Jumlah ${escapeHtml(item.name)}"
+                />
                 <button data-cart-inc="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white" type="button" aria-label="Tambah ${escapeHtml(item.name)}">${icon.plus}</button>
               </div>
               <strong class="text-sm font-bold">${formatRupiah(item.price * item.quantity)}</strong>
@@ -716,14 +885,22 @@ import logo from "../../public/tuneboss-logo.png";
   const loadCart = () => {
     try {
       const saved = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-      cart = Array.isArray(saved) ? saved.filter((item) => item && item.id && item.name) : [];
+      cart = Array.isArray(saved)
+        ? saved
+            .filter((item) => item && item.id && item.name)
+            .map((item) => ({
+              ...item,
+              max: Number(item.max || 99),
+              quantity: Math.max(1, Math.min(Number(item.quantity || 1), Number(item.max || 99) || 99)),
+            }))
+        : [];
     } catch {
       cart = [];
     }
     renderCart();
   };
 
-  const setCartDrawer = (open) => {
+  const setCartDrawer = (open: boolean) => {
     document.body.style.overflow = open ? "hidden" : "";
     cartDrawer?.setAttribute("aria-hidden", open ? "false" : "true");
     cartDrawer?.toggleAttribute("inert", !open);
@@ -734,16 +911,24 @@ import logo from "../../public/tuneboss-logo.png";
     cartPanel?.classList.toggle("translate-x-0", open);
     cartPanel?.classList.toggle("translate-x-full", !open);
     backTopButton?.classList.toggle("hidden", open);
+    waFloat?.classList.toggle("hidden", open);
   };
 
-  const addToCart = (button) => {
+  const addToCart = (button: HTMLElement) => {
     const id = button.dataset.productId || button.dataset.productName || "product";
     const name = button.dataset.productName || "Produk";
     const price = parseRupiah(button.dataset.productPrice || "0");
+    const qtyInput = button.closest("[data-cart-form]")?.querySelector("[data-cart-qty]");
+    const max = qtyInput instanceof HTMLInputElement ? Number(qtyInput.dataset.max || 99) : 99;
+    const quantity = qtyInput instanceof HTMLInputElement ? Math.max(1, Math.min(Number(qtyInput.value || 1), max || 99)) : 1;
     const existing = cart.find((item) => item.id === id);
 
-    if (existing) existing.quantity += 1;
-    else cart.push({ id, name, price, image: button.dataset.productImage || "", quantity: 1 });
+    if (existing) {
+      existing.max = Number(existing.max || max || 99);
+      existing.quantity = Math.min(existing.max || 99, existing.quantity + quantity);
+    } else {
+      cart.push({ id, name, price, image: button.dataset.productImage || "", quantity, max });
+    }
 
     saveCart();
     renderCart();
@@ -752,14 +937,25 @@ import logo from "../../public/tuneboss-logo.png";
     showToast(isEnglish ? "Added to cart" : "Masuk keranjang", isEnglish ? `${name} has been added to your cart.` : `${name} berhasil ditambahkan ke keranjang.`);
   };
 
-  const updateCartItem = (id, action) => {
+  const updateCartItem = (id: string, action: string) => {
     const item = cart.find((entry) => entry.id === id);
     if (!item) return;
 
-    if (action === "inc") item.quantity += 1;
+    const max = Number(item.max || 99);
+    if (action === "inc") item.quantity = Math.min(max || 99, item.quantity + 1);
     if (action === "dec") item.quantity -= 1;
     if (action === "remove" || item.quantity <= 0) cart = cart.filter((entry) => entry.id !== id);
 
+    saveCart();
+    renderCart();
+  };
+
+  const setCartQuantity = (id: string, value: string | number) => {
+    const item = cart.find((entry) => entry.id === id);
+    if (!item) return;
+    const max = Number(item.max || 99);
+    const quantity = Math.max(1, Math.min(Number(value || 1), max || 99));
+    item.quantity = quantity;
     saveCart();
     renderCart();
   };
@@ -786,7 +982,7 @@ import logo from "../../public/tuneboss-logo.png";
   };
 
   const openAuthDialog = (mode = "login") => {
-    const dialog = authDialogs[mode] || authDialogs.login;
+    const dialog = authDialogs[mode as keyof typeof authDialogs] || authDialogs.login;
     document.body.dataset.authSwitching = "true";
     Object.values(authDialogs).forEach((item) => {
       if (item instanceof HTMLDialogElement && item.open && item !== dialog) item.close();
@@ -828,30 +1024,75 @@ import logo from "../../public/tuneboss-logo.png";
     }, { signal });
   });
 
-  document.querySelectorAll("[data-password-toggle]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const wrapper = button.parentElement;
-      const input = wrapper?.querySelector("[data-auth-password]");
-      if (!(input instanceof HTMLInputElement)) return;
-
-      const visible = input.type === "text";
-      input.type = visible ? "password" : "text";
-      button.querySelector("[data-eye-show]")?.classList.toggle("hidden", !visible);
-      button.querySelector("[data-eye-hide]")?.classList.toggle("hidden", visible);
-      button.setAttribute("aria-label", visible ? "Show password" : "Hide password");
-    }, { signal });
-  });
-
   document.querySelectorAll("[data-auth-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      if (!(form instanceof HTMLElement)) return;
+      if (!(form instanceof HTMLFormElement)) return;
       const mode = form.dataset.authForm === "register" ? "register" : "login";
+
+      const emailInput = form.elements.namedItem("email");
+      const passwordInput = form.elements.namedItem("password");
+      const nameInput = form.elements.namedItem("name");
+      const confirmPasswordInput = form.elements.namedItem("confirmPassword");
+
+      form.querySelectorAll(".auth-error").forEach(el => {
+        el.textContent = "";
+        el.classList.add("hidden");
+      });
+
+      let schema;
+      if (mode === "register") {
+        schema = z.object({
+          email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
+          password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+          name: z.string().min(1, { message: "Nama wajib diisi" }),
+          confirmPassword: z.string().min(1, { message: "Konfirmasi password wajib diisi" }),
+        }).refine((data) => data.password === data.confirmPassword, {
+          message: "Password tidak sama",
+          path: ["confirmPassword"],
+        });
+      } else {
+        schema = z.object({
+          email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
+          password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+        });
+      }
+
+      const formData = {
+        email: emailInput instanceof HTMLInputElement ? emailInput.value : "",
+        password: passwordInput instanceof HTMLInputElement ? passwordInput.value : "",
+        ...(mode === "register" ? { 
+          name: nameInput instanceof HTMLInputElement ? nameInput.value : "",
+          confirmPassword: confirmPasswordInput instanceof HTMLInputElement ? confirmPasswordInput.value : ""
+        } : {})
+      };
+
+      const result = schema.safeParse(formData);
+
+      if (!result.success) {
+        result.error.issues.forEach(issue => {
+          const field = issue.path[0];
+          const input = form.elements.namedItem(field as string);
+          if (input instanceof HTMLElement) {
+            const errorContainer = input.closest("label")?.querySelector(".auth-error");
+            if (errorContainer) {
+              errorContainer.textContent = issue.message;
+              errorContainer.classList.remove("hidden");
+            }
+          }
+        });
+        return;
+      }
+
       const lang = root.lang === "en" ? "en" : "id";
       const titleKey = mode === "register" ? "auth.registerToast" : "auth.signinToast";
       const copyKey = mode === "register" ? "auth.registerToastCopy" : "auth.signinToastCopy";
       showToast(copy[lang][titleKey], copy[lang][copyKey]);
       form.closest("dialog")?.close();
+
+      localStorage.setItem("tuneboss-auth", "true");
+      if (typeof window.checkAuthStatus === "function") window.checkAuthStatus();
+      else window.location.reload();
     }, { signal });
   });
 
@@ -873,6 +1114,18 @@ import logo from "../../public/tuneboss-logo.png";
       return;
     }
 
+    const passwordButton = event.target.closest("[data-password-toggle]");
+    if (passwordButton instanceof HTMLElement) {
+      const input = passwordButton.parentElement?.querySelector("[data-auth-password]");
+      if (!(input instanceof HTMLInputElement)) return;
+      const visible = input.type === "text";
+      input.type = visible ? "password" : "text";
+      passwordButton.querySelector("[data-eye-show]")?.classList.toggle("hidden", !visible);
+      passwordButton.querySelector("[data-eye-hide]")?.classList.toggle("hidden", visible);
+      passwordButton.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+      return;
+    }
+
     const incButton = event.target.closest("[data-cart-inc]");
     const decButton = event.target.closest("[data-cart-dec]");
     const removeButton = event.target.closest("[data-cart-remove]");
@@ -880,6 +1133,24 @@ import logo from "../../public/tuneboss-logo.png";
     if (decButton instanceof HTMLElement) updateCartItem(decButton.dataset.cartDec || "", "dec");
     if (removeButton instanceof HTMLElement) updateCartItem(removeButton.dataset.cartRemove || "", "remove");
   }, { signal });
+
+  document.addEventListener("input", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.matches("[data-cart-input]")) return;
+    input.value = input.value.replace(/\D/g, "");
+  }, { signal });
+
+  document.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.matches("[data-cart-input]")) return;
+    setCartQuantity(input.dataset.cartInput || "", input.value);
+  }, { signal });
+
+  document.addEventListener("blur", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.matches("[data-cart-input]")) return;
+    setCartQuantity(input.dataset.cartInput || "", input.value);
+  }, { capture: true, signal });
 
   document.querySelectorAll("[data-lang-toggle]").forEach((btn) => {
     btn.addEventListener("click", () => setLanguage(root.lang === "id" ? "en" : "id"), { signal });
@@ -894,6 +1165,50 @@ import logo from "../../public/tuneboss-logo.png";
   if (localStorage.getItem("theme") === "dark") root.classList.add("dark");
   loadCart();
   setLanguage(localStorage.getItem("lang") === "en" ? "en" : "id");
+
+  window.checkAuthStatus = () => {
+    const isLoggedIn = localStorage.getItem("tuneboss-auth") === "true";
+    document.querySelectorAll("[data-auth-guest]").forEach(el => el.classList.toggle("hidden", isLoggedIn));
+    document.querySelectorAll("[data-auth-user]").forEach(el => {
+      if (isLoggedIn) {
+        el.classList.remove("hidden");
+        el.classList.add("flex");
+      } else {
+        el.classList.add("hidden");
+        el.classList.remove("flex");
+      }
+    });
+
+    const iconGuest = document.querySelector("[data-auth-icon-guest]");
+    const iconUser = document.querySelector("[data-auth-icon-user]");
+    if (iconGuest) iconGuest.classList.toggle("hidden", isLoggedIn);
+    if (iconUser) iconUser.classList.toggle("hidden", !isLoggedIn);
+
+    const checkoutBtn = document.querySelector("[data-cart-checkout-btn]");
+    if (checkoutBtn) {
+      if (isLoggedIn) {
+        checkoutBtn.textContent = "Checkout";
+        (checkoutBtn as HTMLElement).onclick = () => { window.location.href = "/cart"; };
+      } else {
+        checkoutBtn.textContent = "Login to Checkout";
+        (checkoutBtn as HTMLElement).onclick = () => {
+          if (typeof setCartDrawer === "function") setCartDrawer(false);
+          if (typeof openAuthDialog === "function") openAuthDialog("login");
+        };
+      }
+    }
+  };
+  window.checkAuthStatus();
+
+  document.querySelectorAll("[data-auth-logout]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      localStorage.removeItem("tuneboss-auth");
+      window.checkAuthStatus();
+      setMenu(false);
+      window.location.href = "/";
+    }, { signal });
+  });
+
   window.addEventListener("scroll", syncNav, { passive: true, signal });
   syncNav();
 
@@ -902,7 +1217,7 @@ import logo from "../../public/tuneboss-logo.png";
 
     gsap.utils.toArray("[data-reveal]").forEach((node) => {
       gsap.fromTo(
-        node,
+        node as Element,
         { y: 60, opacity: 0 },
         {
           y: 0,
@@ -910,7 +1225,7 @@ import logo from "../../public/tuneboss-logo.png";
           duration: 1.2,
           ease: "expo.out",
           scrollTrigger: {
-            trigger: node,
+            trigger: node as Element,
             start: "top 85%",
           },
         },
@@ -921,4 +1236,44 @@ import logo from "../../public/tuneboss-logo.png";
 
   initTuneBossChrome();
   document.addEventListener("astro:page-load", initTuneBossChrome);
+
+  document.addEventListener("astro:before-preparation", (event) => {
+    const url = event.to;
+    const isAuthPage = url.pathname === "/login" || url.pathname === "/register";
+    const isProtectedRoute = url.pathname === "/dashboard" || url.pathname === "/cart";
+    const isLoggedIn = localStorage.getItem("tuneboss-auth") === "true";
+
+    if (isAuthPage && isLoggedIn) {
+      event.preventDefault();
+      window.location.replace("/dashboard");
+    } else if (isProtectedRoute && !isLoggedIn) {
+      event.preventDefault();
+      window.location.replace("/login");
+    }
+  });
+
+  document.addEventListener("astro:before-swap", (event) => {
+    const safeLang = localStorage.getItem("lang") === "en" ? "en" : "id";
+    if (safeLang === "id") return; // id is default HTML, no translation needed
+    
+    const doc = event.newDocument;
+    doc.documentElement.lang = safeLang;
+    
+    doc.querySelectorAll("[data-lang-toggle]").forEach((btn) => { btn.textContent = safeLang.toUpperCase(); });
+
+    doc.querySelectorAll("[data-i18n]").forEach((node) => {
+      const key = node.getAttribute("data-i18n") as keyof typeof copy["en"];
+      if (key && copy[safeLang][key]) node.textContent = copy[safeLang][key];
+    });
+
+    doc.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+      const key = node.getAttribute("data-i18n-placeholder") as keyof typeof copy["en"];
+      if (key && copy[safeLang][key]) node.setAttribute("placeholder", copy[safeLang][key]);
+    });
+
+    doc.querySelectorAll("[data-i18n-title]").forEach((node) => {
+      const key = node.getAttribute("data-i18n-title") as keyof typeof copy["en"];
+      if (key && copy[safeLang][key]) doc.title = `${copy[safeLang][key]} | TuneBoss ID`;
+    });
+  });
 </script>

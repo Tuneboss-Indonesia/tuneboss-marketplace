@@ -1,0 +1,20 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+---
+
+<head>
+  <title data-i18n-title="nav.tracking">Lacak Pesanan | TuneBoss ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+    <section class="mx-auto max-w-4xl text-center">
+        <h1 data-i18n="nav.tracking" class="font-display text-4xl uppercase md:text-6xl">Lacak Pesanan</h1>
+    </section>
+  </main>
+</TuneBossChrome>
