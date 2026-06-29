@@ -1,6 +1,6 @@
 ---
 import { Image } from "astro:assets";
-import { ClientRouter } from "astro:transitions";
+
 import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Star, Tag } from "lucide-react";
 import ProductCard from "@/components/ProductCard.astro";
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
@@ -173,32 +173,53 @@ const reviews = [
   { name: "Nanda", timeKey: "detail.reviewDate7", quote: "Dipakai touring tetap stabil, data logger juga gampang dibaca." },
   { name: "Putra", timeKey: "detail.reviewDate8", quote: "Bengkel saya jadi lebih cepat set map untuk beberapa motor." },
 ];
+import SEO from "@/components/SEO.astro";
+
+const productSchema = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "image": productShareImageUrl,
+    "description": product.description,
+    "brand": {
+      "@type": "Brand",
+      "name": product.brand
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": Astro.url.href,
+      "priceCurrency": "IDR",
+      "price": product.price.replace(/[^0-9]/g, ""),
+      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "8"
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Beranda", "item": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/" },
+      { "@type": "ListItem", "position": 2, "name": "Produk", "item": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/products" },
+      { "@type": "ListItem", "position": 3, "name": product.name }
+    ]
+  }
+]);
 ---
 
-<head>
-  <title>{product.name} | TuneBoss ID</title>
-  <meta name="description" content={product.description} />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
-  <!-- Open Graph / Social Media Meta Tags -->
-  <meta property="og:title" content={`${product.name} | TuneBoss ID`} />
-  <meta property="og:description" content={product.description} />
-  <meta property="og:image" content={productShareImageUrl} />
-  <meta property="og:image:secure_url" content={productShareImageUrl} />
-  <meta property="og:image:type" content="image/png" />
-  <meta property="og:image:width" content="500" />
-  <meta property="og:image:height" content="407" />
-  <meta property="og:url" content={Astro.url.toString()} />
-  <meta property="og:type" content="product" />
-  
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content={`${product.name} | TuneBoss ID`} />
-  <meta name="twitter:description" content={product.description} />
-  <meta name="twitter:image" content={productShareImageUrl} />
-
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title={`${product.name} | TuneBoss ID`}
+  description={product.description}
+  image={productShareImageUrl}
+  type="product"
+  schema={productSchema}
+  keywords={`${product.name}, ${product.brand} TuneBoss, ECU ${product.brand}, tuning motor ${product.brand}`}
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background pt-24">

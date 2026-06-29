@@ -1,19 +1,19 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import { Eye, EyeOff, UserPlus, Mail, Lock } from "lucide-react";
-import { ClientRouter } from "astro:transitions";
+
 import "@/styles/global.css";
 
 export const prerender = false;
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title data-i18n="page.login.title">Masuk | TuneBoss ID</title>
-  <meta name="description" content="Masuk ke akun TuneBoss ID untuk melihat pesanan, checkout, dan detail akun Anda." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="Masuk | TuneBoss ID"
+  description="Masuk ke akun TuneBoss ID untuk melihat pesanan, checkout, dan detail akun Anda."
+  titleKey="page.login.title"
+  noindex={true}
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">

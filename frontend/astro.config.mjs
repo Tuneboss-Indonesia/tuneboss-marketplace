@@ -2,6 +2,7 @@ import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 import vercel from "@astrojs/vercel";
 import { defineConfig, envField } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 
 export default defineConfig({
   site: "https://dev.fe-marketplace.panjiihsanudinfajri.my.id",
@@ -11,7 +12,7 @@ export default defineConfig({
     },
   },
   adapter: vercel(),
-  integrations: [react()],
+  integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],
   },

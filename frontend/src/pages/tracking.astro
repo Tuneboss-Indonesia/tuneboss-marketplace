@@ -1,17 +1,17 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+
 import { Search } from "lucide-react";
 import "@/styles/global.css";
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title data-i18n-title="nav.tracking">Lacak Pesanan | TuneBoss ID</title>
-  <meta name="description" content="Lacak status pesanan TuneBoss ID dan pantau proses pembelian produk tuning motor Anda." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="Lacak Pesanan ECU Motor & Tuning | TuneBoss ID"
+  description="Lacak status pengiriman pesanan produk ECU motor, flash kit, dan aksesori tuning TuneBoss ID Anda secara real-time."
+  titleKey="nav.tracking"
+  keywords="lacak pesanan TuneBoss, resi pengiriman ECU, status pesanan TuneBoss"
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-32 pt-32 md:px-12 md:pt-40">

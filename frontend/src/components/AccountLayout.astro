@@ -10,16 +10,16 @@ const navItems = [
   { id: "address", title: "Addresses", path: "/account/address", icon: MapPin },
   { id: "history", title: "Purchase History", path: "/account/history", icon: Package },
 ];
-import { ClientRouter } from "astro:transitions";
+
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title data-i18n-title={i18nTitleKey}>{title} | TuneBoss ID</title>
-  <meta name="description" content={`TuneBoss ID - ${title}`} />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title={`${title} | TuneBoss ID`}
+  description={`TuneBoss ID - ${title}`}
+  titleKey={i18nTitleKey}
+  noindex={true}
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-16 pt-24 md:px-12 md:pb-24 md:pt-32">

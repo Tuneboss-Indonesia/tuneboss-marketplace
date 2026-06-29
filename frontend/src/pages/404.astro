@@ -1,16 +1,16 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+
+import SEO from "@/components/SEO.astro";
 import "@/styles/global.css";
 ---
 
-<head>
-  <title data-i18n="page.404.title">404 - Halaman Tidak Ditemukan | TuneBoss ID</title>
-  <meta name="description" content="Halaman TuneBoss ID yang Anda cari tidak ditemukan." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="404 - Halaman Tidak Ditemukan | TuneBoss ID"
+  description="Halaman TuneBoss ID yang Anda cari tidak ditemukan."
+  titleKey="page.404.title"
+  noindex={true}
+/>
 
 <TuneBossChrome>
   <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-background pt-24">
@@ -39,3 +39,27 @@ import "@/styles/global.css";
     </div>
   </main>
 </TuneBossChrome>
+
+<script>
+  import { gsap } from "gsap";
+  
+  // Animation triggers when DOM is ready (supports Astro ViewTransitions)
+  document.addEventListener("astro:page-load", () => {
+    const reveals = document.querySelectorAll("[data-reveal]");
+    
+    if (reveals.length > 0) {
+      gsap.fromTo(
+        reveals,
+        { y: 30, opacity: 0 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          duration: 1, 
+          stagger: 0.1, 
+          ease: "power3.out",
+          delay: 0.2
+        }
+      );
+    }
+  });
+</script>

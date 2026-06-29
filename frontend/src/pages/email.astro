@@ -91,11 +91,15 @@ const templates = [
         
         // Highlight current button
         const target = e.currentTarget;
-        if (!target) return;
+        if (!(target instanceof HTMLElement)) return;
         target.className = 'w-full text-left px-5 py-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-primary email-tab-btn shadow-sm bg-primary/10 border-primary font-bold text-primary';
         
         // Hide all previews
-        previews.forEach(p => p.style.display = 'none');
+        previews.forEach(p => {
+          if (p instanceof HTMLElement) {
+            p.style.display = 'none';
+          }
+        });
         
         // Show targeted preview
         const targetId = target.getAttribute('data-target');

@@ -1,16 +1,15 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+
 import "@/styles/global.css";
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title data-i18n="page.terms.title">Ketentuan Layanan | TuneBoss ID</title>
-  <meta name="description" content="Ketentuan layanan TuneBoss ID untuk penggunaan website, pesanan, dan pembelian produk tuning motor." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="Syarat dan Ketentuan | TuneBoss ID"
+  description="Syarat dan ketentuan pembelian, garansi produk, dan panduan klaim di TuneBoss ID."
+  titleKey="page.terms.title"
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">

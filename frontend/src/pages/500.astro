@@ -1,6 +1,7 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+
+import SEO from "@/components/SEO.astro";
 import "@/styles/global.css";
 
 interface Props {
@@ -10,13 +11,12 @@ interface Props {
 const { error } = Astro.props;
 ---
 
-<head>
-  <title data-i18n="page.500.title">500 - Terjadi Kesalahan | TuneBoss ID</title>
-  <meta name="description" content="TuneBoss ID sedang mengalami kesalahan sementara. Silakan coba kembali beberapa saat lagi." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="500 - Terjadi Kesalahan | TuneBoss ID"
+  description="TuneBoss ID sedang mengalami kesalahan sementara. Silakan coba kembali beberapa saat lagi."
+  titleKey="page.500.title"
+  noindex={true}
+/>
 
 <TuneBossChrome>
   <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-background pt-24">
@@ -41,11 +41,8 @@ const { error } = Astro.props;
           </div>
         </div>
       )}
-
-      <div class="flex flex-col gap-4 sm:flex-row sm:justify-center" data-reveal>
-        <button onclick="window.location.reload()" class="group flex items-center justify-center border border-primary bg-primary px-10 py-4 text-xs font-bold uppercase tracking-[0.2em] text-background transition-all duration-300 hover:bg-background hover:text-primary">
-          <span data-i18n="error.tryAgain" class="mr-2">Coba Lagi</span>
-        </button>
+      
+      <div data-reveal>
         <a href="/" class="group flex items-center justify-center border border-primary bg-background px-10 py-4 text-xs font-bold uppercase tracking-[0.2em] text-foreground transition-all duration-300 hover:bg-primary hover:text-background">
           <span data-i18n="error.backHome" class="mr-2">Kembali ke Beranda</span>
           <span class="transition-transform duration-300 group-hover:translate-x-1">&rsaquo;</span>
@@ -59,3 +56,27 @@ const { error } = Astro.props;
     </div>
   </main>
 </TuneBossChrome>
+
+<script>
+  import { gsap } from "gsap";
+  
+  // Animation triggers when DOM is ready (supports Astro ViewTransitions)
+  document.addEventListener("astro:page-load", () => {
+    const reveals = document.querySelectorAll("[data-reveal]");
+    
+    if (reveals.length > 0) {
+      gsap.fromTo(
+        reveals,
+        { y: 30, opacity: 0 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          duration: 1, 
+          stagger: 0.1, 
+          ease: "power3.out",
+          delay: 0.2
+        }
+      );
+    }
+  });
+</script>

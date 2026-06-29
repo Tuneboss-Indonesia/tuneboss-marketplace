@@ -1,0 +1,26 @@
+{
+  "name": "TuneBoss ID - ECU & Motorcycle Tuning Marketplace",
+  "short_name": "TuneBoss ID",
+  "description": "Marketplace produk ECU motor, tuning performa, quickshifter, data logger, dan aksesori racing TuneBoss Indonesia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e63946",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["shopping", "automotive"],
+  "lang": "id",
+  "dir": "ltr"
+}

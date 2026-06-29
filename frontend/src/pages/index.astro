@@ -3,7 +3,8 @@ import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import PageHero from "@/components/PageHero.astro";
 import ProductCard from "@/components/ProductCard.astro";
 import TestimonialsCarousel from "@/components/TestimonialsCarousel.astro";
-import { ClientRouter } from "astro:transitions";
+
+import SEO from "@/components/SEO.astro";
 import "@/styles/global.css";
 
 const products = [
@@ -25,15 +26,49 @@ const testimonials = [
   { name: "Yoga", quote: "Respons throttle lebih halus, enak dipakai harian dan tetap galak saat dibutuhkan." },
   { name: "Fajar", quote: "Pemasangan mudah, hasil tuning terasa langsung dari putaran bawah." },
 ];
+const organizationSchema = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TuneBoss ID",
+    "alternateName": "TuneBoss Indonesia",
+    "url": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id",
+    "logo": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/tuneboss-logo.png",
+    "image": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/images/og-image.png",
+    "description": "Distributor resmi produk ECU TuneBoss di Indonesia. Menyediakan ECU racing, flash kit, quickshifter, data logger, dan aksesori tuning performa motor Honda, Yamaha, Kawasaki, Suzuki.",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+62-817-5792-805",
+      "contactType": "customer service",
+      "areaServed": "ID",
+      "availableLanguage": ["Indonesian", "English"]
+    },
+    "sameAs": [
+      "https://www.instagram.com/tuneboss.id",
+      "https://www.facebook.com/tuneboss.id",
+      "https://www.tiktok.com/@tuneboss.id"
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "TuneBoss ID",
+    "url": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/products?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+]);
 ---
 
-<head>
-  <title data-i18n="page.home.title">Catalog | TuneBoss ID</title>
-  <meta name="description" content="Katalog TuneBoss ID untuk produk ECU, tuning motor, dan aksesori performa yang siap dipakai harian maupun track day." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="TuneBoss ID - ECU Motor, Tuning & Aksesori Performa Racing"
+  description="Beli ECU motor TuneBoss original, flash kit, quickshifter, data logger & aksesori tuning performa untuk Honda, Yamaha, Kawasaki, Suzuki. Gratis ongkir & garansi resmi Indonesia."
+  schema={organizationSchema}
+  keywords="ECU motor, ECU racing, tuning motor, flash ECU, ECU Honda, ECU Yamaha, ECU Kawasaki, ECU Suzuki, quickshifter motor, data logger motor, TuneBoss Indonesia, jual ECU motor, beli ECU motor, aksesori performa motor, piggyback ECU, remapping ECU, fuel injection tuning"
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen w-full bg-background">

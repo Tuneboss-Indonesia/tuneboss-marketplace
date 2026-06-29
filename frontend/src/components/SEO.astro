@@ -1,0 +1,101 @@
+---
+import { ClientRouter } from "astro:transitions";
+
+export interface Props {
+  title: string;
+  description: string;
+  titleKey?: string;
+  image?: string;
+  type?: "website" | "article" | "product";
+  canonicalUrl?: string;
+  schema?: string; // JSON-LD schema
+  noindex?: boolean; // pages that shouldn't be indexed
+  keywords?: string; // comma-separated keywords
+}
+
+const { 
+  title, 
+  description, 
+  titleKey,
+  image = "/images/og-image.png", 
+  type = "website", 
+  canonicalUrl = Astro.url.href,
+  schema,
+  noindex = false,
+  keywords
+} = Astro.props;
+
+// Construct full image URL for OG/Twitter
+const siteOrigin = "https://dev.fe-marketplace.panjiihsanudinfajri.my.id";
+const site = Astro.site ? new URL(Astro.site) : new URL(siteOrigin);
+const imageUrl = new URL(image, site).toString();
+const pageUrl = canonicalUrl.startsWith("http") ? canonicalUrl : new URL(canonicalUrl, site).toString();
+---
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  {/* Favicon - multiple formats for maximum compatibility */}
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  {/* Primary Meta Tags */}
+  <title data-i18n-title={titleKey}>{title}</title>
+  <meta name="title" content={title} />
+  <meta name="description" content={description} />
+  {keywords && <meta name="keywords" content={keywords} />}
+  
+  {/* Robots */}
+  {noindex 
+    ? <meta name="robots" content="noindex, nofollow" /> 
+    : <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  }
+  
+  {/* Canonical URL */}
+  <link rel="canonical" href={pageUrl} />
+
+  {/* Language Alternates */}
+  <meta property="og:locale" content="id_ID" />
+  <meta property="og:locale:alternate" content="en_US" />
+
+  {/* Open Graph / Facebook / WhatsApp */}
+  <meta property="og:type" content={type} />
+  <meta property="og:url" content={pageUrl} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={imageUrl} />
+  <meta property="og:image:secure_url" content={imageUrl} />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content={title} />
+  <meta property="og:site_name" content="TuneBoss ID" />
+
+  {/* Twitter */}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content={pageUrl} />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={imageUrl} />
+  <meta name="twitter:image:alt" content={title} />
+  
+  {/* Additional SEO Meta Tags */}
+  <meta name="author" content="TuneBoss ID" />
+  <meta name="publisher" content="TuneBoss ID" />
+  <meta name="theme-color" content="#e63946" />
+  <meta name="msapplication-TileColor" content="#0a0a0a" />
+  <meta name="msapplication-TileImage" content="/favicon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  {/* Google / Search Engine Verification (placeholder) */}
+  {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> */}
+
+  {/* JSON-LD Schema (if any) */}
+  {schema && <script is:inline type="application/ld+json" set:html={schema} />}
+
+  <ClientRouter />
+</head>

@@ -3,7 +3,7 @@ import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import PageHero from "@/components/PageHero.astro";
 import ProductCard from "@/components/ProductCard.astro";
 import { ChevronDown, Search } from "lucide-react";
-import { ClientRouter } from "astro:transitions";
+
 import "@/styles/global.css";
 
 const products = [
@@ -29,15 +29,15 @@ const filters: [string, string, string[]][] = [
   ["products.price", "Sort by Price", ["Default", "Lowest to Highest", "Highest to Lowest"]],
 ];
 
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title data-i18n="page.products.title">Produk | TuneBoss ID</title>
-  <meta name="description" content="Jelajahi produk TuneBoss ID untuk ECU, flash kit, quickshifter, data logger, harness, dan kebutuhan tuning motor." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="Produk ECU Motor & Tuning TuneBoss - Harga Terbaik Indonesia"
+  description="Jual ECU motor TuneBoss untuk Honda, Yamaha, Kawasaki, Suzuki. Flash kit, quickshifter, data logger, wiring harness. Harga terbaik, garansi resmi, pengiriman seluruh Indonesia."
+  titleKey="page.products.title"
+  keywords="jual ECU motor, harga ECU motor, ECU motor murah, ECU motor Honda, ECU motor Yamaha, ECU Kawasaki, ECU Suzuki, flash kit motor, quickshifter motor, data logger motor, tuning motor Indonesia, piggyback ECU, ECU aftermarket, fuel controller motor"
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen w-full bg-background pb-32">

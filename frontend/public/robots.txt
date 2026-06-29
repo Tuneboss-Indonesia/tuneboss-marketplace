@@ -1,0 +1,14 @@
+# TuneBoss ID - Robots.txt
+# https://dev.fe-marketplace.panjiihsanudinfajri.my.id
+
+User-agent: *
+Allow: /
+Disallow: /account/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /api/
+Disallow: /email
+
+# Sitemap
+Sitemap: https://dev.fe-marketplace.panjiihsanudinfajri.my.id/sitemap-index.xml

@@ -1,18 +1,17 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+
 import "@/styles/global.css";
 
 export const prerender = false;
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title>Status Pesanan | TuneBoss ID</title>
-  <meta name="description" content="Lihat status checkout dan konfirmasi pesanan TuneBoss ID Anda." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="Status Pesanan | TuneBoss ID"
+  description="Lihat status checkout dan konfirmasi pesanan TuneBoss ID Anda."
+  noindex={true}
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32 flex flex-col items-center justify-center">

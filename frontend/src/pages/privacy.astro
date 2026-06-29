@@ -1,16 +1,15 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+
 import "@/styles/global.css";
+import SEO from "@/components/SEO.astro";
 ---
 
-<head>
-  <title data-i18n="page.privacy.title">Kebijakan Privasi | TuneBoss ID</title>
-  <meta name="description" content="Kebijakan privasi TuneBoss ID tentang cara data akun dan pesanan Anda digunakan serta dilindungi." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<SEO 
+  title="Kebijakan Privasi | TuneBoss ID"
+  description="Kebijakan privasi TuneBoss ID tentang cara data akun dan pesanan Anda digunakan serta dilindungi."
+  titleKey="page.privacy.title"
+/>
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">
