@@ -101,14 +101,99 @@ import "@/styles/global.css";
         if (textSpan) textSpan.innerText = originalText;
         btn.classList.remove('opacity-80', 'cursor-not-allowed');
         
-        // This is a placeholder for the actual API call
-        const notFoundText = isEn ? "Tracking feature is currently in development. Please check back later." : "Fitur pelacakan pesanan sedang dalam pengembangan. Silakan cek kembali nanti.";
-        const searchForText = isEn ? "Searching for Order" : "Mencari Pesanan";
+        const notFoundTitle = isEn ? "Order Not Found" : "Pesanan Tidak Ditemukan";
+        const notFoundDesc = isEn ? "We couldn't find any active order matching" : "Kami tidak dapat menemukan pesanan aktif yang cocok dengan";
+        const orderTitle = isEn ? "Order" : "Pesanan";
+        const tbProducts = isEn ? "TuneBoss Products" : "Produk TuneBoss";
+        const orderPlaced = isEn ? "Order Placed" : "Pesanan Dibuat";
+        const orderCancelled = isEn ? "Order Cancelled / Failed" : "Pesanan Dibatalkan / Gagal";
+        const orderShipped = isEn ? "Order Shipped" : "Pesanan Dikirim";
+        const orderDelivered = isEn ? "Order Delivered" : "Pesanan Diterima";
+
+        if (orderId.toUpperCase().includes('404')) {
+          result.innerHTML = `
+          <div class="animate-fade-in mx-auto mt-16 flex max-w-md flex-col items-center justify-center py-10 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mb-6 text-primary/60"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><line x1="11" y1="8" x2="11" y2="12"/><line x1="11" y1="16" x2="11.01" y2="16"/></svg>
+            <h3 data-i18n="tracking.notFoundTitle" class="mb-4 text-3xl font-bold text-foreground">${notFoundTitle}</h3>
+            <p class="text-lg text-muted-foreground leading-relaxed"><span data-i18n="tracking.notFoundDesc">${notFoundDesc}</span> <br><strong class="text-primary mt-2 inline-block text-xl">${orderId}</strong></p>
+          </div>`;
+          return;
+        }
+
+        // Shadcn-style Tracker HTML
+        const CheckCircleIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`;
+        const XCircleIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+        const CircleIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>`;
         
-        result.innerHTML = `<div class="animate-fade-in rounded-xl border border-primary/30 bg-primary/10 p-4 text-primary">
-          <p class="font-bold">${searchForText}: ${orderId}</p>
-          <p class="mt-1 opacity-80 text-sm">${notFoundText}</p>
-        </div>`;
+        result.innerHTML = `
+        <div class="animate-fade-in mx-auto w-full max-w-md text-left mt-4">
+          <div class="flex items-start gap-4 py-6 border-b border-primary/20">
+            <div class="flex flex-col">
+              <h2 class="text-2xl font-bold text-foreground"><span data-i18n="tracking.order">${orderTitle}</span> ${orderId}</h2>
+              <p data-i18n="tracking.products" class="text-sm font-medium uppercase text-muted-foreground mt-1">
+                ${tbProducts}
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-6 py-8">
+            <ul class="relative space-y-4">
+              <li class="flex items-start gap-4 relative">
+                <div class="relative flex flex-col items-center">
+                  <div class="z-10 mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-background text-green-500">
+                    ${CheckCircleIcon}
+                  </div>
+                  <div class="absolute top-9 h-[calc(100%-1.5rem)] w-0.5 bg-green-500"></div>
+                </div>
+                <div class="flex-1 pb-6 pt-1.5">
+                  <p class="text-sm text-muted-foreground mb-1">10 Jan, 10:40</p>
+                  <p data-i18n="tracking.placed" class="text-lg font-semibold text-foreground">${orderPlaced}</p>
+                </div>
+              </li>
+              
+              <li class="flex items-start gap-4 relative">
+                <div class="relative flex flex-col items-center">
+                  <div class="z-10 mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-background text-red-500">
+                    ${XCircleIcon}
+                  </div>
+                  <div class="absolute top-9 h-[calc(100%-1.5rem)] w-0.5 bg-border"></div>
+                </div>
+                <div class="flex-1 pb-6 pt-1.5">
+                  <p class="text-sm text-muted-foreground mb-1">10 Jan, 11:05</p>
+                  <p data-i18n="tracking.cancelled" class="text-lg font-semibold text-foreground">${orderCancelled}</p>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-4 relative">
+                <div class="relative flex flex-col items-center">
+                  <div class="z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted-foreground">
+                     ${CircleIcon}
+                  </div>
+                  <div class="absolute top-8 h-[calc(100%-1rem)] w-0.5 bg-border"></div>
+                </div>
+                <div class="flex-1 pb-6">
+                  <div class="flex h-8 items-center">
+                    <p data-i18n="tracking.shipped" class="text-lg font-semibold text-muted-foreground leading-none">${orderShipped}</p>
+                  </div>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-4 relative">
+                <div class="relative flex flex-col items-center">
+                  <div class="z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted-foreground">
+                    ${CircleIcon}
+                  </div>
+                </div>
+                <div class="flex-1 pb-2">
+                  <div class="flex h-8 items-center">
+                    <p data-i18n="tracking.delivered" class="text-lg font-semibold text-muted-foreground leading-none">${orderDelivered}</p>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+        `;
       }, 1500);
     }
   });
