@@ -1,0 +1,77 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { Settings, MapPin, Package, LogOut, User } from "lucide-react";
+import "@/styles/global.css";
+
+const { title, activePath, i18nTitleKey } = Astro.props;
+
+const navItems = [
+  { id: "settings", title: "My Profile", path: "/account/settings", icon: Settings },
+  { id: "address", title: "Addresses", path: "/account/address", icon: MapPin },
+  { id: "history", title: "Purchase History", path: "/account/history", icon: Package },
+];
+---
+
+<head>
+  <title data-i18n-title={i18nTitleKey}>{title} | TuneBoss ID</title>
+  <meta name="description" content={`TuneBoss ID - ${title}`} />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-16 pt-24 md:px-12 md:pb-24 md:pt-32">
+    <section class="mx-auto grid max-w-6xl gap-5 md:gap-8 lg:grid-cols-[280px_1fr]">
+      
+      <!-- Native TuneBoss Sidebar -->
+      <aside class="h-fit lg:sticky lg:top-28">
+        
+        <!-- Navigation Links -->
+        <nav class="flex flex-col gap-2">
+          {navItems.map((item) => {
+            const isActive = activePath === item.path;
+            return (
+              <a 
+                href={item.path}
+                class={`flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors
+                  ${isActive 
+                    ? 'bg-primary text-white' 
+                    : 'text-foreground/80 hover:bg-primary/10 hover:text-primary'
+                  }
+                `}
+                style={isActive ? "color: white;" : ""}
+              >
+                <item.icon size={18} strokeWidth={2} />
+                <span data-i18n={`account.${item.id}`}>{item.title}</span>
+              </a>
+            );
+          })}
+        </nav>
+
+        <!-- Bottom Action -->
+        <div class="mt-6 border-t border-primary/20 pt-6">
+          <button 
+            data-dialog-target="logout-dialog"
+            class="flex w-full items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10"
+          >
+            <LogOut size={18} strokeWidth={2} />
+            <span data-i18n="account.logout">Keluar</span>
+          </button>
+        </div>
+      </aside>
+      
+      <!-- Main Content Area -->
+      <div class="space-y-5 md:space-y-8">
+        <header class="hidden md:block">
+           <h1 class="text-2xl font-bold uppercase tracking-widest md:text-5xl" data-i18n={`account.${title.toLowerCase().replace(' ', '')}`}>{title}</h1>
+        </header>
+
+        <section class="border border-primary/20 bg-background p-4 md:p-8 shadow-xl">
+          <slot />
+        </section>
+      </div>
+
+    </section>
+  </main>
+</TuneBossChrome>
+

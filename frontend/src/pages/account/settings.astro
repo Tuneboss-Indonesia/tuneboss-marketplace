@@ -1,23 +1,261 @@
 ---
-import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { ClientRouter } from "astro:transitions";
+import AccountLayout from "@/components/AccountLayout.astro";
+import { User, Mail, Phone, Lock, Save, Eye, EyeOff } from "lucide-react";
 import "@/styles/global.css";
 
 export const prerender = false;
 ---
 
-<head>
-  <title data-i18n-title="account.dashboard">Dashboard | TuneBoss ID</title>
-  <meta name="description" content="Dashboard akun TuneBoss ID untuk melihat ringkasan akun dan pesanan Anda." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
-  <ClientRouter />
-</head>
+<AccountLayout title="Settings" activePath="/account/settings" i18nTitleKey="account.settings">
+  <div class="w-full">
+    
+    <!-- Profile Section -->
+    <section class="mb-12">
+      <div class="mb-8">
+        <h2 data-i18n="account.profileTitle" class="text-xl font-bold text-foreground uppercase tracking-widest">Profil Saya</h2>
+        <p data-i18n="account.profileDesc" class="text-sm text-foreground/70 mt-1">Kelola informasi pribadi dan kontak Anda.</p>
+      </div>
 
-<TuneBossChrome>
-  <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">
-    <section class="mx-auto max-w-2xl text-center">
-        <h1 data-i18n="account.dashboard" class="font-display text-4xl uppercase md:text-6xl">Dashboard</h1>
+      <form id="profile-form" class="space-y-5" onsubmit="event.preventDefault();">
+        <div class="grid gap-2">
+          <label data-i18n="account.name" class="text-sm font-bold uppercase tracking-widest text-foreground">Nama Lengkap</label>
+          <div class="relative">
+            <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input 
+              id="profile-name"
+              type="text" 
+              data-i18n-placeholder="account.namePlaceholder"
+              placeholder="Masukkan nama lengkap Anda"
+              class="w-full border border-primary/20 bg-transparent p-4 pl-12 outline-none transition-colors focus:border-primary text-foreground"
+            />
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label data-i18n="account.email" class="text-sm font-bold uppercase tracking-widest text-foreground">Alamat Email</label>
+          <div class="relative">
+            <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input 
+              type="email" 
+              value="hello@tuneboss.co.id"
+              disabled
+              class="w-full border border-primary/20 bg-primary/5 p-4 pl-12 outline-none transition-colors text-foreground/60 cursor-not-allowed"
+            />
+          </div>
+          <p data-i18n="account.emailHelp" class="text-[11px] text-foreground/60 uppercase tracking-widest">Alamat email tidak dapat diubah.</p>
+        </div>
+
+        <div class="grid gap-2">
+          <label data-i18n="account.phone" class="text-sm font-bold uppercase tracking-widest text-foreground">Nomor Telepon</label>
+          <div class="relative">
+            <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input 
+              id="profile-phone"
+              type="tel" 
+              data-i18n-placeholder="account.phonePlaceholder"
+              placeholder="Masukkan nomor telepon Anda"
+              class="w-full border border-primary/20 bg-transparent p-4 pl-12 outline-none transition-colors focus:border-primary text-foreground"
+            />
+          </div>
+        </div>
+
+        <button class="mt-4 flex items-center justify-center gap-3 bg-primary px-8 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]">
+          <Save size={18} />
+          <span data-i18n="account.saveProfile">Simpan Profil</span>
+        </button>
+      </form>
     </section>
-  </main>
-</TuneBossChrome>
+
+    <!-- Divider -->
+    <hr class="border-border/50 my-8" />
+
+    <!-- Password Section -->
+    <section>
+      <div class="mb-8">
+        <h2 data-i18n="account.passwordTitle" class="text-xl font-bold text-foreground uppercase tracking-widest">Ubah Kata Sandi</h2>
+        <p data-i18n="account.passwordDesc" class="text-sm text-foreground/70 mt-1">Perbarui kata sandi Anda untuk menjaga keamanan akun.</p>
+      </div>
+
+      <form id="password-form" class="space-y-5" onsubmit="event.preventDefault();">
+        <div class="grid gap-2">
+          <label data-i18n="account.currentPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Saat Ini</label>
+          <div class="relative">
+            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input 
+              id="password-current"
+              type="password" 
+              data-i18n-placeholder="account.currentPasswordPlaceholder"
+              placeholder="Masukkan kata sandi saat ini"
+              class="w-full border border-primary/20 bg-transparent p-4 pl-12 pr-12 outline-none transition-colors focus:border-primary text-foreground"
+            />
+            <button type="button" class="password-toggle absolute right-4 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-primary transition-colors" aria-label="Toggle password visibility">
+              <Eye size={18} className="icon-show" />
+              <EyeOff size={18} className="icon-hide hidden" />
+            </button>
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label data-i18n="account.newPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Baru</label>
+          <div class="relative">
+            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input 
+              id="password-new"
+              type="password" 
+              data-i18n-placeholder="account.newPasswordPlaceholder"
+              placeholder="Masukkan kata sandi baru"
+              class="w-full border border-primary/20 bg-transparent p-4 pl-12 pr-12 outline-none transition-colors focus:border-primary text-foreground"
+            />
+            <button type="button" class="password-toggle absolute right-4 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-primary transition-colors" aria-label="Toggle password visibility">
+              <Eye size={18} className="icon-show" />
+              <EyeOff size={18} className="icon-hide hidden" />
+            </button>
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label data-i18n="account.confirmPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Konfirmasi Kata Sandi Baru</label>
+          <div class="relative">
+            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input 
+              id="password-confirm"
+              type="password" 
+              data-i18n-placeholder="account.confirmPasswordPlaceholder2"
+              placeholder="Ulangi kata sandi baru"
+              class="w-full border border-primary/20 bg-transparent p-4 pl-12 pr-12 outline-none transition-colors focus:border-primary text-foreground"
+            />
+            <button type="button" class="password-toggle absolute right-4 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground transition-colors" aria-label="Toggle password visibility">
+              <Eye size={18} className="icon-show" />
+              <EyeOff size={18} className="icon-hide hidden" />
+            </button>
+          </div>
+        </div>
+
+        <button class="mt-4 flex items-center justify-center gap-3 bg-primary px-8 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]">
+          <Lock size={18} />
+          <span data-i18n="account.updatePassword">Perbarui Kata Sandi</span>
+        </button>
+      </form>
+    </section>
+
+  </div>
+</AccountLayout>
+
+<script>
+  import { z } from "zod";
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleButtons = document.querySelectorAll('.password-toggle');
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = btn.parentElement?.querySelector('input');
+        const iconShow = btn.querySelector('.icon-show');
+        const iconHide = btn.querySelector('.icon-hide');
+        
+        if (input && iconShow && iconHide) {
+          if (input.type === 'password') {
+            input.type = 'text';
+            iconShow.classList.add('hidden');
+            iconHide.classList.remove('hidden');
+          } else {
+            input.type = 'password';
+            iconShow.classList.remove('hidden');
+            iconHide.classList.add('hidden');
+          }
+        }
+      });
+    });
+
+    const lang = document.documentElement.lang || 'id';
+    const messages = {
+      id: {
+        nameMin: "Nama minimal 3 karakter",
+        phoneMin: "Nomor telepon tidak valid",
+        passMin: "Kata sandi minimal 6 karakter",
+        passMatch: "Konfirmasi kata sandi tidak cocok"
+      },
+      en: {
+        nameMin: "Name must be at least 3 characters",
+        phoneMin: "Invalid phone number",
+        passMin: "Password must be at least 6 characters",
+        passMatch: "Passwords do not match"
+      }
+    };
+    const m = messages[lang] || messages.id;
+
+    const profileSchema = z.object({
+      name: z.string().min(3, { message: m.nameMin }),
+      phone: z.string().min(9, { message: m.phoneMin }),
+    });
+
+    const profileForm = document.getElementById('profile-form');
+    if (profileForm) {
+      profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        profileForm.querySelectorAll(".zod-error").forEach(el => el.remove());
+        
+        const nameInput = document.getElementById("profile-name") as HTMLInputElement;
+        const phoneInput = document.getElementById("profile-phone") as HTMLInputElement;
+        
+        const data = {
+          name: nameInput?.value.trim() || "",
+          phone: phoneInput?.value.trim() || "",
+        };
+        
+        const result = profileSchema.safeParse(data);
+        if (!result.success) {
+          result.error.issues.forEach(issue => {
+            const msg = document.createElement("p");
+            msg.className = "zod-error text-[11px] font-medium text-red-500 mt-1.5 px-1";
+            msg.textContent = issue.message;
+            if (issue.path[0] === "name" && nameInput) nameInput.parentElement?.parentElement?.appendChild(msg);
+            if (issue.path[0] === "phone" && phoneInput) phoneInput.parentElement?.parentElement?.appendChild(msg);
+          });
+          return;
+        }
+        alert('Profil berhasil disimpan! (Hanya simulasi)');
+      });
+    }
+
+    const passwordSchema = z.object({
+      current: z.string().min(6, { message: m.passMin }),
+      new: z.string().min(6, { message: m.passMin }),
+      confirm: z.string().min(6, { message: m.passMin }),
+    }).refine((data) => data.new === data.confirm, {
+      message: m.passMatch,
+      path: ["confirm"],
+    });
+
+    const passwordForm = document.getElementById('password-form');
+    if (passwordForm) {
+      passwordForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        passwordForm.querySelectorAll(".zod-error").forEach(el => el.remove());
+        
+        const currentInput = document.getElementById("password-current") as HTMLInputElement;
+        const newInput = document.getElementById("password-new") as HTMLInputElement;
+        const confirmInput = document.getElementById("password-confirm") as HTMLInputElement;
+        
+        const data = {
+          current: currentInput?.value || "",
+          new: newInput?.value || "",
+          confirm: confirmInput?.value || "",
+        };
+        
+        const result = passwordSchema.safeParse(data);
+        if (!result.success) {
+          result.error.issues.forEach(issue => {
+            const msg = document.createElement("p");
+            msg.className = "zod-error text-[11px] font-medium text-red-500 mt-1.5 px-1";
+            msg.textContent = issue.message;
+            if (issue.path[0] === "current" && currentInput) currentInput.parentElement?.parentElement?.appendChild(msg);
+            if (issue.path[0] === "new" && newInput) newInput.parentElement?.parentElement?.appendChild(msg);
+            if (issue.path[0] === "confirm" && confirmInput) confirmInput.parentElement?.parentElement?.appendChild(msg);
+          });
+          return;
+        }
+        alert('Kata sandi berhasil diperbarui! (Hanya simulasi)');
+      });
+    }
+  });
+</script>

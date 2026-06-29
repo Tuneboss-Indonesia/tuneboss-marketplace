@@ -56,13 +56,14 @@ import "@/styles/global.css";
 <script>
   import { z } from "zod";
 
-  // Simple client-side script for demonstration
-  const form = document.getElementById('tracking-form');
-  const input = document.getElementById('order_id') as HTMLInputElement;
-  const result = document.getElementById('tracking-result');
-  const btn = document.getElementById('btn-track');
+  document.addEventListener("astro:page-load", () => {
+    // Simple client-side script for demonstration
+    const form = document.getElementById('tracking-form');
+    const input = document.getElementById('order_id') as HTMLInputElement;
+    const result = document.getElementById('tracking-result');
+    const btn = document.getElementById('btn-track');
 
-  // Define Zod schema for order ID validation
+    // Define Zod schema for order ID validation
   const orderIdSchema = z.string().min(1, { message: "ID Pesanan diperlukan." }).startsWith("INV-", { message: "tracking.zodError" });
 
   form?.addEventListener('submit', (e) => {
@@ -196,5 +197,13 @@ import "@/styles/global.css";
         `;
       }, 1500);
     }
+  });
+
+  const savedOrderId = sessionStorage.getItem('tuneboss-tracking-id');
+  if (savedOrderId && input && form) {
+    input.value = savedOrderId;
+    sessionStorage.removeItem('tuneboss-tracking-id');
+    form.dispatchEvent(new Event('submit'));
+  }
   });
 </script>

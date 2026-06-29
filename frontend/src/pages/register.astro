@@ -1,6 +1,6 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, User, Mail, Lock } from "lucide-react";
 import { ClientRouter } from "astro:transitions";
 import "@/styles/global.css";
 
@@ -27,20 +27,27 @@ export const prerender = false;
       <form class="w-full space-y-6" novalidate>
         <label class="block">
           <span data-i18n="auth.name" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Name</span>
-          <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-page-input" type="text" autocomplete="name" placeholder="Nama Anda" />
+          <span class="relative block">
+            <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-page-input !pl-12" type="text" autocomplete="name" placeholder="Nama Anda" />
+          </span>
           <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
         <label class="block">
           <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input" type="email" autocomplete="username" placeholder="Email Anda" />
+          <span class="relative block">
+            <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-page-input !pl-12" type="email" autocomplete="username" placeholder="Email Anda" />
+          </span>
           <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
         <label class="block">
           <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
           <span class="relative block">
-            <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input pr-12" type="password" autocomplete="new-password" placeholder="Kata sandi Anda" />
+            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-page-input !pl-12 !pr-12" type="password" autocomplete="new-password" placeholder="Kata sandi Anda" />
             <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
               <Eye data-eye-show size={20} strokeWidth={1.8} />
               <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -52,7 +59,8 @@ export const prerender = false;
         <label class="block">
           <span data-i18n="auth.confirmPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Confirm Password</span>
           <span class="relative block">
-            <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-page-input pr-12" type="password" autocomplete="new-password" placeholder="Konfirmasi sandi Anda" />
+            <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-page-input !pl-12 !pr-12" type="password" autocomplete="new-password" placeholder="Konfirmasi sandi Anda" />
             <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
               <Eye data-eye-show size={20} strokeWidth={1.8} />
               <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />

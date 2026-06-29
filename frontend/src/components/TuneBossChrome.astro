@@ -1,6 +1,6 @@
 ---
 import { Image } from "astro:assets";
-import { ArrowUp, ChevronRight, Eye, EyeOff, Home, LogIn, Moon, Package, ShoppingBag, Sun, User, UserPlus, X, Truck, LogOut } from "lucide-react";
+import { ArrowUp, ChevronRight, Eye, EyeOff, Home, LogIn, Moon, Package, ShoppingBag, Sun, User, UserPlus, X, Truck, LogOut, Mail, Lock } from "lucide-react";
 import { FaFacebookF, FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa6";
 import logo from "../../public/tuneboss-logo.png";
 import AlertDialog from "./AlertDialog.astro";
@@ -182,13 +182,17 @@ import AlertDialog from "./AlertDialog.astro";
     <form data-auth-form="login" class="space-y-5" novalidate>
       <label class="block">
         <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-        <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" autocomplete="username" placeholder="Email Anda" />
+        <span class="relative block">
+          <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input !pl-12" type="email" autocomplete="username" placeholder="Email Anda" />
+        </span>
         <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="block">
         <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
         <span class="relative block">
-          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" autocomplete="current-password" placeholder="Kata sandi Anda" />
+          <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input !pl-12 !pr-12" type="password" autocomplete="current-password" placeholder="Kata sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -229,18 +233,25 @@ import AlertDialog from "./AlertDialog.astro";
     <form data-auth-form="register" class="space-y-5" novalidate>
       <label class="block">
         <span data-i18n="auth.name" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Name</span>
-        <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-input" type="text" autocomplete="name" placeholder="Nama Anda" />
+        <span class="relative block">
+          <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+          <input name="name" data-i18n-placeholder="auth.namePlaceholder" class="auth-input !pl-12" type="text" autocomplete="name" placeholder="Nama Anda" />
+        </span>
         <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="block">
         <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email</span>
-        <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" autocomplete="username" placeholder="Email Anda" />
+        <span class="relative block">
+          <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input !pl-12" type="email" autocomplete="username" placeholder="Email Anda" />
+        </span>
         <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="block">
         <span data-i18n="auth.password" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Password</span>
         <span class="relative block">
-          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input pr-12" type="password" autocomplete="new-password" placeholder="Kata sandi Anda" />
+          <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+          <input name="password" data-auth-password data-i18n-placeholder="auth.passwordPlaceholder" class="auth-input !pl-12 !pr-12" type="password" autocomplete="new-password" placeholder="Kata sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -251,7 +262,8 @@ import AlertDialog from "./AlertDialog.astro";
       <label class="block">
         <span data-i18n="auth.confirmPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Confirm Password</span>
         <span class="relative block">
-          <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-input pr-12" type="password" autocomplete="new-password" placeholder="Konfirmasi sandi Anda" />
+          <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+          <input name="confirmPassword" data-auth-password data-i18n-placeholder="auth.confirmPasswordPlaceholder" class="auth-input !pl-12 !pr-12" type="password" autocomplete="new-password" placeholder="Konfirmasi sandi Anda" />
           <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button" aria-label="Show password">
             <Eye data-eye-show size={20} strokeWidth={1.8} />
             <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
@@ -291,7 +303,10 @@ import AlertDialog from "./AlertDialog.astro";
       <form data-auth-form="forgot" class="space-y-5" novalidate>
         <label class="block">
           <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email Address</span>
-          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" autocomplete="email" placeholder="john.doe@example.com" />
+          <span class="relative block">
+            <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
+            <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input !pl-12" type="email" autocomplete="email" placeholder="john.doe@example.com" />
+          </span>
           <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
         <button data-i18n="auth.sendResetLink" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Send Reset Link</button>
@@ -437,7 +452,18 @@ import AlertDialog from "./AlertDialog.astro";
   </div>
 </footer>
 
-<AlertDialog id="logout-dialog" title="Konfirmasi Keluar" description="Apakah Anda yakin ingin keluar dari akun Anda?" confirmLabel="Keluar" cancelLabel="Batal" tone="danger" />
+<AlertDialog 
+  id="logout-dialog" 
+  title="Konfirmasi Keluar" 
+  description="Apakah Anda yakin ingin keluar dari akun Anda?" 
+  confirmLabel="Keluar" 
+  cancelLabel="Batal" 
+  tone="danger" 
+  i18nTitle="account.logoutConfirmTitle"
+  i18nDesc="account.logoutConfirmDesc"
+  i18nConfirm="account.logoutConfirmBtn"
+  i18nCancel="account.deleteCancelBtn"
+/>
 
 <style>
   .tuneboss-link {
@@ -602,6 +628,8 @@ import AlertDialog from "./AlertDialog.astro";
       "cart.termsModalCopy4": "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.",
       "cart.termsModalClose": "Tutup",
       "account.title": "Akun",
+      "account.editBtn": "Ubah",
+      "account.deleteBtn": "Hapus",
       "account.signin": "Masuk",
       "account.create": "Buat Akun",
       "account.dashboard": "Dashboard",
@@ -750,7 +778,72 @@ import AlertDialog from "./AlertDialog.astro";
       "tracking.placeholder": "Misal: INV-2610-TB99",
       "tracking.btn": "Lacak",
       "tracking.searching": "Mencari...",
-      "tracking.zodError": "ID Pesanan tidak valid. Format harus berawalan 'INV-'.",
+      "tracking.invalidFormat": "ID Pesanan tidak valid. Format harus berawalan 'INV-'.",
+      "tracking.required": "ID Pesanan diperlukan.",
+      "account.menu": "Menu Akun",
+      "account.settings": "Profil Saya",
+      "account.address": "Alamat",
+      "account.history": "Riwayat Pembelian",
+      "account.logout": "Keluar",
+      "account.profileTitle": "Profil Saya",
+      "account.profileDesc": "Kelola informasi pribadi dan kontak Anda.",
+      "account.name": "Nama Lengkap",
+      "account.email": "Alamat Email",
+      "account.emailHelp": "Alamat email tidak dapat diubah.",
+      "account.phone": "Nomor Telepon",
+      "account.saveProfile": "Simpan Profil",
+      "account.passwordTitle": "Ubah Kata Sandi",
+      "account.passwordDesc": "Perbarui kata sandi Anda untuk menjaga keamanan akun.",
+      "account.currentPassword": "Kata Sandi Saat Ini",
+      "account.newPassword": "Kata Sandi Baru",
+      "account.confirmPassword": "Konfirmasi Kata Sandi Baru",
+      "account.updatePassword": "Perbarui Kata Sandi",
+      "account.namePlaceholder": "Masukkan nama lengkap Anda",
+      "account.phonePlaceholder": "Masukkan nomor telepon Anda",
+      "account.currentPasswordPlaceholder": "Masukkan kata sandi saat ini",
+      "account.newPasswordPlaceholder": "Masukkan kata sandi baru",
+      "account.confirmPasswordPlaceholder2": "Ulangi kata sandi baru",
+      "account.addressTitle": "Alamat Tersimpan",
+      "account.addressDesc": "Kelola alamat pengiriman dan penagihan Anda.",
+      "account.addAddress": "Tambah Alamat Baru",
+      "account.historyTitle": "Riwayat Pembelian",
+      "account.historyDesc": "Lihat dan lacak semua pesanan Anda sebelumnya.",
+      "account.searchOrder": "Cari berdasarkan ID Pesanan...",
+      "account.deleteConfirmTitle": "Konfirmasi Hapus",
+      "account.deleteConfirmDesc": "Apakah Anda yakin ingin menghapus alamat ini?",
+      "account.deleteConfirmBtn": "Hapus",
+      "account.deleteCancelBtn": "Batal",
+      "account.logoutConfirmTitle": "Konfirmasi Keluar",
+      "account.logoutConfirmDesc": "Apakah Anda yakin ingin keluar dari akun Anda?",
+      "account.logoutConfirmBtn": "Keluar",
+      "history.filterAll": "Semua Pesanan",
+      "history.filterPending": "Menunggu",
+      "history.filterShipped": "Dikirim",
+      "history.filterDelivered": "Diterima",
+      "history.filterCancelled": "Dibatalkan",
+      "history.filterExpired": "Kedaluwarsa",
+      "history.giveReview": "Beri Review",
+      "history.cancelReview": "Batal",
+      "history.saveReview": "Simpan Review",
+      "history.viewReview": "Lihat Review",
+      "history.reviewPlaceholder": "Tulis ulasan Anda di sini...",
+      "history.reviewRequired": "Ulasan wajib diisi (minimal 10 karakter)",
+      "history.orderReceived": "Pesanan Diterima",
+      "history.payNow": "Bayar Sekarang",
+      "history.totalAmount": "Total Belanja",
+      "history.deliveredOn": "Diterima pada 14 Jan 2026",
+      "history.estimatedDelivery": "Dikirim pada 30 Jan 2026",
+      "history.pendingPayment": "Menunggu Pembayaran",
+      "history.awaitingPayment": "Menunggu pembayaran Anda",
+      "history.cancelledByUser": "Dibatalkan oleh Pengguna",
+      "history.paymentExpired": "Waktu pembayaran kedaluwarsa",
+      "address.newAddress": "Alamat Baru",
+      "address.editAddress": "Ubah Alamat",
+      "address.region": "Kecamatan / Kelurahan, Provinsi, Kode Pos",
+      "address.street": "Pilih Jalan, Gedung, Perumahan",
+      "address.details": "Detail Lainnya (Cth: Blok / Unit No., Patokan)",
+      "address.detectLocation": "Deteksi Lokasi",
+      "address.saveBtn": "Simpan Alamat"
     },
     en: {
       "nav.home": "Home",
@@ -938,8 +1031,75 @@ import AlertDialog from "./AlertDialog.astro";
       "tracking.desc": "Enter your order ID below to check the real-time status of your TuneBoss products.",
       "tracking.placeholder": "e.g. INV-2610-TB99",
       "tracking.btn": "Track",
-      "tracking.searching": "Searching...",
-      "tracking.zodError": "Invalid Order ID. Format must start with 'INV-'.",
+      "tracking.searching": "SEARCHING...",
+      "tracking.invalidFormat": "Invalid Order ID. Format must start with 'INV-'.",
+      "tracking.required": "Order ID is required.",
+      "account.menu": "Account Menu",
+      "account.settings": "My Profile",
+      "account.address": "Addresses",
+      "account.editBtn": "Edit",
+      "account.deleteBtn": "Delete",
+      "account.history": "Purchase History",
+      "account.logout": "Log out",
+      "account.profileTitle": "My Profile",
+      "account.profileDesc": "Manage your personal information and contact details.",
+      "account.name": "Full Name",
+      "account.email": "Email Address",
+      "account.emailHelp": "Email address cannot be changed.",
+      "account.phone": "Phone Number",
+      "account.saveProfile": "Save Profile",
+      "account.passwordTitle": "Change Password",
+      "account.passwordDesc": "Update your password to keep your account secure.",
+      "account.currentPassword": "Current Password",
+      "account.newPassword": "New Password",
+      "account.confirmPassword": "Confirm New Password",
+      "account.updatePassword": "Update Password",
+      "account.namePlaceholder": "Enter your full name",
+      "account.phonePlaceholder": "Enter your phone number",
+      "account.currentPasswordPlaceholder": "Enter current password",
+      "account.newPasswordPlaceholder": "Enter new password",
+      "account.confirmPasswordPlaceholder2": "Repeat new password",
+      "account.addressTitle": "Saved Addresses",
+      "account.addressDesc": "Manage your shipping and billing addresses.",
+      "account.addAddress": "Add New Address",
+      "account.historyTitle": "Purchase History",
+      "account.historyDesc": "View and track all your previous orders.",
+      "account.searchOrder": "Search by Order ID...",
+      "account.deleteConfirmTitle": "Confirm Delete",
+      "account.deleteConfirmDesc": "Are you sure you want to delete this address?",
+      "account.deleteConfirmBtn": "Delete",
+      "account.deleteCancelBtn": "Cancel",
+      "account.logoutConfirmTitle": "Confirm Logout",
+      "account.logoutConfirmDesc": "Are you sure you want to log out of your account?",
+      "account.logoutConfirmBtn": "Log Out",
+      "history.filterAll": "All Orders",
+      "history.filterPending": "Pending",
+      "history.filterShipped": "Shipped",
+      "history.filterDelivered": "Delivered",
+      "history.filterCancelled": "Cancelled",
+      "history.filterExpired": "Expired",
+      "history.giveReview": "Give Review",
+      "history.cancelReview": "Cancel",
+      "history.saveReview": "Save Review",
+      "history.viewReview": "View Review",
+      "history.reviewPlaceholder": "Write your review here...",
+      "history.reviewRequired": "Review is required (min. 10 characters)",
+      "history.orderReceived": "Order Received",
+      "history.payNow": "Pay Now",
+      "history.totalAmount": "Total Amount",
+      "history.deliveredOn": "Delivered on 14 Jan 2026",
+      "history.estimatedDelivery": "Shipped on 30 Jan 2026",
+      "history.pendingPayment": "Pending Payment",
+      "history.awaitingPayment": "Awaiting your payment",
+      "history.cancelledByUser": "Cancelled by User",
+      "history.paymentExpired": "Payment time expired",
+      "address.newAddress": "New Address",
+      "address.editAddress": "Edit Address",
+      "address.region": "Subdistrict, Province, Postal Code",
+      "address.street": "Select Street, Building, Estate",
+      "address.details": "Other Details (e.g., Block / Unit No., Landmark)",
+      "address.detectLocation": "Detect Location",
+      "address.saveBtn": "Save Address"
     },
   };
 

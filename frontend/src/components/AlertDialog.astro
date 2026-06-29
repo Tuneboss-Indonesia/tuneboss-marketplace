@@ -6,9 +6,13 @@ type Props = {
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: "primary" | "danger";
+  i18nTitle?: string;
+  i18nDesc?: string;
+  i18nConfirm?: string;
+  i18nCancel?: string;
 };
 
-const { id, title, description, confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "primary" } = Astro.props;
+const { id, title, description, confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "primary", i18nTitle, i18nDesc, i18nConfirm, i18nCancel } = Astro.props;
 ---
 
 <dialog id={id} data-alert-dialog class={`alert-dialog m-auto w-[calc(100vw-2rem)] max-w-md rounded-lg border bg-background p-0 text-foreground shadow-2xl backdrop:bg-black/60 ${tone === "danger" ? "border-red-300 dark:border-red-700" : "border-green-300 dark:border-green-700"}`}>
@@ -30,16 +34,16 @@ const { id, title, description, confirmLabel = "Confirm", cancelLabel = "Cancel"
           )}
         </div>
         <div>
-          <h2 class="text-lg font-semibold leading-tight">{title}</h2>
-          {description && <p class="mt-2 text-sm leading-relaxed opacity-90">{description}</p>}
+          <h2 class="text-lg font-semibold leading-tight" data-i18n={i18nTitle}>{title}</h2>
+          {description && <p class="mt-2 text-sm leading-relaxed opacity-90" data-i18n={i18nDesc}>{description}</p>}
         </div>
       </div>
       <button data-dialog-close class="rounded-full p-1 text-2xl leading-none opacity-70 transition-opacity hover:opacity-100" type="button" aria-label="Close">x</button>
     </div>
 
     <div class="flex justify-end gap-3">
-      <button data-dialog-close class="rounded-md border border-primary/20 px-5 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">{cancelLabel}</button>
-      <button data-dialog-confirm class={`rounded-md px-5 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors ${tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-[#c95b04]"}`} type="button">{confirmLabel}</button>
+      <button data-dialog-close class="rounded-md border border-primary/20 px-5 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button" data-i18n={i18nCancel}>{cancelLabel}</button>
+      <button data-dialog-confirm class={`rounded-md px-5 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors ${tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-[#c95b04]"}`} type="button" data-i18n={i18nConfirm}>{confirmLabel}</button>
     </div>
   </div>
 </dialog>
