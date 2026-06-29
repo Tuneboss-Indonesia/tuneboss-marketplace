@@ -11,7 +11,7 @@ export const onRequest = defineMiddleware((context, next) => {
   
   // Only check cookies on specific routes to avoid Astro warnings during static build
   const isAuthRoute = pathname === "/login" || pathname === "/register";
-  const isProtectedRoute = pathname === "/dashboard" || pathname === "/checkout" || pathname.startsWith("/checkout/");
+  const isProtectedRoute = pathname === "/account/settings" || pathname === "/checkout" || pathname.startsWith("/checkout/");
 
   console.log("isAuthRoute:", isAuthRoute, "isProtectedRoute:", isProtectedRoute);
 
@@ -20,7 +20,7 @@ export const onRequest = defineMiddleware((context, next) => {
     console.log("Auth cookie:", auth);
     
     if (auth && isAuthRoute) {
-      return context.redirect("/dashboard");
+      return context.redirect("/account/settings");
     } else if (!auth && isProtectedRoute) {
       return context.redirect("/login");
     }

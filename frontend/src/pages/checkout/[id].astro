@@ -144,7 +144,7 @@ export const prerender = false;
 
         } else if (status === "success") {
           statusActions.innerHTML = `
-            <a href="/dashboard" class="bg-primary px-8 py-3 text-sm font-bold tracking-widest text-white hover:bg-primary/90 transition-colors uppercase text-center" style="color: white !important;">${content[lang].buttons.track}</a>
+            <a href="/account/settings" class="bg-primary px-8 py-3 text-sm font-bold tracking-widest text-white hover:bg-primary/90 transition-colors uppercase text-center" style="color: white !important;">${content[lang].buttons.track}</a>
           `;
         } else if (status === "failed" || status === "canceled") {
           statusActions.innerHTML = `

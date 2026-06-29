@@ -1,7 +1,7 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import "@/styles/global.css";
-import { getOtpVerificationEmail, getOtpResetPasswordEmail, getPaymentSuccessEmail, getPaymentFailedEmail, getPaymentCancelEmail, getPaymentExpiredEmail } from "../../../backend/src/emails/index.js";
+import { getOtpVerificationEmail, getOtpResetPasswordEmail, getPaymentSuccessEmail, getPaymentFailedEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getOrderShippedEmail, getOrderDeliveredEmail } from "../../../backend/src/emails/index.js";
 
 const dummyName = "Budi Santoso";
 const dummyOrderId = "INV-2610-TB99";
@@ -29,7 +29,9 @@ const templates = [
   { id: "payment-success", name: "Payment Success", html: getPaymentSuccessEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
   { id: "payment-failed", name: "Payment Failed", html: getPaymentFailedEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
   { id: "payment-cancel", name: "Payment Cancelled", html: getPaymentCancelEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
-  { id: "payment-expired", name: "Payment Expired", html: getPaymentExpiredEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') }
+  { id: "payment-expired", name: "Payment Expired", html: getPaymentExpiredEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "order-shipped", name: "Order Shipped", html: getOrderShippedEmail(dummyName, { ...paymentDetails, courier: "JNE Express" }).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "order-delivered", name: "Order Delivered", html: getOrderDeliveredEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') }
 ];
 ---
 

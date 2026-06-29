@@ -1,6 +1,7 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import { ClientRouter } from "astro:transitions";
+import { Search } from "lucide-react";
 import "@/styles/global.css";
 ---
 
@@ -13,9 +14,102 @@ import "@/styles/global.css";
 </head>
 
 <TuneBossChrome>
-  <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">
-    <section class="mx-auto max-w-4xl text-center">
-        <h1 data-i18n="nav.tracking" class="font-display text-4xl uppercase md:text-6xl">Lacak Pesanan</h1>
+  <main class="min-h-screen bg-background px-6 pb-32 pt-32 md:px-12 md:pt-40">
+    <section class="mx-auto max-w-2xl text-center">
+      <!-- Title -->
+      <h1 data-i18n="tracking.title" class="mb-4 font-display text-4xl uppercase md:text-6xl text-foreground">Track Order</h1>
+      <p data-i18n="tracking.desc" class="mb-12 text-sm text-foreground/60 md:text-base leading-relaxed">
+        Enter your order ID below to check the real-time status of your TuneBoss products.
+      </p>
+
+      <!-- Search Form -->
+      <form class="relative mx-auto flex max-w-xl flex-col gap-4 sm:flex-row" id="tracking-form" novalidate>
+        <div class="relative flex-grow">
+          <Search size={18} strokeWidth={1.8} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary" />
+          <input 
+            type="text" 
+            id="order_id" 
+            name="order_id" 
+            data-i18n-placeholder="tracking.placeholder"
+            placeholder="e.g. INV-2610-TB99" 
+            autocomplete="off"
+            required
+            class="h-14 w-full rounded-none border border-primary/20 bg-transparent pl-12 pr-4 text-sm font-medium transition-colors focus:border-primary focus:outline-none"
+          />
+        </div>
+        <button 
+          type="submit" 
+          id="btn-track"
+          class="flex h-14 shrink-0 items-center justify-center rounded-none border border-primary bg-primary px-8 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:border-[#c95b04] hover:bg-[#c95b04] hover:text-white"
+        >
+          <span data-i18n="tracking.btn">TRACK</span>
+        </button>
+      </form>
+
+      <div class="mt-8 text-sm text-foreground/80" id="tracking-result">
+        <!-- Result will be injected here -->
+      </div>
     </section>
   </main>
 </TuneBossChrome>
+
+<script>
+  import { z } from "zod";
+
+  // Simple client-side script for demonstration
+  const form = document.getElementById('tracking-form');
+  const input = document.getElementById('order_id') as HTMLInputElement;
+  const result = document.getElementById('tracking-result');
+  const btn = document.getElementById('btn-track');
+
+  // Define Zod schema for order ID validation
+  const orderIdSchema = z.string().min(1, { message: "ID Pesanan diperlukan." }).startsWith("INV-", { message: "tracking.zodError" });
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const orderId = input?.value.trim();
+    if (orderId !== undefined && result && btn) {
+      
+      // Validate using Zod
+      const validationResult = orderIdSchema.safeParse(orderId);
+      
+      if (!validationResult.success) {
+        // Show validation error
+        const isEn = document.documentElement.lang === 'en';
+        const errorKey = validationResult.error.issues[0].message;
+        
+        let errorMsg = "Invalid Order ID.";
+        if (errorKey === "tracking.zodError") {
+          errorMsg = isEn ? "Invalid Order ID. Format must start with 'INV-'." : "ID Pesanan tidak valid. Format harus berawalan 'INV-'.";
+        } else {
+          errorMsg = isEn ? "Order ID is required." : "ID Pesanan diperlukan.";
+        }
+        
+        result.innerHTML = `<div class="animate-fade-in text-red-500 font-medium">${errorMsg}</div>`;
+        return; // Stop execution
+      }
+
+      // Simulate loading state
+      const textSpan = btn.querySelector('span');
+      const originalText = textSpan ? textSpan.innerText : btn.innerText;
+      const isEn = document.documentElement.lang === 'en';
+      
+      if (textSpan) textSpan.innerText = isEn ? 'SEARCHING...' : 'MENCARI...';
+      btn.classList.add('opacity-80', 'cursor-not-allowed');
+      
+      setTimeout(() => {
+        if (textSpan) textSpan.innerText = originalText;
+        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        
+        // This is a placeholder for the actual API call
+        const notFoundText = isEn ? "Tracking feature is currently in development. Please check back later." : "Fitur pelacakan pesanan sedang dalam pengembangan. Silakan cek kembali nanti.";
+        const searchForText = isEn ? "Searching for Order" : "Mencari Pesanan";
+        
+        result.innerHTML = `<div class="animate-fade-in rounded-xl border border-primary/30 bg-primary/10 p-4 text-primary">
+          <p class="font-bold">${searchForText}: ${orderId}</p>
+          <p class="mt-1 opacity-80 text-sm">${notFoundText}</p>
+        </div>`;
+      }, 1500);
+    }
+  });
+</script>

@@ -49,7 +49,7 @@ import AlertDialog from "./AlertDialog.astro";
       <button data-auth-open="login" data-auth-icon-guest class="group transition-transform duration-300 hover:scale-110" type="button" aria-label="Account">
         <User size={20} strokeWidth={2} className="transition-colors group-hover:text-primary" />
       </button>
-      <a href="/dashboard" data-auth-icon-user class="hidden group transition-transform duration-300 hover:scale-110" aria-label="Dashboard">
+      <a href="/account/settings" data-auth-icon-user class="hidden group transition-transform duration-300 hover:scale-110" aria-label="Account Settings">
         <User size={20} strokeWidth={2} className="text-primary transition-colors hover:text-primary/80" />
       </a>
     </div>
@@ -113,7 +113,7 @@ import AlertDialog from "./AlertDialog.astro";
         </a>
       </div>
       <div data-auth-user class="hidden flex-col space-y-4">
-        <a href="/dashboard" aria-label="Dashboard" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest">
+        <a href="/account/settings" aria-label="Account Settings" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest">
           <User size={16} strokeWidth={1.5} />
           <span data-i18n="account.dashboard">Dashboard</span>
         </a>
@@ -737,6 +737,12 @@ import AlertDialog from "./AlertDialog.astro";
       "terms.copy2": "Produk ECU dan tuning harus dipasang serta digunakan secara benar. Kerusakan akibat pemasangan yang salah, modifikasi ekstrem, atau penggunaan di luar spesifikasi bukan tanggung jawab TuneBoss.",
       "terms.copy3": "Harga, stok, dan detail produk dapat berubah tanpa pemberitahuan sebelumnya. Pesanan dianggap berlaku setelah pembayaran dikonfirmasi.",
       "terms.copy4": "Untuk bantuan pesanan, garansi, atau konsultasi produk, hubungi hello@tuneboss.co.id atau WhatsApp +62 817-5792-805.",
+      "tracking.title": "Lacak Pesanan",
+      "tracking.desc": "Masukkan ID pesanan Anda di bawah ini untuk memeriksa status produk TuneBoss Anda secara langsung.",
+      "tracking.placeholder": "Misal: INV-2610-TB99",
+      "tracking.btn": "Lacak",
+      "tracking.searching": "Mencari...",
+      "tracking.zodError": "ID Pesanan tidak valid. Format harus berawalan 'INV-'.",
     },
     en: {
       "nav.home": "Home",
@@ -910,8 +916,14 @@ import AlertDialog from "./AlertDialog.astro";
       "terms.heading": "Terms of Service",
       "terms.copy1": "By using TuneBoss Marketplace, customers agree to the order, payment, and delivery process shown at the time of transaction.",
       "terms.copy2": "ECU and tuning products must be installed and used correctly. Damage from incorrect installation, extreme modification, or use outside specification is not TuneBoss responsibility.",
-      "terms.copy3": "Prices, stock, and product details may change without prior notice. Orders are valid after payment is confirmed.",
-      "terms.copy4": "For order support, warranty, or product consultation, contact hello@tuneboss.co.id or WhatsApp +62 817-5792-805.",
+      "terms.copy3": "Prices, stock, and product details may change without prior notice. Orders are considered valid after payment is confirmed.",
+      "terms.copy4": "For order assistance, warranty, or product consultation, contact hello@tuneboss.co.id or WhatsApp +62 817-5792-805.",
+      "tracking.title": "Track Order",
+      "tracking.desc": "Enter your order ID below to check the real-time status of your TuneBoss products.",
+      "tracking.placeholder": "e.g. INV-2610-TB99",
+      "tracking.btn": "Track",
+      "tracking.searching": "Searching...",
+      "tracking.zodError": "Invalid Order ID. Format must start with 'INV-'.",
     },
   };
 
@@ -1261,7 +1273,7 @@ import AlertDialog from "./AlertDialog.astro";
         if (typeof window.checkAuthStatus === "function") {
           window.checkAuthStatus?.();
         } else {
-          navigate("/dashboard");
+          navigate("/account/settings");
         }
       }, true);
       return;
@@ -1859,7 +1871,7 @@ import AlertDialog from "./AlertDialog.astro";
     if (pendingEmail) {
       openOtpDialog(pendingEmail, () => {
         document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-        navigate("/dashboard");
+        navigate("/account/settings");
       }, true);
     }
   }

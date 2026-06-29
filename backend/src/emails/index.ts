@@ -5,3 +5,5 @@ export * from "./payment-success.js";
 export * from "./payment-failed.js";
 export * from "./payment-cancel.js";
 export * from "./payment-expired.js";
+export * from "./order-shipped.js";
+export * from "./order-delivered.js";

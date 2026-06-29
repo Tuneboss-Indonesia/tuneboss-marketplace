@@ -154,15 +154,19 @@ export const prerender = false;
         }
 
         const email = formData.email.trim().toLowerCase();
+        const redirect = new URLSearchParams(window.location.search).get("redirect");
 
         if (typeof window.openOtpDialog === "function") {
           window.openOtpDialog(email, () => {
-            document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-            navigate("/dashboard");
+            if (redirect) {
+              navigate(redirect);
+            } else {
+              navigate("/account/settings");
+            }
           });
         } else {
           document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-          navigate("/dashboard");
+          navigate("/account/settings");
         }
       });
     }
