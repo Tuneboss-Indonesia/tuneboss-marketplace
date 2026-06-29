@@ -3,6 +3,7 @@ import { Image } from "astro:assets";
 import { ArrowUp, ChevronRight, Eye, EyeOff, Home, LogIn, Moon, Package, ShoppingBag, Sun, User, UserPlus, X, Truck, LogOut } from "lucide-react";
 import { FaFacebookF, FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa6";
 import logo from "../../public/tuneboss-logo.png";
+import AlertDialog from "./AlertDialog.astro";
 ---
 <script is:inline>
   if (localStorage.getItem("lang") === "en") {
@@ -16,7 +17,7 @@ import logo from "../../public/tuneboss-logo.png";
   }
 </style>
 
-<html lang="en">
+<html lang="id">
 <body class="antialiased">
 <nav data-navbar class="fixed left-0 top-0 z-40 w-full border-b border-primary/10 bg-background/95 py-4 text-foreground shadow-sm backdrop-blur-lg transition-all duration-500">
   <div class="mx-auto flex max-w-[1600px] items-center justify-between px-5 md:px-12">
@@ -27,7 +28,7 @@ import logo from "../../public/tuneboss-logo.png";
           <span class="block h-[2px] w-6 bg-current transition-all duration-300" aria-hidden="true"></span>
           <span class="block h-[2px] w-4 bg-current transition-all duration-300 group-hover:w-8" aria-hidden="true"></span>
         </div>
-        <span class="hidden text-sm font-bold uppercase tracking-widest md:block">Menu</span>
+        <span data-i18n="ui.menu" class="hidden text-sm font-bold uppercase tracking-widest md:block">Menu</span>
       </button>
     </div>
 
@@ -43,7 +44,7 @@ import logo from "../../public/tuneboss-logo.png";
       </button>
       <button data-cart-open class="group relative transition-transform duration-300 hover:scale-110" type="button" aria-label="Keranjang">
         <ShoppingBag size={20} strokeWidth={2} className="transition-colors group-hover:text-primary" />
-        <span data-cart-badge class="invisible absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">0</span>
+        <span data-cart-badge class="invisible absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-white text-center">0</span>
       </button>
       <button data-auth-open="login" data-auth-icon-guest class="group transition-transform duration-300 hover:scale-110" type="button" aria-label="Account">
         <User size={20} strokeWidth={2} className="transition-colors group-hover:text-primary" />
@@ -116,7 +117,7 @@ import logo from "../../public/tuneboss-logo.png";
           <User size={16} strokeWidth={1.5} />
           <span data-i18n="account.dashboard">Dashboard</span>
         </a>
-        <button data-auth-logout aria-label="Sign Out" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest" type="button">
+        <button data-dialog-target="logout-dialog" aria-label="Sign Out" class="drawer-account-link flex items-center gap-3 text-left text-sm font-bold tracking-widest" type="button">
           <LogOut size={16} strokeWidth={1.5} />
           <span data-i18n="account.signout">Sign Out</span>
         </button>
@@ -134,7 +135,7 @@ import logo from "../../public/tuneboss-logo.png";
       <div class="flex items-start gap-3">
         <ShoppingBag size={22} strokeWidth={1.8} className="mt-1 text-primary" aria-hidden="true" />
         <div>
-          <h2 class="text-xl font-bold uppercase tracking-widest" aria-label="Keranjang">Keranjang</h2>
+          <h2 data-i18n="nav.cart" class="text-xl font-bold uppercase tracking-widest" aria-label="Keranjang">Keranjang</h2>
         <p data-cart-summary class="mt-2 text-sm text-primary">Keranjang kosong</p>
         </div>
       </div>
@@ -145,11 +146,11 @@ import logo from "../../public/tuneboss-logo.png";
     <div data-cart-items class="flex-1 overflow-y-auto px-6 py-5"></div>
     <div class="border-t border-primary/10 px-6 py-5">
       <div class="mb-4 flex items-center justify-between text-sm uppercase tracking-widest">
-        <span>Subtotal</span>
+        <span data-i18n="cart.subtotal">Subtotal</span>
         <strong data-cart-total>Rp. 0</strong>
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <button data-cart-close class="border border-primary/20 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">Lanjut Belanja</button>
+        <button data-cart-close data-i18n="cart.continue" class="border border-primary/20 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">Lanjut Belanja</button>
         <button data-cart-checkout-btn class="bg-primary px-4 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" type="button">Checkout</button>
       </div>
     </div>
@@ -284,6 +285,7 @@ import logo from "../../public/tuneboss-logo.png";
           <li><a data-i18n="nav.home" class="tuneboss-link" href="/">Home</a></li>
           <li><a data-i18n="nav.products" class="tuneboss-link" href="/products">Products</a></li>
           <li><a data-i18n="nav.cart" class="tuneboss-link" href="/cart">Keranjang</a></li>
+          <li><a data-i18n="nav.tracking" class="tuneboss-link" href="/tracking">Lacak Pesanan</a></li>
         </ul>
       </div>
 
@@ -316,6 +318,8 @@ import logo from "../../public/tuneboss-logo.png";
     </div>
   </div>
 </footer>
+
+<AlertDialog id="logout-dialog" title="Konfirmasi Keluar" description="Apakah Anda yakin ingin keluar dari akun Anda?" confirmLabel="Keluar" cancelLabel="Batal" tone="danger" />
 
 <style>
   .tuneboss-link {
@@ -433,6 +437,38 @@ import logo from "../../public/tuneboss-logo.png";
       "nav.products": "Produk",
       "nav.cart": "Keranjang",
       "nav.tracking": "Lacak Pesanan",
+      "ui.menu": "Menu",
+      "ui.showPassword": "Tampilkan kata sandi",
+      "ui.hidePassword": "Sembunyikan kata sandi",
+      "cart.subtotal": "Subtotal",
+      "cart.empty": "Keranjang kosong",
+      "cart.emptyCopy": "Tambahkan produk TuneBoss pilihan Anda terlebih dahulu.",
+      "cart.continue": "Lanjut Belanja",
+      "cart.checkout": "Lihat Keranjang",
+      "cart.loginCheckout": "Lihat Keranjang",
+      "cart.remove": "Hapus",
+      "cart.decrease": "Kurangi",
+      "cart.increase": "Tambah",
+      "cart.quantity": "Jumlah",
+      "cart.emptyTitle": "Keranjang Kosong",
+      "cart.emptyDesc": "Anda belum menambahkan produk TuneBoss apapun ke dalam keranjang.",
+      "cart.startShopping": "Mulai Belanja",
+      "cart.itemsTitle": "Item Keranjang",
+      "cart.products": "produk",
+      "cart.items": "item",
+      "cart.orderSummary": "Ringkasan Pesanan",
+      "cart.totalItemsLabel": "Total Item",
+      "cart.subtotalLabel": "Subtotal",
+      "cart.totalLabel": "Total",
+      "cart.checkoutBtn": "Lanjut Checkout",
+      "cart.agreeLabel": "Saya menyetujui ",
+      "cart.agreeLink": "Syarat & Ketentuan Pengiriman",
+      "cart.termsModalTitle": "Syarat & Ketentuan Pengiriman",
+      "cart.termsModalCopy1": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      "cart.termsModalCopy2": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+      "cart.termsModalCopy3": "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
+      "cart.termsModalCopy4": "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.",
+      "cart.termsModalClose": "Tutup",
       "account.title": "Akun",
       "account.signin": "Masuk",
       "account.create": "Buat Akun",
@@ -559,6 +595,38 @@ import logo from "../../public/tuneboss-logo.png";
       "nav.products": "Products",
       "nav.cart": "Cart",
       "nav.tracking": "Track Order",
+      "ui.menu": "Menu",
+      "ui.showPassword": "Show password",
+      "ui.hidePassword": "Hide password",
+      "cart.subtotal": "Subtotal",
+      "cart.empty": "Cart is empty",
+      "cart.emptyCopy": "Add your selected TuneBoss products first.",
+      "cart.continue": "Continue Shopping",
+      "cart.checkout": "View Cart",
+      "cart.loginCheckout": "View Cart",
+      "cart.remove": "Remove",
+      "cart.decrease": "Decrease",
+      "cart.increase": "Increase",
+      "cart.quantity": "Quantity",
+      "cart.emptyTitle": "Empty Cart",
+      "cart.emptyDesc": "You haven't added any TuneBoss products to your cart yet.",
+      "cart.startShopping": "Start Shopping",
+      "cart.itemsTitle": "Cart Items",
+      "cart.products": "products",
+      "cart.items": "items",
+      "cart.orderSummary": "Order Summary",
+      "cart.totalItemsLabel": "Total Items",
+      "cart.subtotalLabel": "Subtotal",
+      "cart.totalLabel": "Total",
+      "cart.checkoutBtn": "Proceed to Checkout",
+      "cart.agreeLabel": "I agree to the ",
+      "cart.agreeLink": "Shipping Terms & Conditions",
+      "cart.termsModalTitle": "Shipping Terms & Conditions",
+      "cart.termsModalCopy1": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      "cart.termsModalCopy2": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+      "cart.termsModalCopy3": "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
+      "cart.termsModalCopy4": "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.",
+      "cart.termsModalClose": "Close",
       "account.title": "Account",
       "account.signin": "Sign In",
       "account.create": "Create Account",
@@ -745,10 +813,12 @@ import logo from "../../public/tuneboss-logo.png";
     backTopButton?.classList.toggle("translate-y-3", !showBackTop);
   };
 
-  const setLanguage = (lang: string) => {
+  const setLanguage = (lang: string, persist = true) => {
     const safeLang = lang === "en" ? "en" : "id";
     root.lang = safeLang;
-    localStorage.setItem("lang", safeLang);
+    if (persist) {
+      localStorage.setItem("lang", safeLang);
+    }
     document.querySelectorAll("[data-lang-toggle]").forEach((btn) => { btn.textContent = safeLang.toUpperCase(); });
 
     document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -765,6 +835,15 @@ import logo from "../../public/tuneboss-logo.png";
       const key = node.getAttribute("data-i18n-title") as keyof typeof copy["en"];
       if (key && copy[safeLang][key]) document.title = `${copy[safeLang][key]} | TuneBoss ID`;
     });
+
+    document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+      const input = button.parentElement?.querySelector("[data-auth-password]");
+      const visible = input instanceof HTMLInputElement && input.type === "text";
+      button.setAttribute("aria-label", copy[safeLang][visible ? "ui.hidePassword" : "ui.showPassword"]);
+    });
+
+    renderCart();
+    if (typeof window.checkAuthStatus === "function") window.checkAuthStatus();
     
     root.classList.remove("lang-en-loading");
   };
@@ -809,7 +888,15 @@ import logo from "../../public/tuneboss-logo.png";
   const parseRupiah = (value: string | number) => Number(String(value).replace(/[^\d]/g, "")) || 0;
   const cartCount = () => cart.reduce((total, item) => total + item.quantity, 0);
 
-  const saveCart = () => localStorage.setItem("tuneboss-cart", JSON.stringify(cart));
+  const saveCart = () => {
+    localStorage.setItem("tuneboss-cart", JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
+  };
+  
+  window.addEventListener("tuneboss-cart-updated", () => {
+    loadCart();
+  }, { signal });
+
   const icon = {
     minus: '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14" /></svg>',
     plus: '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14" /><path d="M5 12h14" /></svg>',
@@ -817,9 +904,11 @@ import logo from "../../public/tuneboss-logo.png";
   };
 
   const renderCart = () => {
-    const count = cartCount();
-    const productCount = cart.length;
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const selectedItems = cart.filter(i => i.selected !== false);
+    const productCount = selectedItems.length;
+    const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+    const total = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     if (cartBadge) {
       cartBadge.textContent = String(count);
@@ -829,17 +918,18 @@ import logo from "../../public/tuneboss-logo.png";
       const isEnglish = root.lang === "en";
       cartSummary.textContent = count === 0
         ? (isEnglish ? "Cart is empty" : "Keranjang kosong")
-        : (isEnglish ? `${productCount} products, ${count} items` : `${productCount} produk, ${count} item`);
+        : (isEnglish ? `${productCount} products, ${selectedCount} items selected` : `${productCount} produk, ${selectedCount} item dipilih`);
     }
     if (cartTotal) cartTotal.textContent = formatRupiah(total);
     if (!cartItemsRoot) return;
 
     if (cart.length === 0) {
+      const lang = root.lang === "en" ? "en" : "id";
       cartItemsRoot.innerHTML = `
         <div class="flex h-full flex-col items-center justify-center text-center">
-          <p class="text-lg font-bold uppercase tracking-widest">Keranjang kosong</p>
-          <p class="mt-2 max-w-xs text-sm leading-relaxed text-primary">Tambahkan produk TuneBoss pilihan Anda terlebih dahulu.</p>
-          <button data-cart-close class="mt-6 border border-primary/20 px-5 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">Lanjut Belanja</button>
+          <p class="text-lg font-bold uppercase tracking-widest">${copy[lang]["cart.empty"]}</p>
+          <p class="mt-2 max-w-xs text-sm leading-relaxed text-primary">${copy[lang]["cart.emptyCopy"]}</p>
+          <button data-cart-close class="mt-6 border border-primary/20 px-5 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">${copy[lang]["cart.continue"]}</button>
         </div>
       `;
       return;
@@ -850,19 +940,20 @@ import logo from "../../public/tuneboss-logo.png";
         (item) => `
           <article class="border-b border-primary/10 py-5">
             <div class="flex items-start justify-between gap-4">
-              <div class="flex min-w-0 gap-4">
-                <img src="${escapeHtml(item.image || "/images/tuneboss-motorcycle-ecu.png")}" alt="" loading="eager" class="h-20 w-20 shrink-0 object-contain" aria-hidden="true" />
+              <div class="flex min-w-0 gap-3 items-center">
+                <input type="checkbox" onchange="window.toggleCartItemSelection('${escapeHtml(item.id)}')" class="h-4 w-4 shrink-0 accent-primary cursor-pointer" ${item.selected !== false ? 'checked' : ''} />
+                <img src="${escapeHtml(item.image || "/images/tuneboss-motorcycle-ecu.png")}" alt="" loading="eager" class="h-16 w-16 shrink-0 object-contain" aria-hidden="true" />
                 <div class="min-w-0">
-                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">TuneBoss</p>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">${escapeHtml(item.brand || "TuneBoss")}</p>
                   <p class="mt-1 text-base font-bold uppercase tracking-wide">${escapeHtml(item.name)}</p>
                   <p class="mt-2 text-sm text-primary">${formatRupiah(item.price)}</p>
                 </div>
               </div>
-              <button data-cart-remove="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center border border-primary/15 transition-colors hover:border-primary hover:text-primary" type="button" aria-label="Hapus ${escapeHtml(item.name)}">${icon.trash}</button>
+              <button data-cart-remove="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center border border-primary/15 transition-colors hover:border-primary hover:text-primary" type="button" aria-label="${copy[root.lang === "en" ? "en" : "id"]["cart.remove"]} ${escapeHtml(item.name)}">${icon.trash}</button>
             </div>
             <div class="mt-4 flex items-center justify-between">
               <div class="flex items-center border border-primary/20">
-                <button data-cart-dec="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white" type="button" aria-label="Kurangi ${escapeHtml(item.name)}">${icon.minus}</button>
+                <button data-cart-dec="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white" type="button" aria-label="${copy[root.lang === "en" ? "en" : "id"]["cart.decrease"]} ${escapeHtml(item.name)}">${icon.minus}</button>
                 <input
                   data-cart-input="${escapeHtml(item.id)}"
                   class="h-9 w-12 border-x border-primary/20 bg-transparent text-center text-sm outline-none transition-colors focus:border-primary focus:text-primary"
@@ -872,9 +963,9 @@ import logo from "../../public/tuneboss-logo.png";
                   autocomplete="off"
                   value="${item.quantity}"
                   max="${Number(item.max || 99)}"
-                  aria-label="Jumlah ${escapeHtml(item.name)}"
+                  aria-label="${copy[root.lang === "en" ? "en" : "id"]["cart.quantity"]} ${escapeHtml(item.name)}"
                 />
-                <button data-cart-inc="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white" type="button" aria-label="Tambah ${escapeHtml(item.name)}">${icon.plus}</button>
+                <button data-cart-inc="${escapeHtml(item.id)}" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white" type="button" aria-label="${copy[root.lang === "en" ? "en" : "id"]["cart.increase"]} ${escapeHtml(item.name)}">${icon.plus}</button>
               </div>
               <strong class="text-sm font-bold">${formatRupiah(item.price * item.quantity)}</strong>
             </div>
@@ -894,6 +985,7 @@ import logo from "../../public/tuneboss-logo.png";
               ...item,
               max: Number(item.max || 99),
               quantity: Math.max(1, Math.min(Number(item.quantity || 1), Number(item.max || 99) || 99)),
+              selected: item.selected !== false,
             }))
         : [];
     } catch {
@@ -921,7 +1013,8 @@ import logo from "../../public/tuneboss-logo.png";
     const name = button.dataset.productName || "Produk";
     const price = parseRupiah(button.dataset.productPrice || "0");
     const qtyInput = button.closest("[data-cart-form]")?.querySelector("[data-cart-qty]");
-    const max = qtyInput instanceof HTMLInputElement ? Number(qtyInput.dataset.max || 99) : 99;
+    const btnMax = button.dataset.productMax ? Number(button.dataset.productMax) : 99;
+    const max = qtyInput instanceof HTMLInputElement ? Number(qtyInput.dataset.max || 99) : btnMax;
     const quantity = qtyInput instanceof HTMLInputElement ? Math.max(1, Math.min(Number(qtyInput.value || 1), max || 99)) : 1;
     const existing = cart.find((item) => item.id === id);
 
@@ -929,7 +1022,7 @@ import logo from "../../public/tuneboss-logo.png";
       existing.max = Number(existing.max || max || 99);
       existing.quantity = Math.min(existing.max || 99, existing.quantity + quantity);
     } else {
-      cart.push({ id, name, price, image: button.dataset.productImage || "", quantity, max });
+      cart.push({ id, name, price, image: button.dataset.productImage || "", brand: button.dataset.productBrand || "TuneBoss", quantity, max, selected: true });
     }
 
     saveCart();
@@ -950,6 +1043,15 @@ import logo from "../../public/tuneboss-logo.png";
 
     saveCart();
     renderCart();
+  };
+
+  (window as any).toggleCartItemSelection = (id: string) => {
+    const item = cart.find((entry) => entry.id === id);
+    if (item) {
+      item.selected = item.selected === false ? true : false;
+      saveCart();
+      renderCart();
+    }
   };
 
   const setCartQuantity = (id: string, value: string | number) => {
@@ -1124,7 +1226,8 @@ import logo from "../../public/tuneboss-logo.png";
       input.type = visible ? "password" : "text";
       passwordButton.querySelector("[data-eye-show]")?.classList.toggle("hidden", !visible);
       passwordButton.querySelector("[data-eye-hide]")?.classList.toggle("hidden", visible);
-      passwordButton.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+      const lang = root.lang === "en" ? "en" : "id";
+      passwordButton.setAttribute("aria-label", copy[lang][visible ? "ui.showPassword" : "ui.hidePassword"]);
       return;
     }
 
@@ -1166,7 +1269,37 @@ import logo from "../../public/tuneboss-logo.png";
 
   if (localStorage.getItem("theme") === "dark") root.classList.add("dark");
   loadCart();
-  setLanguage(localStorage.getItem("lang") === "en" ? "en" : "id");
+  setLanguage(localStorage.getItem("lang") === "en" ? "en" : "id", false);
+
+  let translateRestoreTimer = 0;
+  let browserTranslateLang = root.lang === "en" ? "en" : "id";
+  const isBrowserTranslated = () =>
+    root.classList.contains("translated-ltr") ||
+    root.classList.contains("translated-rtl") ||
+    document.body.classList.contains("translated-ltr") ||
+    document.body.classList.contains("translated-rtl");
+  const getDocumentLang = () => {
+    const lang = root.lang.toLowerCase();
+    if (lang.startsWith("en")) return "en";
+    if (lang.startsWith("id")) return "id";
+    return "";
+  };
+  const syncBrowserTranslateLanguage = () => {
+    const nextLang = isBrowserTranslated() ? "en" : getDocumentLang();
+    if (!nextLang) return;
+    if (browserTranslateLang === nextLang) return;
+    browserTranslateLang = nextLang;
+    localStorage.setItem("lang", nextLang);
+    setLanguage(nextLang, false);
+  };
+  const scheduleBrowserLanguageSync = () => {
+    window.clearTimeout(translateRestoreTimer);
+    translateRestoreTimer = window.setTimeout(syncBrowserTranslateLanguage, 50);
+  };
+  const browserLanguageObserver = new MutationObserver(scheduleBrowserLanguageSync);
+  browserLanguageObserver.observe(root, { attributes: true, attributeFilter: ["class", "lang"] });
+  browserLanguageObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  if (isBrowserTranslated()) syncBrowserTranslateLanguage();
 
   window.checkAuthStatus = () => {
     const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
@@ -1188,28 +1321,22 @@ import logo from "../../public/tuneboss-logo.png";
 
     const checkoutBtn = document.querySelector("[data-cart-checkout-btn]");
     if (checkoutBtn) {
-      if (isLoggedIn) {
-        checkoutBtn.textContent = "Checkout";
-        (checkoutBtn as HTMLElement).onclick = () => { window.location.href = "/cart"; };
-      } else {
-        checkoutBtn.textContent = "Login to Checkout";
-        (checkoutBtn as HTMLElement).onclick = () => {
-          if (typeof setCartDrawer === "function") setCartDrawer(false);
-          if (typeof openAuthDialog === "function") openAuthDialog("login");
-        };
-      }
+      const lang = root.lang === "en" ? "en" : "id";
+      checkoutBtn.textContent = copy[lang]["cart.checkout"];
+      (checkoutBtn as HTMLElement).onclick = () => { window.location.href = "/cart"; };
     }
   };
   window.checkAuthStatus();
 
-  document.querySelectorAll("[data-auth-logout]").forEach(btn => {
-    btn.addEventListener("click", () => {
+  const logoutConfirmBtn = document.querySelector("#logout-dialog [data-dialog-confirm]");
+  if (logoutConfirmBtn) {
+    logoutConfirmBtn.addEventListener("click", () => {
       document.cookie = "tuneboss-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       window.checkAuthStatus();
       setMenu(false);
       window.location.href = "/";
     }, { signal });
-  });
+  }
 
   window.addEventListener("scroll", syncNav, { passive: true, signal });
   syncNav();
@@ -1240,7 +1367,7 @@ import logo from "../../public/tuneboss-logo.png";
   document.addEventListener("astro:page-load", initTuneBossChrome);
 
   document.addEventListener("astro:before-swap", (event) => {
-    const safeLang = localStorage.getItem("lang") === "en" ? "en" : "id";
+    const safeLang = document.documentElement.lang === "en" ? "en" : "id";
     if (safeLang === "id") return; // id is default HTML, no translation needed
     
     const doc = event.newDocument;

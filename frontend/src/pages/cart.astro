@@ -1,6 +1,7 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import { ClientRouter } from "astro:transitions";
+import { ShoppingCart, CreditCard } from "lucide-react";
 import "@/styles/global.css";
 
 export const prerender = false;
@@ -16,8 +17,432 @@ export const prerender = false;
 
 <TuneBossChrome>
   <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
-    <section class="mx-auto max-w-4xl text-center">
-        <h1 data-i18n="nav.cart" class="font-display text-4xl uppercase md:text-6xl">Keranjang</h1>
-    </section>
+    <div id="cart-container" class="mx-auto max-w-5xl opacity-0 transition-opacity duration-300">
+      
+      <!-- Empty State -->
+      <div id="cart-empty" class="hidden w-full max-w-2xl mx-auto text-center py-24">
+        <ShoppingCart size={64} className="text-primary/40 mx-auto mb-6" aria-hidden="true" />
+        <h2 data-i18n="cart.emptyTitle" class="text-2xl font-bold uppercase tracking-widest text-foreground">Keranjang Kosong</h2>
+        <p data-i18n="cart.emptyDesc" class="mt-3 text-primary mb-8">Anda belum menambahkan produk TuneBoss apapun ke dalam keranjang.</p>
+        <a href="/products" class="inline-flex items-center justify-center h-11 px-8 bg-primary text-white hover:bg-[#c95b04] font-bold uppercase tracking-widest transition-colors" style="color: white !important;">
+          <span data-i18n="cart.startShopping">Mulai Belanja</span>
+        </a>
+      </div>
+
+      <!-- Filled State -->
+      <div id="cart-filled" class="hidden flex-col md:flex-row gap-8 text-left">
+        <div class="flex-1 space-y-4">
+          <div class="flex items-center gap-2 mb-6">
+            <ShoppingCart size={20} className="text-primary" aria-hidden="true" />
+            <h2 class="text-lg font-bold text-foreground uppercase tracking-widest flex-1">
+              <span data-i18n="cart.itemsTitle">Item Keranjang</span> (<span id="cart-total-products-header">0</span> <span data-i18n="cart.products">produk</span>, <span id="cart-total-items-header">0</span> <span data-i18n="cart.items">item</span>)
+            </h2>
+          </div>
+
+          <div class="flex items-center gap-3 px-4 py-3 bg-background border border-primary/20 shadow-sm mb-3">
+            <input type="checkbox" id="cart-select-all" onchange="window.toggleAllCartItems(this.checked)" class="h-5 w-5 shrink-0 accent-primary cursor-pointer" />
+            <label for="cart-select-all" class="text-sm font-bold uppercase tracking-widest cursor-pointer select-none">Pilih Semua</label>
+          </div>
+
+          <div id="cart-items-list" class="space-y-3">
+            <!-- Items injected by JS -->
+          </div>
+        </div>
+
+        <div class="w-full md:w-80 flex flex-col p-6 bg-background border border-primary/20 sticky top-24 h-fit shadow-xl transition-all">
+          <h2 data-i18n="cart.orderSummary" class="text-lg font-bold text-foreground uppercase tracking-widest mb-6">
+            Ringkasan Pesanan
+          </h2>
+          
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center justify-between text-sm">
+              <span data-i18n="cart.totalItemsLabel" class="text-foreground/70">Total Item</span>
+              <span class="font-medium">
+                <span id="cart-summary-products-count">0</span> <span data-i18n="cart.products">produk</span>, <span id="cart-summary-items-count">0</span> <span data-i18n="cart.items">item</span>
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span data-i18n="cart.subtotalLabel" class="text-foreground/70">Subtotal</span>
+              <span id="cart-summary-subtotal" class="font-medium">Rp. 0</span>
+            </div>
+          </div>
+
+          <div class="pt-4 mt-2 border-t border-primary/20 bg-background">
+            <div class="flex items-center justify-between mb-6">
+              <span data-i18n="cart.totalLabel" class="text-base font-bold uppercase tracking-widest">
+                Total
+              </span>
+              <span id="cart-summary-total" class="text-lg font-bold text-primary">
+                Rp. 0
+              </span>
+            </div>
+            
+            <div class="mb-6 flex items-start gap-3">
+              <input type="checkbox" id="cart-terms-checkbox" class="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-primary" />
+              <label for="cart-terms-checkbox" class="text-xs text-foreground/80 leading-relaxed cursor-pointer select-none">
+                <span data-i18n="cart.agreeLabel">Saya menyetujui </span>
+                <button type="button" id="cart-terms-open" class="text-primary hover:underline font-semibold" data-i18n="cart.agreeLink">
+                  Syarat & Ketentuan Pengiriman
+                </button>
+              </label>
+            </div>
+
+            <button id="cart-page-checkout-btn" class="flex items-center justify-center w-full h-12 gap-2 bg-primary text-white hover:bg-[#c95b04] font-bold uppercase tracking-widest transition-all opacity-50 pointer-events-none" style="color: white !important;">
+              <CreditCard size={20} aria-hidden="true" />
+              <span data-i18n="cart.checkoutBtn">Lanjut Checkout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
+
+  <!-- Terms Modal -->
+  <div id="cart-terms-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+    <div class="bg-background max-w-xl w-full p-6 shadow-2xl relative translate-y-8 transition-transform duration-300 border border-primary/20" id="cart-terms-modal-content">
+      <button type="button" id="cart-terms-close-x" class="absolute top-4 right-4 text-foreground/50 hover:text-primary transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 data-i18n="cart.termsModalTitle" class="text-xl font-bold uppercase tracking-widest mb-4 pr-8 text-foreground">Syarat & Ketentuan Pengiriman</h3>
+      <div class="space-y-4 text-sm text-foreground/80 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        <p data-i18n="cart.termsModalCopy1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p data-i18n="cart.termsModalCopy2">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p data-i18n="cart.termsModalCopy3">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+        <p data-i18n="cart.termsModalCopy4">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
+      </div>
+      <div class="mt-6 pt-4 border-t border-primary/20 flex justify-end">
+        <button type="button" id="cart-terms-close-btn" data-i18n="cart.termsModalClose" class="px-6 py-2 bg-primary text-white font-bold uppercase tracking-widest hover:bg-[#c95b04] transition-colors text-sm" style="color: white !important;">TUTUP</button>
+      </div>
+    </div>
+  </div>
 </TuneBossChrome>
+
+<script>
+  import { gsap } from "gsap";
+
+  const initCartPage = () => {
+    const container = document.getElementById("cart-container");
+    const emptyState = document.getElementById("cart-empty");
+    const filledState = document.getElementById("cart-filled");
+    const listRoot = document.getElementById("cart-items-list");
+    
+    if (!container || !emptyState || !filledState || !listRoot) return;
+
+    let cart = [];
+    try {
+      cart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+    } catch {
+      cart = [];
+    }
+
+    const formatRupiah = (value: number) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
+    
+    const saveCart = (newCart: any[]) => {
+      localStorage.setItem("tuneboss-cart", JSON.stringify(newCart));
+      window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
+      render(newCart);
+    };
+
+    const animateNumber = (element: HTMLElement, newValue: number, isCurrency = false) => {
+      if (!element) return;
+      const currentVal = Number(element.dataset.value || 0);
+      element.dataset.value = String(newValue);
+      gsap.to({ val: currentVal }, {
+        val: newValue,
+        duration: 0.5,
+        ease: "power2.out",
+        onUpdate: function () {
+          element.textContent = isCurrency ? formatRupiah(Math.round(this.targets()[0].val)) : String(Math.round(this.targets()[0].val));
+        }
+      });
+    };
+
+    (window as any).updateCartItemQuantity = (id: string, delta: number) => {
+      let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+      currentCart = currentCart.map((item: any) => {
+        if (item.id === id) {
+          const max = Number(item.max || 99) || 99;
+          const newQty = Math.max(1, Math.min(item.quantity + delta, max));
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      });
+      saveCart(currentCart);
+    };
+
+    (window as any).setCartItemQuantity = (id: string, qtyStr: string) => {
+      const val = parseInt(qtyStr, 10);
+      if (isNaN(val) || val < 1) return;
+      
+      let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+      currentCart = currentCart.map((item: any) => {
+        if (item.id === id) {
+          const max = Number(item.max || 99) || 99;
+          const newQty = Math.max(1, Math.min(val, max));
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      });
+      saveCart(currentCart);
+    };
+
+    (window as any).toggleAllCartItems = (selected: boolean) => {
+      let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+      currentCart = currentCart.map((item: any) => ({ ...item, selected }));
+      saveCart(currentCart);
+    };
+
+    (window as any).removeCartItem = (id: string) => {
+      const itemEl = document.getElementById(`cart-item-${id}`);
+      if (itemEl) {
+        gsap.to(itemEl, {
+          opacity: 0,
+          scale: 0.95,
+          height: 0,
+          marginBottom: 0,
+          paddingTop: 0,
+          paddingBottom: 0,
+          borderWidth: 0,
+          duration: 0.3,
+          ease: "power2.inOut",
+          onComplete: () => {
+            let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+            currentCart = currentCart.filter((item: any) => item.id !== id);
+            saveCart(currentCart);
+          }
+        });
+      }
+    };
+
+    const render = (currentCart: any[]) => {
+      const selectedItems = currentCart.filter(i => i.selected !== false);
+      const totalProducts = selectedItems.length;
+      const totalItems = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+      const totalPrice = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const allSelected = currentCart.length > 0 && currentCart.every(i => i.selected !== false);
+      
+      const selectAllCheckbox = document.getElementById("cart-select-all") as HTMLInputElement;
+      if (selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+
+      if (typeof (window as any).updateCheckoutBtn === 'function') {
+        (window as any).updateCheckoutBtn();
+      }
+      
+      const headerProducts = document.getElementById("cart-total-products-header");
+      const headerItems = document.getElementById("cart-total-items-header");
+      const summaryProducts = document.getElementById("cart-summary-products-count");
+      const summaryItems = document.getElementById("cart-summary-items-count");
+      
+      const summarySub = document.getElementById("cart-summary-subtotal");
+      const summaryTotal = document.getElementById("cart-summary-total");
+
+      if (headerProducts) headerProducts.textContent = String(totalProducts);
+      if (headerItems) headerItems.textContent = String(totalItems);
+      
+      if (summaryProducts) summaryProducts.textContent = String(totalProducts);
+      if (summaryItems) summaryItems.textContent = String(totalItems);
+      
+      if (summarySub) animateNumber(summarySub, totalPrice, true);
+      if (summaryTotal) animateNumber(summaryTotal, totalPrice, true);
+
+      if (currentCart.length === 0) {
+        filledState.classList.add("hidden");
+        filledState.classList.remove("flex");
+        emptyState.classList.remove("hidden");
+        emptyState.classList.add("block");
+        container.style.opacity = "1";
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      emptyState.classList.remove("block");
+      filledState.classList.remove("hidden");
+      filledState.classList.add("flex");
+
+      const iconMinus = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+      const iconPlus = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+      const iconTrash = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>`;
+
+      // Determine items that are already in DOM
+      const existingIds = Array.from(listRoot.children).map(el => el.id.replace('cart-item-', ''));
+      const newIds = currentCart.map(item => String(item.id));
+      
+      currentCart.forEach(item => {
+        const itemId = String(item.id);
+        const existingEl = document.getElementById(`cart-item-${itemId}`);
+        
+        if (existingEl) {
+          // Update quantity and price safely without re-rendering entire HTML
+          const qtyInput = existingEl.querySelector('.item-qty') as HTMLInputElement;
+          const priceSpan = existingEl.querySelector('.item-total-price') as HTMLElement;
+          const checkbox = existingEl.querySelector('.cart-item-checkbox') as HTMLInputElement;
+          
+          if (checkbox && checkbox.checked !== (item.selected !== false)) {
+            checkbox.checked = (item.selected !== false);
+          }
+          if (qtyInput && qtyInput.value != String(item.quantity)) {
+             qtyInput.value = String(item.quantity);
+             // Animate pop
+             gsap.fromTo(qtyInput, { scale: 1.2, color: "#eb6c00" }, { scale: 1, color: "inherit", duration: 0.3 });
+          }
+          if (priceSpan && Number(priceSpan.dataset.value) != (item.price * item.quantity)) {
+             animateNumber(priceSpan, item.price * item.quantity, true);
+          }
+        } else {
+          // Create new element
+          const article = document.createElement("article");
+          article.id = `cart-item-${itemId}`;
+          article.className = "flex items-center gap-4 p-4 bg-background border border-primary/20 mb-3 shadow-sm overflow-hidden";
+          article.innerHTML = `
+            <input type="checkbox" class="cart-item-checkbox h-5 w-5 shrink-0 accent-primary cursor-pointer" onchange="window.toggleCartItemSelection('${itemId}')" ${item.selected !== false ? 'checked' : ''} />
+            <div class="w-20 h-20 shrink-0 bg-background flex items-center justify-center p-2">
+                <img src="${item.image || "/images/tuneboss-motorcycle-ecu.png"}" alt="${item.name}" class="w-full h-full object-contain" />
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">${item.brand || "TuneBoss"}</p>
+                        <h3 class="text-base font-bold text-foreground uppercase tracking-wide mt-1">${item.name}</h3>
+                    </div>
+                    <button type="button" onclick="window.removeCartItem('${itemId}')" class="p-2 hover:bg-primary hover:text-white text-foreground/50 transition-colors">
+                        ${iconTrash}
+                    </button>
+                </div>
+                <div class="flex items-center justify-between mt-4">
+                    <div class="flex items-center border border-primary/20">
+                        <button type="button" onclick="window.updateCartItemQuantity('${itemId}', -1)" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white">
+                            ${iconMinus}
+                        </button>
+                        <input type="number" min="1" max="99" value="${item.quantity}" onchange="window.setCartItemQuantity('${itemId}', this.value)" class="item-qty w-12 h-9 text-center text-sm font-medium bg-transparent border-x border-primary/20 focus:outline-none" style="-moz-appearance: textfield;" />
+                        <button type="button" onclick="window.updateCartItemQuantity('${itemId}', 1)" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white">
+                            ${iconPlus}
+                        </button>
+                    </div>
+                    <span class="item-total-price text-sm font-bold text-primary" data-value="${item.price * item.quantity}">
+                        ${formatRupiah(item.price * item.quantity)}
+                    </span>
+                </div>
+            </div>
+          `;
+          listRoot.appendChild(article);
+          gsap.fromTo(article, { opacity: 0, scale: 0.95, y: 10 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "power2.out" });
+        }
+      });
+
+      // Synchronize language for injected items
+      if (typeof (window as any).scheduleBrowserLanguageSync === "function") {
+        (window as any).scheduleBrowserLanguageSync();
+      }
+
+      // Show container
+      gsap.to(container, { opacity: 1, duration: 0.3 });
+    };
+
+    // Checkbox and Modal logic
+    const checkbox = document.getElementById("cart-terms-checkbox") as HTMLInputElement;
+    const checkoutBtn = document.getElementById("cart-page-checkout-btn");
+    
+    if (checkbox && checkoutBtn) {
+      (window as any).updateCheckoutBtn = () => {
+        const currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+        const hasSelectedItems = currentCart.some((i: any) => i.selected !== false);
+        if (checkbox.checked && hasSelectedItems) {
+          checkoutBtn.classList.remove("opacity-50", "pointer-events-none");
+        } else {
+          checkoutBtn.classList.add("opacity-50", "pointer-events-none");
+        }
+      };
+      
+      checkbox.addEventListener("change", (window as any).updateCheckoutBtn);
+      (window as any).updateCheckoutBtn();
+
+      checkoutBtn.addEventListener("click", () => {
+        const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
+        if (isLoggedIn) {
+          alert("Lanjut ke pembayaran / Gateway...");
+        } else {
+          if (typeof (window as any).openAuthDialog === "function") {
+            (window as any).openAuthDialog("login");
+          }
+        }
+      });
+    }
+
+    const modal = document.getElementById("cart-terms-modal");
+    const modalContent = document.getElementById("cart-terms-modal-content");
+    const btnOpen = document.getElementById("cart-terms-open");
+    const btnCloseX = document.getElementById("cart-terms-close-x");
+    const btnClose = document.getElementById("cart-terms-close-btn");
+
+    if (modal && btnOpen && btnCloseX && btnClose) {
+      const openModal = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        modal.classList.remove("opacity-0", "pointer-events-none");
+        if (modalContent) modalContent.classList.remove("translate-y-8");
+      };
+      const closeModal = () => {
+        modal.classList.add("opacity-0", "pointer-events-none");
+        if (modalContent) modalContent.classList.add("translate-y-8");
+      };
+
+      btnOpen.addEventListener("click", openModal);
+      btnCloseX.addEventListener("click", closeModal);
+      btnClose.addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    // Listen to changes from other tabs or sidebar
+    const onExternalUpdate = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+        render(Array.isArray(saved) ? saved : []);
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener("tuneboss-cart-updated", onExternalUpdate);
+    
+    // Initial Render
+    render(cart);
+    
+    return () => {
+      window.removeEventListener("tuneboss-cart-updated", onExternalUpdate);
+    };
+  };
+
+  // Run on page load and View Transitions
+  document.addEventListener("astro:page-load", () => {
+    // Only init if we are on the cart page
+    if (document.getElementById("cart-container")) {
+      initCartPage();
+    }
+  });
+
+</script>
+
+<style is:global>
+  /* Hide spinner arrows for input number */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary) / 0.3);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.5);
+  }
+</style>

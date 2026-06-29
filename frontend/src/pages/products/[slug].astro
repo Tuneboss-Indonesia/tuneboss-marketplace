@@ -161,6 +161,8 @@ export function getStaticPaths() {
 const { product, products } = Astro.props;
 const relatedProducts = products.filter((item) => item.id !== product.id).slice(0, 4);
 const gallery = Array.isArray(product.images) && product.images.length ? product.images : [product.image];
+const productImageUrl = new URL(product.image, Astro.url).toString();
+const productShareImageUrl = `${productImageUrl}?v=20260629-ecu`;
 const reviews = [
   { name: "Fajar", timeKey: "detail.reviewDate1", quote: "Pemasangan mudah, hasil tuning terasa langsung dari putaran bawah." },
   { name: "Rizky", timeKey: "detail.reviewDate2", quote: "Respons gas lebih halus dan motor tetap enak dipakai harian." },
@@ -181,14 +183,18 @@ const reviews = [
   <!-- Open Graph / Social Media Meta Tags -->
   <meta property="og:title" content={`${product.name} | TuneBoss ID`} />
   <meta property="og:description" content={product.description} />
-  <meta property="og:image" content={new URL(product.image, Astro.url).toString()} />
+  <meta property="og:image" content={productShareImageUrl} />
+  <meta property="og:image:secure_url" content={productShareImageUrl} />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="500" />
+  <meta property="og:image:height" content="407" />
   <meta property="og:url" content={Astro.url.toString()} />
   <meta property="og:type" content="product" />
   
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={`${product.name} | TuneBoss ID`} />
   <meta name="twitter:description" content={product.description} />
-  <meta name="twitter:image" content={new URL(product.image, Astro.url).toString()} />
+  <meta name="twitter:image" content={productShareImageUrl} />
 
   <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
   <ClientRouter />
@@ -299,6 +305,7 @@ const reviews = [
                 data-product-name={product.name}
                 data-product-price={product.price}
                 data-product-image={product.image}
+                data-product-brand={product.brand}
                 class="inline-flex flex-1 items-center justify-center gap-3 border border-primary bg-primary px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-[#c95b04]"
                 type="button"
               >
@@ -422,47 +429,7 @@ const reviews = [
   </main>
 </TuneBossChrome>
 
-<script is:inline data-astro-rerun>
-  document.querySelectorAll("[data-loadable]").forEach((section) => {
-    section.classList.remove("is-loaded");
-    window.setTimeout(() => section.classList.add("is-loaded"), Number(section.getAttribute("data-load-delay") || 600));
-  });
-
-  document.querySelectorAll("[data-loaded-content]").forEach((root) => {
-    const main = root.querySelector("[data-gallery-main]");
-    const dots = Array.from(root.querySelectorAll("[data-gallery-dot]"));
-    const qtyInput = root.querySelector("[data-cart-qty]");
-    let active = 0;
-
-    const show = (index) => {
-      if (!(main instanceof HTMLImageElement) || !dots.length) return;
-      active = (index + dots.length) % dots.length;
-      const button = dots[active];
-      const src = button?.getAttribute("data-gallery-src");
-      if (src) main.src = src;
-      dots.forEach((dot, dotIndex) => {
-        dot.classList.toggle("bg-primary", dotIndex === active);
-        dot.classList.toggle("border-primary", dotIndex === active);
-        dot.classList.toggle("border-primary/25", dotIndex !== active);
-        dot.classList.toggle("hover:bg-primary/40", dotIndex !== active);
-      });
-    };
-
-    dots.forEach((dot, index) => dot.addEventListener("click", () => show(index)));
-    root.querySelector("[data-gallery-prev]")?.addEventListener("click", () => show(active - 1));
-    root.querySelector("[data-gallery-next]")?.addEventListener("click", () => show(active + 1));
-
-    if (qtyInput instanceof HTMLInputElement) {
-      const clampQuantity = () => {
-        const max = Number(qtyInput.dataset.max || 99) || 99;
-        const value = Number(qtyInput.value.replace(/\D/g, ""));
-        qtyInput.value = String(Math.max(1, Math.min(value || 1, max)));
-      };
-      qtyInput.addEventListener("input", clampQuantity);
-      qtyInput.addEventListener("blur", clampQuantity);
-    }
-  });
-
+<script>
   const closeReviewSorts = () => {
     document.querySelectorAll("[data-review-sort-button]").forEach((button) => {
       button.setAttribute("aria-expanded", "false");
@@ -473,73 +440,120 @@ const reviews = [
     });
   };
 
-  document.querySelectorAll("[data-review-sort]").forEach((select) => {
-    const button = select.querySelector("[data-review-sort-button]");
-    const menu = select.querySelector("[data-review-sort-menu]");
-    const value = select.querySelector("[data-review-sort-value]");
-    const options = select.querySelectorAll("[data-review-sort-option]");
-
-    const setOpen = (open) => {
-      button?.setAttribute("aria-expanded", String(open));
-      menu?.classList.toggle("invisible", !open);
-      menu?.classList.toggle("opacity-0", !open);
-      menu?.classList.toggle("visible", open);
-      menu?.classList.toggle("opacity-100", open);
-    };
-
-    button?.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setOpen(button.getAttribute("aria-expanded") !== "true");
-    });
-
-    options.forEach((option) => {
-      option.addEventListener("click", () => {
-        if (value) value.textContent = option.textContent;
-        setOpen(false);
-      });
-    });
-  });
-
   document.addEventListener("click", (event) => {
     if (event.target instanceof Element && event.target.closest("[data-review-sort]")) return;
     closeReviewSorts();
   });
 
-  document.querySelectorAll("[data-load-more-reviews]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const section = button.closest("section");
-      const items = Array.from(section?.querySelectorAll("[data-review-item]") || []);
-      const hidden = items.filter((item) => item.classList.contains("hidden"));
-      hidden.slice(0, 6).forEach((item) => item.classList.remove("hidden"));
-
-      const shown = items.filter((item) => !item.classList.contains("hidden")).length;
-      const shownText = section?.querySelector("[data-review-shown]");
-      if (shownText) shownText.textContent = String(shown);
-      if (shown >= items.length) button.remove();
+  const initProductPage = () => {
+    document.querySelectorAll("[data-loadable]").forEach((section) => {
+      section.classList.remove("is-loaded");
+      window.setTimeout(() => section.classList.add("is-loaded"), Number(section.getAttribute("data-load-delay") || 600));
     });
-  });
 
-  document.querySelectorAll("[data-share-button]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: document.title,
-            url: window.location.href,
-          });
-        } else {
-          await navigator.clipboard.writeText(window.location.href);
-          const lang = document.documentElement.lang === "en" ? "en" : "id";
-          const title = lang === "en" ? "Link Copied" : "Tautan Disalin";
-          const desc = lang === "en" ? "Product link copied to clipboard." : "Tautan produk disalin ke papan klip.";
-          if (typeof showToast === "function") showToast(title, desc);
-          else alert(title + ": " + desc);
-        }
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Error sharing:", err);
-        }
+    document.querySelectorAll("[data-loaded-content]").forEach((root) => {
+      const main = root.querySelector("[data-gallery-main]");
+      const dots = Array.from(root.querySelectorAll("[data-gallery-dot]"));
+      const qtyInput = root.querySelector("[data-cart-qty]");
+      let active = 0;
+
+      const show = (index) => {
+        if (!(main instanceof HTMLImageElement) || !dots.length) return;
+        active = (index + dots.length) % dots.length;
+        const button = dots[active];
+        const src = button?.getAttribute("data-gallery-src");
+        if (src) main.src = src;
+        dots.forEach((dot, dotIndex) => {
+          dot.classList.toggle("bg-primary", dotIndex === active);
+          dot.classList.toggle("border-primary", dotIndex === active);
+          dot.classList.toggle("border-primary/25", dotIndex !== active);
+          dot.classList.toggle("hover:bg-primary/40", dotIndex !== active);
+        });
+      };
+
+      dots.forEach((dot, index) => dot.addEventListener("click", () => show(index)));
+      root.querySelector("[data-gallery-prev]")?.addEventListener("click", () => show(active - 1));
+      root.querySelector("[data-gallery-next]")?.addEventListener("click", () => show(active + 1));
+
+      if (qtyInput instanceof HTMLInputElement) {
+        const clampQuantity = () => {
+          const max = Number(qtyInput.dataset.max || 99) || 99;
+          const value = Number(qtyInput.value.replace(/\D/g, ""));
+          qtyInput.value = String(Math.max(1, Math.min(value || 1, max)));
+        };
+        qtyInput.addEventListener("input", clampQuantity);
+        qtyInput.addEventListener("blur", clampQuantity);
       }
     });
-  });
+
+    document.querySelectorAll("[data-review-sort]").forEach((select) => {
+      const button = select.querySelector("[data-review-sort-button]");
+      const menu = select.querySelector("[data-review-sort-menu]");
+      const value = select.querySelector("[data-review-sort-value]");
+      const options = select.querySelectorAll("[data-review-sort-option]");
+
+      const setOpen = (open) => {
+        button?.setAttribute("aria-expanded", String(open));
+        menu?.classList.toggle("invisible", !open);
+        menu?.classList.toggle("opacity-0", !open);
+        menu?.classList.toggle("visible", open);
+        menu?.classList.toggle("opacity-100", open);
+      };
+
+      button?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setOpen(button.getAttribute("aria-expanded") !== "true");
+      });
+
+      options.forEach((option) => {
+        option.addEventListener("click", () => {
+          if (value) {
+            value.setAttribute("data-i18n", option.getAttribute("data-i18n") || "");
+            value.textContent = option.textContent;
+          }
+          setOpen(false);
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-load-more-reviews]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const section = button.closest("section");
+        const items = Array.from(section?.querySelectorAll("[data-review-item]") || []);
+        const hidden = items.filter((item) => item.classList.contains("hidden"));
+        hidden.slice(0, 6).forEach((item) => item.classList.remove("hidden"));
+
+        const shown = items.filter((item) => !item.classList.contains("hidden")).length;
+        const shownText = section?.querySelector("[data-review-shown]");
+        if (shownText) shownText.textContent = String(shown);
+        if (shown >= items.length) button.remove();
+      });
+    });
+
+    document.querySelectorAll("[data-share-button]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title: document.title,
+              url: window.location.href,
+            });
+          } else {
+            await navigator.clipboard.writeText(window.location.href);
+            const lang = document.documentElement.lang === "en" ? "en" : "id";
+            const title = lang === "en" ? "Link Copied" : "Tautan Disalin";
+            const desc = lang === "en" ? "Product link copied to clipboard." : "Tautan produk disalin ke papan klip.";
+            if (typeof showToast === "function") showToast(title, desc);
+            else alert(title + ": " + desc);
+          }
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            console.error("Error sharing:", err);
+          }
+        }
+      });
+    });
+  };
+
+  document.addEventListener("astro:page-load", initProductPage);
 </script>

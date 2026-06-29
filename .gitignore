@@ -6,6 +6,8 @@ dist
 !.env.example
 .agents/
 .omx/
+.omc/
 .codex/
 .vercel
 .vercel/
+.playwright-mcp/
