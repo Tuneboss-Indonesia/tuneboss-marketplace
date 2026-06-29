@@ -1,7 +1,7 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
 import AlertDialog from "@/components/AlertDialog.astro";
-import { MapPin, Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import "@/styles/global.css";
 
 export const prerender = false;
@@ -84,7 +84,7 @@ export const prerender = false;
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
     </button>
     <h3 id="address-form-title" class="mb-7 text-2xl font-bold text-foreground" data-i18n="address.newAddress">Alamat Baru</h3>
-    <form class="space-y-5" onsubmit="event.preventDefault();">
+    <form class="space-y-5" onsubmit="return false;">
       <div class="grid gap-5 md:grid-cols-2">
         <div class="flex flex-col gap-1.5 w-full">
           <input id="address-form-name" class="w-full border border-primary/20 bg-transparent p-4 outline-none transition-colors focus:border-primary text-foreground" data-i18n-placeholder="account.name" placeholder="Nama Lengkap" />
@@ -132,7 +132,7 @@ export const prerender = false;
     const title = document.getElementById('address-form-title');
     const saveBtn = document.getElementById('btn-save-address');
     
-    const openModal = (isEdit) => {
+    const openModal = (isEdit: boolean) => {
       if (modal) {
         modal.classList.remove('opacity-0', 'pointer-events-none');
         const inner = modal.firstElementChild;
@@ -203,7 +203,7 @@ export const prerender = false;
           mapReq: "Location detection on map is required"
         }
       };
-      const m = messages[lang] || messages.id;
+      const m = messages[lang as keyof typeof messages] || messages.id;
 
       const addressSchema = z.object({
         name: z.string().min(3, { message: m.nameMin }),
@@ -217,8 +217,8 @@ export const prerender = false;
       saveBtn.addEventListener('click', () => {
         document.querySelectorAll(".zod-error").forEach(el => el.remove());
         
-        const nameInput = document.getElementById("address-form-name");
-        const phoneInput = document.getElementById("address-form-phone");
+        const nameInput = document.getElementById("address-form-name") as HTMLInputElement;
+        const phoneInput = document.getElementById("address-form-phone") as HTMLInputElement;
         
         const data = {
           name: nameInput?.value.trim() || "",

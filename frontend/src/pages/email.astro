@@ -46,10 +46,12 @@ const templates = [
       <div class="lg:col-span-1 flex flex-col space-y-3">
         {templates.map((t, idx) => (
           <button 
-            class={`w-full text-left px-5 py-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-primary email-tab-btn shadow-sm
-              ${idx === 0 
+            class:list={[
+              "w-full text-left px-5 py-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-primary email-tab-btn shadow-sm",
+              idx === 0 
                 ? 'bg-primary/10 border-primary font-bold text-primary' 
-                : 'bg-card border-border hover:border-primary/50 text-foreground'}`}
+                : 'bg-card border-border hover:border-primary/50 text-foreground'
+            ]}
             data-target={t.id}
           >
             {t.name}
@@ -73,7 +75,7 @@ const templates = [
   </div>
 </TuneBossChrome>
 
-<script is:inline>
+<script>
   function setupEmailTabs() {
     const btns = document.querySelectorAll('.email-tab-btn');
     const previews = document.querySelectorAll('.email-preview');

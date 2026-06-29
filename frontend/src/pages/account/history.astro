@@ -1,6 +1,6 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
-import { Search, Filter, ChevronRight, Package, Clock, CheckCircle, XCircle, ChevronDown, X, Star } from "lucide-react";
+import { Search, ChevronRight, Package, Clock, CheckCircle, XCircle, ChevronDown, X } from "lucide-react";
 import "@/styles/global.css";
 
 export const prerender = false;
@@ -83,7 +83,7 @@ export const prerender = false;
         </div>
         <hr class="border-border/50 my-4" />
         <div class="flex items-center justify-end">
-          <button onclick="event.preventDefault();" data-order-id="INV-2610-TB99" data-products='["TuneBoss ECU", "TuneBoss Quickshifter", "TuneBoss Shift Light"]' class="btn-review border border-primary bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-white" data-i18n="history.giveReview">
+          <button onclick="return false;" data-order-id="INV-2610-TB99" data-products='["TuneBoss ECU", "TuneBoss Quickshifter", "TuneBoss Shift Light"]' class="btn-review border border-primary bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-white" data-i18n="history.giveReview">
             Beri Review
           </button>
         </div>
@@ -121,7 +121,7 @@ export const prerender = false;
         </div>
         <hr class="border-border/50 my-4" />
         <div class="flex items-center justify-end">
-          <button onclick="event.preventDefault();" class="bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary/90" data-i18n="history.orderReceived">
+          <button onclick="return false;" class="bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary/90" data-i18n="history.orderReceived">
             Pesanan Diterima
           </button>
         </div>
@@ -159,7 +159,7 @@ export const prerender = false;
         </div>
         <hr class="border-border/50 my-4" />
         <div class="flex items-center justify-end">
-          <button onclick="event.preventDefault(); window.location.href='/checkout/INV-2805-TB44?status=pending';" class="bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary/90" data-i18n="history.payNow">
+          <button onclick="window.location.href='/checkout/INV-2805-TB44?status=pending'; return false;" class="bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary/90" data-i18n="history.payNow">
             Bayar Sekarang
           </button>
         </div>
@@ -268,14 +268,13 @@ export const prerender = false;
         invalidId: "Order ID can only contain letters, numbers, and dashes"
       }
     };
-    const m = messages[lang] || messages.id;
+    const m = messages[lang as keyof typeof messages] || messages.id;
 
     const items = document.querySelectorAll('a[href^="/tracking?id="]');
     const searchInput = document.getElementById("history-search") as HTMLInputElement;
 
     function handleSearch() {
       const q = searchInput?.value.toLowerCase().trim() || "";
-      let found = false;
       const errorMsgEl = document.getElementById('search-error-msg');
       
       if (errorMsgEl) errorMsgEl.remove();
@@ -296,7 +295,6 @@ export const prerender = false;
         const matches = idText.includes(q);
         if (matches) {
            (item as HTMLElement).style.display = 'block';
-           found = true;
         } else {
            (item as HTMLElement).style.display = 'none';
         }
@@ -376,7 +374,7 @@ export const prerender = false;
           }
         }
 
-        products.forEach((product, idx) => {
+        products.forEach((product) => {
           const prodData = existingReviews[product] || { rating: 5, text: '' };
           
           const prodDiv = document.createElement('div');
@@ -457,7 +455,9 @@ export const prerender = false;
             let products: string[] = [];
             try {
               products = productsAttr ? JSON.parse(productsAttr) : [];
-            } catch (err) {}
+            } catch {
+               // Ignore parse error
+            }
             openReviewModal(orderId, products);
           });
       }
@@ -470,7 +470,7 @@ export const prerender = false;
       const currentIsEn = document.documentElement.lang === 'en';
       if (!currentReviewOrderId || !reviewProductsContainer) return;
       
-      const reviewsData: Record<string, any> = {};
+      const reviewsData: Record<string, unknown> = {};
       const prodDivs = reviewProductsContainer.children;
       let hasError = false;
       

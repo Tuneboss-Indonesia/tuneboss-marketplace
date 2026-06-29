@@ -1,6 +1,6 @@
 ---
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { Settings, MapPin, Package, LogOut, User } from "lucide-react";
+import { Settings, MapPin, Package, LogOut } from "lucide-react";
 import "@/styles/global.css";
 
 const { title, activePath, i18nTitleKey } = Astro.props;
@@ -35,12 +35,12 @@ import { ClientRouter } from "astro:transitions";
             return (
               <a 
                 href={item.path}
-                class={`flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors
-                  ${isActive 
+                class:list={[
+                  "flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors",
+                  isActive 
                     ? 'bg-primary text-white' 
                     : 'text-foreground/80 hover:bg-primary/10 hover:text-primary'
-                  }
-                `}
+                ]}
                 style={isActive ? "color: white;" : ""}
               >
                 <item.icon size={18} strokeWidth={2} />

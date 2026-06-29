@@ -16,7 +16,7 @@ export const prerender = false;
         <p data-i18n="account.profileDesc" class="text-sm text-foreground/70 mt-1">Kelola informasi pribadi dan kontak Anda.</p>
       </div>
 
-      <form id="profile-form" class="space-y-5" onsubmit="event.preventDefault();">
+      <form id="profile-form" class="space-y-5" onsubmit="return false;">
         <div class="grid gap-2">
           <label data-i18n="account.name" class="text-sm font-bold uppercase tracking-widest text-foreground">Nama Lengkap</label>
           <div class="relative">
@@ -76,7 +76,7 @@ export const prerender = false;
         <p data-i18n="account.passwordDesc" class="text-sm text-foreground/70 mt-1">Perbarui kata sandi Anda untuk menjaga keamanan akun.</p>
       </div>
 
-      <form id="password-form" class="space-y-5" onsubmit="event.preventDefault();">
+      <form id="password-form" class="space-y-5" onsubmit="return false;">
         <div class="grid gap-2">
           <label data-i18n="account.currentPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Saat Ini</label>
           <div class="relative">
@@ -181,7 +181,7 @@ export const prerender = false;
         passMatch: "Passwords do not match"
       }
     };
-    const m = messages[lang] || messages.id;
+    const m = messages[lang as keyof typeof messages] || messages.id;
 
     const profileSchema = z.object({
       name: z.string().min(3, { message: m.nameMin }),

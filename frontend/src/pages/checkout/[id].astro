@@ -158,8 +158,9 @@ export const prerender = false;
               if (data.invoice_url) {
                  window.location.href = data.invoice_url;
               }
-            } catch (err: any) {
-              alert(err.message || "Terjadi kesalahan saat memproses pembayaran.");
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat memproses pembayaran.";
+              alert(msg);
               btn.disabled = false;
               btn.textContent = originalText;
             }

@@ -79,7 +79,7 @@ import "@/styles/global.css";
         const isEn = document.documentElement.lang === 'en';
         const errorKey = validationResult.error.issues[0].message;
         
-        let errorMsg = "Invalid Order ID.";
+        let errorMsg;
         if (errorKey === "tracking.zodError") {
           errorMsg = isEn ? "Invalid Order ID. Format must start with 'INV-'." : "ID Pesanan tidak valid. Format harus berawalan 'INV-'.";
         } else {
