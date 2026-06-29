@@ -1,0 +1,110 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import "@/styles/global.css";
+import { getOtpVerificationEmail, getOtpResetPasswordEmail, getPaymentSuccessEmail, getPaymentFailedEmail, getPaymentCancelEmail, getPaymentExpiredEmail } from "../../../backend/src/emails/index.js";
+
+const dummyName = "Budi Santoso";
+const dummyOrderId = "INV-2610-TB99";
+const dummyTotal = "Rp 1.500.000";
+const dummyDate = "25 Okt 2026, 14:30 WIB";
+const dummyMethod = "BCA Virtual Account";
+const dummyOtp = "123456";
+const dummyResetOtp = "A8B9C0";
+
+const items = [
+  { name: "Motorcycle ECU - TuneBoss", quantity: 1, price: "Rp 1.500.000" }
+];
+
+const paymentDetails = {
+  orderId: dummyOrderId,
+  date: dummyDate,
+  total: dummyTotal,
+  method: dummyMethod,
+  items
+};
+
+const templates = [
+  { id: "otp-verify", name: "OTP Verification", html: getOtpVerificationEmail(dummyName, dummyOtp).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "otp-reset", name: "OTP Reset Password", html: getOtpResetPasswordEmail(dummyName, dummyResetOtp).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "payment-success", name: "Payment Success", html: getPaymentSuccessEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "payment-failed", name: "Payment Failed", html: getPaymentFailedEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "payment-cancel", name: "Payment Cancelled", html: getPaymentCancelEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') },
+  { id: "payment-expired", name: "Payment Expired", html: getPaymentExpiredEmail(dummyName, paymentDetails).replace('https://tuneboss.co.id/tuneboss-logo.png', '/tuneboss-logo.png') }
+];
+---
+
+<TuneBossChrome title="Email Templates Preview">
+  <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 pt-32 min-h-screen">
+    <div class="mb-10">
+      <h1 class="text-3xl font-extrabold text-foreground">Email Templates Preview</h1>
+      <p class="mt-2 text-muted-foreground">Pilih template email di bawah ini untuk melihat pratinjau (preview).</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div class="lg:col-span-1 flex flex-col space-y-3">
+        {templates.map((t, idx) => (
+          <button 
+            class={`w-full text-left px-5 py-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-primary email-tab-btn shadow-sm
+              ${idx === 0 
+                ? 'bg-primary/10 border-primary font-bold text-primary' 
+                : 'bg-card border-border hover:border-primary/50 text-foreground'}`}
+            data-target={t.id}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+
+      <div class="lg:col-span-3 bg-neutral-200/50 dark:bg-neutral-900 rounded-2xl p-4 md:p-8 border border-border flex justify-center items-start overflow-x-auto relative" style="min-height: 900px;">
+        {templates.map((t, idx) => (
+          <div id={t.id} class="email-preview shadow-2xl rounded-xl overflow-hidden w-full max-w-[600px] bg-white transition-opacity duration-300" style={idx === 0 ? "display: block; height: 850px;" : "display: none; height: 850px;"}>
+            <iframe 
+              srcdoc={t.html} 
+              class="w-full border-0 bg-white block"
+              style="height: 850px; min-height: 850px;"
+              title={t.name}
+            ></iframe>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</TuneBossChrome>
+
+<script is:inline>
+  function setupEmailTabs() {
+    const btns = document.querySelectorAll('.email-tab-btn');
+    const previews = document.querySelectorAll('.email-preview');
+    
+    if (btns.length === 0) return;
+
+    btns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Reset all buttons
+        btns.forEach(b => {
+          b.className = 'w-full text-left px-5 py-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-primary email-tab-btn shadow-sm bg-card border-border hover:border-primary/50 text-foreground';
+        });
+        
+        // Highlight current button
+        const target = e.currentTarget;
+        if (!target) return;
+        target.className = 'w-full text-left px-5 py-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-primary email-tab-btn shadow-sm bg-primary/10 border-primary font-bold text-primary';
+        
+        // Hide all previews
+        previews.forEach(p => p.style.display = 'none');
+        
+        // Show targeted preview
+        const targetId = target.getAttribute('data-target');
+        if (!targetId) return;
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  // Run on load and after view transitions
+  document.addEventListener('astro:page-load', setupEmailTabs);
+  document.addEventListener('DOMContentLoaded', setupEmailTabs);
+</script>
