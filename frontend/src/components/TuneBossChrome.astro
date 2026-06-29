@@ -1430,7 +1430,6 @@ import AlertDialog from "./AlertDialog.astro";
   const forgotEmailDisplay = document.querySelector('[data-forgot-email]');
   const forgotOtps = Array.from(document.querySelectorAll('[data-forgot-otp]'));
   const forgotNewPasswordForm = document.querySelector('[data-forgot-new-password]');
-  const forgotVerifyBtn = document.querySelector('[data-forgot-verify]');
   const forgotSubmitBtn = document.querySelector('[data-forgot-submit]');
   const forgotCancelBtn = document.querySelector('[data-forgot-cancel]');
   const forgotCancelPwdBtn = document.querySelector('[data-forgot-cancel-pwd]');
@@ -1463,7 +1462,7 @@ import AlertDialog from "./AlertDialog.astro";
       (forgotOtps[0] as HTMLInputElement | undefined)?.focus();
     } else {
       if (err) {
-        err.textContent = result.error.issues?.[0]?.message || result.error.errors?.[0]?.message || "Format tidak valid";
+        err.textContent = result.error.issues?.[0]?.message || "Format tidak valid";
         err.classList.remove("hidden");
       }
     }
@@ -1490,7 +1489,7 @@ import AlertDialog from "./AlertDialog.astro";
 
     const result = otpSchema.safeParse({ otp: code });
     if (!result.success) {
-      const msg = result.error.issues?.[0]?.message || result.error.errors?.[0]?.message || "Format tidak valid";
+      const msg = result.error.issues?.[0]?.message || "Format tidak valid";
       if (forgotOtpError) {
         forgotOtpError.textContent = msg;
         forgotOtpError.classList.remove("hidden");
@@ -1539,9 +1538,9 @@ import AlertDialog from "./AlertDialog.astro";
     });
 
     if (!result.success) {
-      const issues = result.error.issues || result.error.errors || [];
+      const issues = result.error.issues || [];
       issues.forEach(err => {
-        const fieldName = err?.path?.[0] || "";
+        const fieldName = String(err?.path?.[0] || "");
         const errorSpan = forgotNewPasswordForm.querySelector(`[data-error-for="${fieldName}"]`) || forgotNewPasswordForm.querySelector(".auth-error");
         if (errorSpan) {
           errorSpan.textContent = err.message;

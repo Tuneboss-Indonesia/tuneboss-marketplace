@@ -35,21 +35,13 @@ interface LeafletEvent {
   };
 }
 
-interface LeafletMarker {
-  setLatLng: (coords: [number, number]) => this;
-  on: (event: string, callback: (e: LeafletEvent) => void) => this;
-  addTo: (map: unknown) => this;
-}
-
-interface LeafletMap {
-  invalidateSize: () => void;
-  setView: (coords: [number, number], zoom: number) => this;
-}
+type LeafletMarker = any;
+type LeafletMap = any;
 
 interface Leaflet {
-  map: (el: string | HTMLElement) => LeafletMap;
-  marker: (coords: [number, number], options?: Record<string, unknown>) => LeafletMarker;
-  tileLayer: (url: string, options?: Record<string, unknown>) => { addTo: (map: unknown) => void };
+  map: (el: string | HTMLElement) => any;
+  marker: (coords: [number, number], options?: Record<string, unknown>) => any;
+  tileLayer: (url: string, options?: Record<string, unknown>) => { addTo: (map: any) => void };
 }
 
 interface Window {
