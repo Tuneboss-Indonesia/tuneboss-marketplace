@@ -144,7 +144,7 @@ export const prerender = false;
 <script>
   import { z } from "zod";
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('astro:page-load', () => {
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(btn => {
       btn.addEventListener('click', () => {

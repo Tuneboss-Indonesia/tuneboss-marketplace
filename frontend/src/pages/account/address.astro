@@ -126,7 +126,7 @@ export const prerender = false;
 <script>
   import { z } from "zod";
   
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('astro:page-load', () => {
     const modal = document.getElementById('address-form-modal');
     const closeBtn = document.getElementById('address-form-close');
     const title = document.getElementById('address-form-title');
