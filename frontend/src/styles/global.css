@@ -37,6 +37,7 @@
 }
 
 :root {
+  color-scheme: light;
   --background: #f7f7f2;
   --foreground: #070707;
   --primary: #ed6c05;
@@ -45,6 +46,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #070707;
   --foreground: #f7f7f2;
   --primary: #ed6c05;
@@ -79,6 +81,22 @@ button {
 input,
 textarea {
   color: var(--foreground);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #f7f7f2 inset !important;
+  -webkit-text-fill-color: #070707 !important;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #070707 inset !important;
+  -webkit-text-fill-color: #f7f7f2 !important;
 }
 
 input::placeholder,
@@ -172,4 +190,15 @@ textarea::placeholder,
 [data-reveal].is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

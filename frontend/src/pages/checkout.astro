@@ -1,0 +1,1094 @@
+---
+import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { ClientRouter } from "astro:transitions";
+import { CreditCard, MapPin, PackageCheck, ShoppingBag } from "lucide-react";
+import "@/styles/global.css";
+import "leaflet/dist/leaflet.css";
+
+export const prerender = false;
+---
+
+<head>
+  <title>Checkout | TuneBoss ID</title>
+  <meta name="description" content="Lengkapi alamat dan buat pesanan TuneBoss ID." />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="/tuneboss-logo.png" />
+  <ClientRouter />
+
+</head>
+
+<TuneBossChrome>
+  <main class="min-h-screen bg-background px-6 pb-16 pt-24 md:px-12 md:pb-24 md:pt-32">
+    <section class="mx-auto grid max-w-6xl gap-5 md:gap-8 lg:grid-cols-[1fr_360px]">
+      <div class="space-y-5 md:space-y-8">
+        <header>
+          <h1 class="text-2xl font-bold uppercase tracking-widest md:text-5xl">Checkout</h1>
+        </header>
+
+        <section>
+          <div class="mb-4 flex items-center gap-3">
+            <MapPin size={20} className="text-primary" aria-hidden="true" />
+            <h2 data-checkout-i18n="addressTitle" class="text-lg font-bold uppercase tracking-widest">Alamat Pengiriman</h2>
+          </div>
+          <div id="checkout-address-empty" class="flex flex-col items-center justify-center gap-4 border border-dashed border-primary/40 bg-primary/5 p-8 text-center">
+            <p data-checkout-i18n="addressEmpty" class="text-sm text-foreground/80">Belum ada alamat pengiriman yang ditambahkan.</p>
+            <button type="button" id="checkout-address-select-btn" data-checkout-i18n="addressSelect" class="bg-primary px-6 py-2 text-sm font-bold tracking-widest text-white hover:bg-primary/90 transition-colors uppercase">PILIH ALAMAT PENGIRIMAN</button>
+          </div>
+
+          <div id="checkout-address-summary" class="hidden flex-col gap-4 border border-primary/20 bg-background p-4 text-sm text-foreground md:flex-row md:items-start md:p-6">
+            <div class="font-bold shrink-0">
+              <span data-summary-address-name></span> 
+              <span data-summary-address-phone></span>
+            </div>
+            <div class="flex-1 text-foreground/80 leading-relaxed">
+              <span data-summary-address-full></span>
+              <span id="checkout-address-primary-badge" class="hidden ml-2 px-2 py-0.5 border border-primary text-primary text-[10px] uppercase">Utama</span>
+            </div>
+            <button type="button" id="checkout-address-change-btn" data-checkout-i18n="addressChange" class="font-bold text-primary hover:underline self-start shrink-0">Ubah</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="mb-4 flex items-center gap-3 md:mb-6">
+            <ShoppingBag size={20} className="text-primary" aria-hidden="true" />
+            <h2 class="text-lg font-bold uppercase tracking-widest">
+              <span data-checkout-i18n="orderedTitle">Produk Dipesan</span>
+              <span class="text-primary">(<span data-checkout-products>0</span> <span data-checkout-i18n="products">produk</span>, <span data-checkout-items>0</span> <span data-checkout-i18n="items">item</span>)</span>
+            </h2>
+          </div>
+          <div data-checkout-empty class="hidden py-10 text-center">
+            <PackageCheck size={48} className="mx-auto mb-5 text-primary/40" aria-hidden="true" />
+            <p data-checkout-i18n="empty" class="font-bold uppercase tracking-widest">Belum ada produk dipilih.</p>
+            <a data-checkout-i18n="backProducts" href="/products" class="mt-5 inline-flex border border-primary/20 px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary">Pilih Produk</a>
+          </div>
+          <div data-checkout-list class="space-y-3 md:space-y-4"></div>
+
+
+        </section>
+      </div>
+
+      <aside class="h-fit border border-primary/20 bg-background p-4 shadow-xl md:p-6 lg:sticky lg:top-28">
+        <h2 data-checkout-i18n="summary" class="mb-4 text-lg font-bold uppercase tracking-widest md:mb-6">Ringkasan Pesanan</h2>
+        <div class="space-y-4 text-sm">
+          <div class="flex justify-between gap-4">
+            <span data-checkout-i18n="totalItems" class="text-foreground/70">Total Item</span>
+            <span><span data-summary-products>0</span> <span data-checkout-i18n="products">produk</span>, <span data-summary-items>0</span> <span data-checkout-i18n="items">item</span></span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span data-checkout-i18n="subtotal" class="text-foreground/70">Subtotal</span>
+            <span data-summary-subtotal>Rp. 0</span>
+          </div>
+          <div class="flex justify-between gap-4 hidden" aria-hidden="true">
+            <span data-checkout-i18n="shippingCost" class="text-foreground/70">Ongkos Kirim</span>
+            <span data-summary-shipping>Rp. 0</span>
+          </div>
+          <div class="border-t border-primary/20 pt-5">
+            <div class="flex items-center justify-between gap-4">
+              <span data-checkout-i18n="total" class="font-bold uppercase tracking-widest">Total</span>
+              <span data-summary-total class="text-lg font-bold text-primary">Rp. 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 flex items-start gap-3">
+          <input type="checkbox" id="checkout-terms-checkbox" class="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-primary" />
+          <label for="checkout-terms-checkbox" class="text-xs text-foreground/80 leading-relaxed cursor-pointer select-none">
+            <span data-checkout-i18n="agreeLabel">Saya menyetujui </span>
+            <button type="button" id="checkout-terms-open" class="text-primary hover:underline font-semibold" data-checkout-i18n="agreeLink">
+              Syarat & Ketentuan Pengiriman
+            </button>
+          </label>
+        </div>
+        <button data-create-order class="mt-6 flex h-12 w-full opacity-50 pointer-events-none items-center justify-center gap-3 bg-primary px-5 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" type="button" style="color: white !important;">
+          <CreditCard size={18} aria-hidden="true" />
+          <span data-checkout-i18n="createOrder">Buat Pesanan</span>
+        </button>
+        <p data-checkout-error class="mt-4 hidden text-sm text-red-500"></p>
+      </aside>
+    </section>
+  </main>
+
+  <!-- Address Modal -->
+  <div id="checkout-address-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+    <div class="bg-background border border-primary/20 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col relative scale-95 transition-transform duration-300 shadow-2xl rounded-lg">
+      
+      <div class="flex items-center justify-between p-6 border-b border-primary/10 shrink-0">
+        <h3 data-checkout-i18n="addressModalTitle" class="text-xl font-bold uppercase tracking-widest text-foreground">Alamat Saya</h3>
+        <button type="button" id="checkout-address-close-icon" class="text-foreground/50 hover:text-primary transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto p-6 custom-scrollbar space-y-6 flex-1">
+        
+        <!-- Empty Modal State -->
+        <div id="modal-address-empty-msg" class="hidden flex-col items-center justify-center py-10 text-center">
+          <p data-checkout-i18n="addressEmpty" class="text-sm text-foreground/80">Belum ada alamat pengiriman yang ditambahkan.</p>
+        </div>
+
+        <div id="modal-address-list" class="space-y-6">
+          <label class="flex items-start gap-4 cursor-pointer group">
+          <input type="radio" name="address-option" value="1" class="mt-1 shrink-0 h-5 w-5 accent-primary" />
+          <div class="flex-1 text-sm text-foreground/80">
+            <div class="flex flex-wrap items-center justify-between mb-1 gap-2">
+              <div class="font-bold text-foreground">
+                <span data-address-opt-name>Budi Santoso</span>
+                <span class="font-normal text-foreground/60 ml-2 border-l border-foreground/20 pl-2" data-address-opt-phone>(+62) 812 3456 7890</span>
+              </div>
+              <button type="button" data-address-edit data-checkout-i18n="addressChange" class="text-primary font-bold hover:underline shrink-0">Ubah</button>
+            </div>
+            <p data-address-opt-full data-address-opt-district="Cibinong">Jl. Merdeka No. 17, Sukamaju, Kec. Cibinong<br/>KAB. BOGOR, JAWA BARAT, ID 16911</p>
+          </div>
+        </label>
+
+        <label class="flex items-start gap-4 cursor-pointer group pt-6 border-t border-primary/10">
+          <input type="radio" name="address-option" value="2" class="mt-1 shrink-0 h-5 w-5 accent-primary" />
+          <div class="flex-1 text-sm text-foreground/80">
+            <div class="flex flex-wrap items-center justify-between mb-1 gap-2">
+              <div class="font-bold text-foreground">
+                <span data-address-opt-name>Siti Aminah</span>
+                <span class="font-normal text-foreground/60 ml-2 border-l border-foreground/20 pl-2" data-address-opt-phone>(+62) 813 2222 3344</span>
+              </div>
+              <button type="button" data-address-edit data-checkout-i18n="addressChange" class="text-primary font-bold hover:underline shrink-0">Ubah</button>
+            </div>
+            <p data-address-opt-full data-address-opt-district="Bekasi Utara">Jl. Melati Raya No. 8, Harapan Jaya<br/>KOTA BEKASI, JAWA BARAT, ID 17124</p>
+          </div>
+        </label>
+
+        <label class="flex items-start gap-4 cursor-pointer group pt-6 border-t border-primary/10">
+          <input type="radio" name="address-option" value="3" class="mt-1 shrink-0 h-5 w-5 accent-primary" />
+          <div class="flex-1 text-sm text-foreground/80">
+            <div class="flex flex-wrap items-center justify-between mb-1 gap-2">
+              <div class="font-bold text-foreground">
+                <span data-address-opt-name>Ambil di Tempat</span>
+                <span class="font-normal text-foreground/60 ml-2 border-l border-foreground/20 pl-2" data-address-opt-phone>TuneBoss ID</span>
+              </div>
+            </div>
+            <p data-address-opt-full>Datang langsung ke bengkel/toko TuneBoss ID.<br/>Tunjukkan ID Pesanan Anda saat pengambilan.</p>
+          </div>
+        </label>
+        </div>
+      </div>
+
+      <div class="p-6 border-t border-primary/10 flex justify-end bg-background shrink-0">
+        <button type="button" id="checkout-address-add-btn" class="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-bold tracking-widest hover:bg-[#c95b04] transition-colors text-sm w-full md:w-auto" style="color: white !important;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span data-checkout-i18n="addressAddBtn">Tambah Alamat Baru</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="checkout-address-form-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+    <div class="bg-background border border-primary/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 relative scale-95 transition-transform duration-300 shadow-2xl">
+      <button type="button" id="checkout-address-form-close" class="absolute right-4 top-4 text-foreground/50 hover:text-primary transition-colors" aria-label="Tutup">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h3 id="checkout-address-form-title" class="mb-7 text-2xl font-bold text-foreground">Alamat Baru</h3>
+      <form class="space-y-5">
+        <div class="grid gap-5 md:grid-cols-2">
+          <div class="flex flex-col gap-1.5 w-full">
+            <input id="address-form-name" class="checkout-input" placeholder="Nama Lengkap" />
+          </div>
+          <div class="flex flex-col gap-1.5 w-full">
+            <input id="address-form-phone" class="checkout-input" inputmode="numeric" pattern="[0-9]*" placeholder="Nomor Telepon" />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 w-full">
+          <div class="relative" id="address-region-picker">
+            <button type="button" id="address-region-button" class="checkout-input flex items-center justify-between text-left text-foreground/60">
+              <span id="address-region-label">Kecamatan / Kelurahan, Provinsi, Kode Pos</span>
+              <svg class="h-4 w-4 shrink-0 text-foreground/60" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="address-region-menu" class="hidden absolute left-0 top-full z-[130] w-full border border-primary/30 bg-background shadow-xl p-3">
+              <input type="text" id="address-region-search-input" class="w-full text-sm px-4 py-3 border border-primary/20 outline-none focus:border-primary mb-2 bg-transparent text-foreground" placeholder="Ketik kecamatan atau kelurahan..." autocomplete="off">
+              <div id="address-region-options" class="max-h-[50vh] overflow-y-auto custom-scrollbar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 w-full">
+          <div class="relative" id="address-street-picker">
+            <input type="hidden" id="address-form-street" />
+            <button type="button" id="address-street-button" class="checkout-input flex items-center justify-between text-left text-foreground/60 opacity-50 cursor-not-allowed" disabled>
+              <span id="address-street-label" class="truncate mr-2">Pilih Jalan, Gedung, Perumahan</span>
+              <svg class="h-4 w-4 shrink-0 text-foreground/60" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="address-street-menu" class="hidden absolute left-0 top-full z-[120] w-full border border-primary/30 bg-background shadow-xl p-3">
+              <input type="text" id="address-street-search-input" class="w-full text-sm px-4 py-3 border border-primary/20 outline-none focus:border-primary mb-2 bg-transparent text-foreground" placeholder="Ketik nama jalan atau gedung..." autocomplete="off">
+              <div id="address-street-options" class="max-h-[40vh] overflow-y-auto custom-scrollbar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 w-full">
+          <input id="address-form-detail" class="checkout-input" placeholder="Detail Lainnya (Cth: Blok / Unit No., Patokan)" />
+        </div>
+        <div id="address-map-preview" class="relative flex min-h-64 items-center justify-center overflow-hidden border border-primary/10 bg-primary/5 text-foreground/40">
+          <div id="leaflet-map-container" class="absolute inset-0 z-0 h-full w-full hidden"></div>
+          <button type="button" id="address-location-btn" class="z-10 border-2 px-5 py-3 font-bold flex items-center gap-2 shadow-sm transition-all border-primary bg-background text-primary opacity-50 cursor-not-allowed" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span data-checkout-i18n="detectLocation">Deteksi Lokasi</span>
+          </button>
+        </div>
+        <div id="address-latlon-display" class="hidden text-xs text-foreground/50 text-center">
+          Kordinat: <span id="address-lat-val">-</span>, <span id="address-lon-val">-</span>
+        </div>
+        <button type="submit" class="w-full bg-primary px-6 py-3 font-bold uppercase tracking-widest text-white hover:bg-[#c95b04]" style="color: white !important;">Simpan Alamat</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Terms Modal -->
+  <div id="checkout-terms-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+    <div class="bg-background border border-primary/20 p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col relative scale-95 transition-transform duration-300 shadow-2xl rounded-lg">
+      <button type="button" id="checkout-terms-close-icon" class="absolute top-6 right-6 text-foreground/50 hover:text-primary transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h3 data-checkout-i18n="termsModalTitle" class="text-xl font-bold uppercase tracking-widest mb-4 pr-8 text-foreground">Syarat & Ketentuan Pengiriman</h3>
+      <div class="space-y-4 text-sm text-foreground/80 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        <p data-checkout-i18n="termsModalCopy1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p data-checkout-i18n="termsModalCopy2">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p data-checkout-i18n="termsModalCopy3">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+        <p data-checkout-i18n="termsModalCopy4">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
+      </div>
+      <div class="mt-6 pt-4 border-t border-primary/20 flex justify-end">
+        <button type="button" id="checkout-terms-close-btn" data-checkout-i18n="termsModalClose" class="px-6 py-2 bg-primary text-white font-bold uppercase tracking-widest hover:bg-[#c95b04] transition-colors text-sm" style="color: white !important;">TUTUP</button>
+      </div>
+    </div>
+  </div>
+
+
+</TuneBossChrome>
+
+<script>
+  
+  import { z } from "zod";
+  import L from "leaflet";
+
+  const initCheckoutPage = () => {
+    const listRoot = document.querySelector("[data-checkout-list]");
+    const emptyRoot = document.querySelector("[data-checkout-empty]");
+    const errorRoot = document.querySelector("[data-checkout-error]");
+    if (!listRoot || !emptyRoot || !errorRoot) return;
+
+    const copy = {
+      id: {
+        eyebrow: "Checkout",
+        title: "Buat Pesanan",
+        addressTitle: "Alamat Pengiriman",
+        name: "Nama Penerima",
+        phone: "No. WhatsApp",
+        address: "Alamat Lengkap",
+        city: "Kota/Kabupaten",
+        postal: "Kode Pos",
+        orderedTitle: "Produk Dipesan",
+        products: "produk",
+        items: "item",
+        empty: "Belum ada produk dipilih.",
+        backProducts: "Pilih Produk",
+        summary: "Ringkasan Pesanan",
+        totalItems: "Total Item",
+        subtotal: "Subtotal",
+        shippingCost: "Ongkos Kirim",
+        shippingMethod: "Opsi Pengiriman",
+        total: "Total",
+        createOrder: "Buat Pesanan",
+        required: "Lengkapi alamat dan pilih minimal satu produk.",
+        agreeLabel: "Saya menyetujui ",
+        agreeLink: "Syarat & Ketentuan Pengiriman",
+        termsModalTitle: "Syarat & Ketentuan Pengiriman",
+        termsModalCopy1: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        termsModalCopy2: "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        termsModalCopy3: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
+        termsModalCopy4: "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.",
+        termsModalClose: "Tutup",
+        addressEmpty: "Belum ada alamat pengiriman yang ditambahkan.",
+        addressSelect: "PILIH ALAMAT PENGIRIMAN",
+        addressChange: "Ubah",
+        shippingSelect: "Pilih Pengiriman",
+        addressModalTitle: "Alamat Saya",
+        addressAddBtn: "Tambah Alamat Baru"
+      },
+      en: {
+        eyebrow: "Checkout",
+        title: "Create Order",
+        addressTitle: "Shipping Address",
+        name: "Recipient Name",
+        phone: "WhatsApp Number",
+        address: "Full Address",
+        city: "City/Regency",
+        postal: "Postal Code",
+        orderedTitle: "Ordered Products",
+        products: "products",
+        items: "items",
+        empty: "No selected products yet.",
+        backProducts: "Choose Products",
+        summary: "Order Summary",
+        totalItems: "Total Items",
+        subtotal: "Subtotal",
+        shippingCost: "Shipping Cost",
+        shippingMethod: "Shipping Method",
+        total: "Total",
+        createOrder: "Create Order",
+        required: "Complete the address and select at least one product.",
+        agreeLabel: "I agree to the ",
+        agreeLink: "Shipping Terms & Conditions",
+        termsModalTitle: "Shipping Terms & Conditions",
+        termsModalCopy1: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        termsModalCopy2: "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        termsModalCopy3: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
+        termsModalCopy4: "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.",
+        termsModalClose: "Close",
+        addressEmpty: "No shipping address added yet.",
+        addressSelect: "SELECT SHIPPING ADDRESS",
+        addressChange: "Change",
+        shippingSelect: "Select Shipping",
+        addressModalTitle: "My Address",
+        addressAddBtn: "Add New Address"
+      },
+    };
+
+    const formatRupiah = (value: number) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
+    const lang = () => document.documentElement.lang === "en" ? "en" : "id";
+    const readCart = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+        return Array.isArray(cart) ? cart.filter((item) => item.selected !== false) : [];
+      } catch {
+        return [];
+      }
+    };
+    // const saveCart = (items) => {
+    /*  const allItems = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+    /*  const next = Array.isArray(allItems)
+        ? allItems.map((item) => items.find((entry) => String(entry.id) === String(item.id)) || item)
+        : items; */
+      // localStorage.setItem("tuneboss-cart", JSON.stringify(next));
+      // window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
+    // };
+
+    const updateLanguage = () => {
+      const current = copy[lang()];
+      document.querySelectorAll("[data-checkout-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-checkout-i18n");
+        if (key && current[key as keyof typeof current]) node.textContent = current[key as keyof typeof current];
+      });
+      document.title = `${current.eyebrow} | TuneBoss ID`;
+    };
+
+    const setText = (selector: string, value: string) => {
+      document.querySelectorAll(selector).forEach((node) => { node.textContent = String(value); });
+    };
+
+    const render = (skipListRebuild = false) => {
+      const items: CartItem[] = readCart();
+      const productCount = items.length;
+      const itemCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+      const subtotal = items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+      
+      const summaryShipping = document.querySelector("[data-summary-shipping]");
+      const summaryTotal = document.querySelector("[data-summary-total]");
+
+      setText("[data-checkout-products], [data-summary-products]", String(productCount));
+      setText("[data-checkout-items], [data-summary-items]", String(itemCount));
+      setText("[data-summary-subtotal]", formatRupiah(subtotal));
+      
+      const shippingCost = 0; // Ongkir sudah statis 0 di checkout web
+      const finalTotal = subtotal + shippingCost;
+      
+      if (summaryShipping) summaryShipping.textContent = formatRupiah(shippingCost);
+      if (summaryTotal) summaryTotal.textContent = formatRupiah(finalTotal);
+
+      emptyRoot.classList.toggle("hidden", productCount > 0);
+      listRoot.classList.toggle("hidden", productCount === 0);
+      
+      if (!skipListRebuild) {
+        listRoot.innerHTML = items.map((item) => `
+        <article class="flex gap-3 border border-primary/20 bg-background p-3 md:gap-4 md:p-4">
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center bg-background md:h-20 md:w-20">
+              <img src="${item.image || "/images/tuneboss-motorcycle-ecu.png"}" alt="${item.name || ""}" class="h-full w-full object-contain" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">${item.brand || "TuneBoss"}</p>
+              <h3 class="mt-1 font-bold uppercase tracking-wide">${item.name || ""}</h3>
+            <div class="mt-3 flex flex-col gap-3 md:mt-4 md:flex-row md:items-center md:justify-between md:gap-4">
+                <div class="h-10 min-w-16 px-4 border border-primary/20 bg-transparent flex items-center justify-center text-sm font-bold">
+                  ${item.quantity || 1}x
+                </div>
+                <span class="block whitespace-nowrap text-right font-bold text-primary md:text-left">${formatRupiah(Number(item.price || 0) * Number(item.quantity || 0))}</span>
+              </div>
+            </div>
+          </article>
+        `).join("");
+        updateLanguage();
+      } else {
+        // Quantities are now readonly, no need to update inputs
+      }
+    };
+
+
+    document.querySelector("[data-create-order]")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      const sumName = document.querySelector("[data-summary-address-name]")?.textContent;
+      const sumPhone = document.querySelector("[data-summary-address-phone]")?.textContent;
+      const items: CartItem[] = readCart();
+      // const shippingVal = sumName === "Ambil di Tempat" ? "AMBIL_DI_TEMPAT" : "JNE";
+      const shippingCost = 0; // Ongkir statis 0 di web
+      
+      if (!sumName || items.length === 0) {
+        errorRoot.textContent = (copy as Record<string, Record<string, string>>)[lang()]?.required || "Mohon lengkapi alamat dan pesanan Anda.";
+        errorRoot.classList.remove("hidden");
+        return;
+      }
+
+      // Hitung subtotal dan total
+      const subtotal = items.reduce((sum: number, item: CartItem) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+      const totalAmount = subtotal + shippingCost;
+      
+      // Siapkan payload invoice Xendit
+      const orderId = `TB-${Date.now().toString().slice(-8)}`;
+      
+      try {
+        btn.disabled = true;
+        
+        btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...`;
+        
+        const res = await fetch('/api/xendit-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            externalId: orderId,
+            amount: totalAmount,
+            payerEmail: "guest@tuneboss.com",
+            description: `Pembayaran Pesanan TuneBoss - ${orderId}`,
+            customer: {
+               given_names: sumName,
+               mobile_number: sumPhone
+            },
+            items: items.map((item: CartItem) => ({
+               name: (item as CartItem).name,
+               quantity: (item as CartItem).quantity,
+               price: (item as CartItem).price
+            })).concat(shippingCost > 0 ? [{ name: "Ongkos Kirim", quantity: 1, price: shippingCost }] : [])
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        if (data.invoice_url) {
+           sessionStorage.setItem("tuneboss-last-order", JSON.stringify({ id: orderId, items }));
+           sessionStorage.setItem(`tuneboss-order-status-${orderId}`, "pending");
+           window.location.href = data.invoice_url; // Redirect ke Xendit
+        }
+      } catch (err: unknown) {
+        errorRoot.textContent = (err as Error).message || "Terjadi kesalahan saat membuat tagihan.";
+        errorRoot.classList.remove("hidden");
+        btn.disabled = false;
+        btn.innerHTML = lang() === "en" ? "Create Order" : "Buat Pesanan";
+      }
+    });
+
+    const checkbox = document.getElementById("checkout-terms-checkbox") as HTMLInputElement;
+    const checkoutBtn = document.querySelector("[data-create-order]");
+    const modal = document.getElementById("checkout-terms-modal");
+    const openBtn = document.getElementById("checkout-terms-open");
+    const closeBtn = document.getElementById("checkout-terms-close-btn");
+    const closeIcon = document.getElementById("checkout-terms-close-icon");
+
+    if (checkbox && checkoutBtn) {
+      const updateCheckoutBtn = () => {
+        if (checkbox.checked) {
+          checkoutBtn.classList.remove("opacity-50", "pointer-events-none");
+        } else {
+          checkoutBtn.classList.add("opacity-50", "pointer-events-none");
+        }
+      };
+      checkbox.addEventListener("change", updateCheckoutBtn);
+      updateCheckoutBtn();
+    }
+
+    if (modal) {
+      const openModal = () => {
+        document.body.style.overflow = "hidden";
+        modal.classList.remove("opacity-0", "pointer-events-none");
+        const inner = modal.firstElementChild as HTMLElement;
+        if (inner) {
+          inner.style.transform = "scale(1)";
+        }
+      };
+
+      const closeModal = () => {
+        document.body.style.overflow = "";
+        modal.classList.add("opacity-0", "pointer-events-none");
+        const inner = modal.firstElementChild as HTMLElement;
+        if (inner) {
+          inner.style.transform = "scale(0.95)";
+        }
+      };
+
+      if (openBtn) openBtn.addEventListener("click", openModal);
+      if (closeBtn) closeBtn.addEventListener("click", closeModal);
+      if (closeIcon) closeIcon.addEventListener("click", closeModal);
+
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    const addressModal = document.getElementById("checkout-address-modal");
+    const addressChangeBtn = document.getElementById("checkout-address-change-btn");
+    const addressSelectBtn = document.getElementById("checkout-address-select-btn");
+    const addressAddBtn = document.getElementById("checkout-address-add-btn");
+    const addressCloseIcon = document.getElementById("checkout-address-close-icon");
+    const addressSummary = document.getElementById("checkout-address-summary");
+    const addressEmpty = document.getElementById("checkout-address-empty");
+    const addressFormModal = document.getElementById("checkout-address-form-modal");
+    const addressFormClose = document.getElementById("checkout-address-form-close");
+    const addressFormTitle = document.getElementById("checkout-address-form-title");
+    const regionButton = document.getElementById("address-region-button");
+    const regionMenu = document.getElementById("address-region-menu");
+    const regionLabel = document.getElementById("address-region-label");
+    const regionOptions = document.getElementById("address-region-options");
+    const streetInput = document.getElementById("address-form-street") as HTMLInputElement | null;
+    const streetButton = document.getElementById("address-street-button");
+    const streetMenu = document.getElementById("address-street-menu");
+    const streetSearchInput = document.getElementById("address-street-search-input") as HTMLInputElement | null;
+    const streetLabel = document.getElementById("address-street-label");
+    const phoneInput = document.getElementById("address-form-phone") as HTMLInputElement | null;
+    const streetOptions = document.getElementById("address-street-options");
+    const mapPreview = document.getElementById("address-map-preview");
+    const regionState = { tab: "province", province: null as unknown, city: null as unknown, district: null as unknown, postal: "" };
+    /* const regionFallback = [
+      { province: "JAWA BARAT", city: "KAB. BOGOR", district: "CIBINONG", postal: "16911" },
+      { province: "JAWA BARAT", city: "KOTA BEKASI", district: "BEKASI UTARA", postal: "17124" },
+      { province: "BANTEN", city: "KOTA TANGERANG SELATAN", district: "PONDOK AREN", postal: "15224" },
+    ]; */
+    const fetchJson = async (url: string) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("API gagal");
+      return response.json();
+    };
+    let regionSearchTimer: unknown;
+    const regionSearchInput = document.getElementById("address-region-search-input") as HTMLInputElement | null;
+    
+    if (regionSearchInput) {
+      regionSearchInput.addEventListener("input", () => {
+        const val = regionSearchInput.value.trim();
+        clearTimeout(regionSearchTimer as number | undefined);
+        if (val.length < 3) {
+          if (regionOptions) regionOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Ketik minimal 3 karakter untuk mencari.</p>`;
+          return;
+        }
+        if (regionOptions) regionOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Mencari...</p>`;
+        regionSearchTimer = setTimeout(async () => {
+          try {
+            const res = await fetchJson(`https://kodepos.vercel.app/search?q=${encodeURIComponent(val)}`);
+            if (res && res.data && res.data.length > 0) {
+              if (regionOptions) {
+                const unique = Array.from(new Map(res.data.map((item: { code: string, regency: string, province: string, village: string, district: string }) => [item.code + item.village, item])).values()) as { code: string, regency: string, province: string, village: string, district: string }[];
+                regionOptions.innerHTML = unique.map((item: { code: string, regency: string, province: string, village: string, district: string }) => `
+                  <button type="button" class="block w-full px-4 py-3 text-left hover:bg-primary/5 transition-colors border-b border-primary/10 last:border-0" data-region-value='${JSON.stringify(item).replace(/'/g, "&apos;")}'>
+                    <div class="font-bold text-foreground text-sm">${item.village}, ${item.district}</div>
+                    <div class="text-[10px] text-foreground/70 uppercase tracking-[0.1em] mt-1.5">${item.regency}, ${item.province} • ${item.code}</div>
+                  </button>
+                `).join("");
+              }
+            } else {
+              if (regionOptions) regionOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Wilayah tidak ditemukan.</p>`;
+            }
+          } catch {
+            if (regionOptions) regionOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Gagal mencari data wilayah.</p>`;
+          }
+        }, 600);
+      });
+    }
+
+    const updateRegionLabel = () => {
+      const parts = [(regionState.district as { name?: string } | null)?.name, (regionState.city as { name?: string } | null)?.name, (regionState.province as { name?: string } | null)?.name, regionState.postal].filter(Boolean);
+      if (regionLabel) regionLabel.textContent = parts.length ? parts.join(", ") : "Kecamatan / Kelurahan, Provinsi, Kode Pos";
+      
+      if (streetButton) {
+        if (regionState.city) {
+          streetButton.removeAttribute("disabled");
+          streetButton.classList.remove("opacity-50", "cursor-not-allowed");
+          
+          if (locationBtn) {
+            locationBtn.removeAttribute("disabled");
+            locationBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            locationBtn.classList.add("hover:scale-105", "hover:bg-primary/5");
+          }
+        } else {
+          streetButton.setAttribute("disabled", "true");
+          streetButton.classList.add("opacity-50", "cursor-not-allowed");
+          
+          if (locationBtn) {
+            locationBtn.setAttribute("disabled", "true");
+            locationBtn.classList.add("opacity-50", "cursor-not-allowed");
+            locationBtn.classList.remove("hover:scale-105", "hover:bg-primary/5");
+          }
+        }
+      }
+    };
+    
+    let leafletMap: LeafletMap | undefined = undefined;
+    let leafletMarker: LeafletMarker | undefined = undefined;
+    const mapContainer = document.getElementById("leaflet-map-container");
+    const locationBtn = document.getElementById("address-location-btn");
+
+    const showMap = async (lat?: number, lon?: number) => {
+      if (!mapPreview || !mapContainer) return;
+      
+      let finalLat = lat;
+      let finalLon = lon;
+      
+      if (!finalLat || !finalLon) {
+        const query = [streetInput?.value, (regionState.district as { name?: string } | null)?.name, (regionState.city as { name?: string } | null)?.name, (regionState.province as { name?: string } | null)?.name, regionState.postal, "Indonesia"].filter(Boolean).join(", ");
+        if (!query.trim()) return;
+        try {
+          const result = await fetchJson(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+          const place = result?.[0];
+          if (!place) return;
+          finalLat = Number(place.lat);
+          finalLon = Number(place.lon);
+        } catch {
+          return;
+        }
+      }
+      
+      if (finalLat && finalLon) {
+        mapContainer.classList.remove("hidden");
+        if (locationBtn) locationBtn.classList.add("hidden");
+        
+        const latDisplay = document.getElementById("address-lat-val");
+        const lonDisplay = document.getElementById("address-lon-val");
+        const displayContainer = document.getElementById("address-latlon-display");
+        
+        const updateDisplay = (lat: number, lon: number) => {
+          if (latDisplay) latDisplay.textContent = lat.toFixed(6);
+          if (lonDisplay) lonDisplay.textContent = lon.toFixed(6);
+          if (displayContainer) displayContainer.classList.remove("hidden");
+        };
+        
+        updateDisplay(finalLat, finalLon);
+        
+        if (!leafletMap && L) {
+          leafletMap = (L.map(mapContainer) as LeafletMap).setView([finalLat, finalLon], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(leafletMap);
+          
+          leafletMarker = L.marker([finalLat, finalLon], { draggable: true }).addTo(leafletMap);
+          
+          leafletMarker?.on('dragend', (e: LeafletEvent) => {
+            const pos = e.target.getLatLng();
+            updateDisplay(pos.lat, pos.lng);
+          });
+        } else if (leafletMap) {
+          leafletMap?.setView([finalLat, finalLon], 15);
+          leafletMarker?.setLatLng([finalLat, finalLon]);
+          setTimeout(() => leafletMap?.invalidateSize(), 300);
+        }
+      }
+    };
+
+    locationBtn?.addEventListener("click", () => {
+      if (navigator.geolocation) {
+        locationBtn.innerHTML = "Mendeteksi...";
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            await showMap(lat, lon);
+            try {
+              const res = await fetchJson(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+              if (res && res.address && streetInput) {
+                streetInput.value = [res.address.road, res.address.house_number].filter(Boolean).join(" ") || res.display_name.split(",")[0];
+              }
+            } catch { console.error("error");}
+          },
+          () => {
+            alert("Gagal mendapatkan lokasi. Pastikan izin lokasi aktif.");
+            locationBtn.innerHTML = "Deteksi Lokasi";
+          },
+          { enableHighAccuracy: true }
+        );
+      } else {
+        alert("Geolocation tidak didukung browser ini.");
+      }
+    });
+    /* const renderStreetSuggestions = async () => {
+      if (!streetInput || !streetOptions || streetInput.value.trim().length < 3) {
+        streetOptions?.classList.add("hidden");
+        return;
+      }
+      const query = [streetInput.value, (regionState.district as { name?: string } | null)?.name, (regionState.city as { name?: string } | null)?.name, (regionState.province as { name?: string } | null)?.name, "Indonesia"].filter(Boolean).join(", ");
+      try {
+        const items = await fetchJson(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`);
+        streetOptions.innerHTML = items.map((item: LocationItem) => `<button type="button" class="block w-full px-4 py-2 text-left text-sm hover:bg-primary/10" data-street="${item.display_name}">${item.display_name.split(",").slice(0, 3).join(",")}</button>`).join("");
+        streetOptions.classList.toggle("hidden", !items.length);
+      } catch {
+        streetOptions.classList.add("hidden");
+      }
+    }; */
+    
+    if (addressModal) {
+      const openAddressModal = () => {
+        document.body.style.overflow = "hidden";
+        addressModal.classList.remove("opacity-0", "pointer-events-none");
+        const inner = addressModal.firstElementChild as HTMLElement;
+        if (inner) inner.style.transform = "scale(1)";
+      };
+
+      const closeAddressModal = () => {
+        document.body.style.overflow = "";
+        addressModal.classList.add("opacity-0", "pointer-events-none");
+        const inner = addressModal.firstElementChild as HTMLElement;
+        if (inner) inner.style.transform = "scale(0.95)";
+      };
+      const openAddressForm = (title: string, container?: Element | null) => {
+        if (!addressFormModal) return;
+        closeAddressModal();
+        document.body.style.overflow = "hidden";
+        if (addressFormTitle) addressFormTitle.textContent = title;
+        const setValue = (id: string, value: string) => {
+          const input = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
+          if (input) input.value = value;
+        };
+        setValue("address-form-name", container?.querySelector("[data-address-opt-name]")?.textContent?.trim() || "");
+        setValue("address-form-phone", container?.querySelector("[data-address-opt-phone]")?.textContent?.trim() || "");
+        setValue("address-form-street", container?.querySelector("[data-address-opt-full]")?.textContent?.split("\n")[0]?.trim() || "");
+        if (streetLabel && streetInput) {
+          streetLabel.textContent = streetInput.value || "Pilih Jalan, Gedung, Perumahan";
+        }
+        setValue("address-form-detail", "");
+        regionState.province = null;
+        regionState.city = null;
+        regionState.district = null;
+        regionState.postal = "";
+        if (regionSearchInput) regionSearchInput.value = "";
+        if (regionOptions) regionOptions.innerHTML = "";
+        updateRegionLabel();
+        if (mapContainer) mapContainer.classList.add("hidden");
+        const latDisplay = document.getElementById("address-lat-val");
+        const lonDisplay = document.getElementById("address-lon-val");
+        const latlonDisplay = document.getElementById("address-latlon-display");
+        if (latDisplay) latDisplay.textContent = "-";
+        if (lonDisplay) lonDisplay.textContent = "-";
+        if (latlonDisplay) latlonDisplay.classList.add("hidden");
+        if (locationBtn) {
+          locationBtn.classList.remove("hidden");
+          locationBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span data-checkout-i18n="detectLocation">Deteksi Lokasi</span>
+          `;
+          locationBtn.setAttribute("disabled", "true");
+          locationBtn.classList.add("opacity-50", "cursor-not-allowed");
+          locationBtn.classList.remove("hover:scale-105", "hover:bg-primary/5");
+        }
+        addressFormModal.classList.remove("opacity-0", "pointer-events-none");
+        const inner = addressFormModal.firstElementChild as HTMLElement;
+        if (inner) inner.style.transform = "scale(1)";
+        
+        // Refresh map if data exists (for Edit mode)
+        if (container) {
+          setTimeout(() => showMap(), 300);
+        }
+      };
+      const closeAddressForm = () => {
+        if (!addressFormModal) return;
+        document.body.style.overflow = "";
+        addressFormModal.classList.add("opacity-0", "pointer-events-none");
+        const inner = addressFormModal.firstElementChild as HTMLElement;
+        if (inner) inner.style.transform = "scale(0.95)";
+        openAddressModal();
+      };
+
+      if (addressChangeBtn) addressChangeBtn.addEventListener("click", openAddressModal);
+      if (addressSelectBtn) addressSelectBtn.addEventListener("click", openAddressModal);
+      if (addressAddBtn) addressAddBtn.addEventListener("click", () => openAddressForm("Alamat Baru"));
+      if (addressCloseIcon) addressCloseIcon.addEventListener("click", closeAddressModal);
+      if (addressFormClose) addressFormClose.addEventListener("click", closeAddressForm);
+      addressModal.querySelectorAll("[data-address-edit]").forEach((button) => {
+        button.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openAddressForm("Ubah Alamat", button.closest("label"));
+        });
+      });
+
+      addressModal.addEventListener("click", (e) => {
+        if (e.target === addressModal) closeAddressModal();
+      });
+      if (addressFormModal) {
+        addressFormModal.addEventListener("click", (e) => {
+          if (e.target === addressFormModal) closeAddressForm();
+        });
+        const addressSchema = z.object({
+          name: z.string().min(3, { message: "Nama minimal 3 karakter" }),
+          phone: z.string().min(9, { message: "Nomor telepon tidak valid" }),
+          province: z.string().min(1, { message: "Pilih wilayah pengiriman" }),
+          street: z.string().min(5, { message: "Alamat/nama jalan terlalu pendek" }),
+          lat: z.string().min(1, { message: "Wajib Deteksi Lokasi di peta" }),
+          lon: z.string().min(1, { message: "Wajib Deteksi Lokasi di peta" }),
+        });
+
+        addressFormModal.querySelector("form")?.addEventListener("submit", (e) => {
+          e.preventDefault();
+          
+          document.querySelectorAll(".zod-error").forEach(el => el.remove());
+          
+          const nameInput = document.getElementById("address-form-name") as HTMLInputElement;
+          const phoneInput = document.getElementById("address-form-phone") as HTMLInputElement;
+          const streetInput = document.getElementById("address-form-street") as HTMLInputElement;
+          
+          const data = {
+            name: nameInput?.value.trim() || "",
+            phone: phoneInput?.value.trim() || "",
+            province: (regionState.province as { name?: string } | null)?.name || "",
+            street: streetInput?.value.trim() || "",
+            lat: document.getElementById("address-lat-val")?.textContent?.replace("-", "").trim() || "",
+            lon: document.getElementById("address-lon-val")?.textContent?.replace("-", "").trim() || "",
+          };
+          
+          const result = addressSchema.safeParse(data);
+          if (!result.success) {
+            result.error.issues.forEach(issue => {
+              const msg = document.createElement("p");
+              msg.className = "zod-error text-[11px] font-medium text-red-500 mt-1.5 px-1";
+              msg.textContent = issue.message;
+              if (issue.path[0] === "name" && nameInput) nameInput.parentElement?.appendChild(msg);
+              if (issue.path[0] === "phone" && phoneInput) phoneInput.parentElement?.appendChild(msg);
+              if (issue.path[0] === "province") {
+                const picker = document.getElementById("address-region-picker");
+                if (picker) picker.parentElement?.appendChild(msg);
+              }
+              if (issue.path[0] === "street") {
+                const picker = document.getElementById("address-street-picker");
+                if (picker) picker.parentElement?.appendChild(msg);
+              }
+              if (issue.path[0] === "lat" || issue.path[0] === "lon") {
+                const mapPreview = document.getElementById("address-map-preview");
+                if (mapPreview && !document.getElementById("map-error-msg")) {
+                  msg.id = "map-error-msg";
+                  msg.classList.add("text-center", "w-full", "mb-2");
+                  mapPreview.insertAdjacentElement("afterend", msg);
+                }
+              }
+            });
+            return;
+          }
+          
+          // Form valid, normally we would save to local state/backend
+          const sumName = document.querySelector("[data-summary-address-name]");
+          const sumPhone = document.querySelector("[data-summary-address-phone]");
+          const sumFull = document.querySelector("[data-summary-address-full]");
+
+          if (sumName) sumName.textContent = data.name;
+          if (sumPhone) sumPhone.textContent = data.phone;
+          if (sumFull) sumFull.innerHTML = `${data.street}<br/>${(regionState.district as { name?: string } | null)?.name}, ${(regionState.city as { name?: string } | null)?.name}, ${data.province} ${regionState.postal}`;
+
+          if (addressSummary && addressEmpty) {
+            addressEmpty.classList.add("hidden");
+            addressSummary.classList.remove("hidden");
+            addressSummary.classList.add("flex");
+          }
+          
+          if (typeof window.loadShippingOptions === "function") {
+            // window.loadShippingOptions((regionState.district as { name?: string } | null)?.name || (regionState.city as { name?: string } | null)?.name);
+          }
+          
+          closeAddressForm();
+        });
+      }
+      regionButton?.addEventListener("click", () => {
+        regionMenu?.classList.toggle("hidden");
+        if (!regionMenu?.classList.contains("hidden")) {
+          setTimeout(() => regionSearchInput?.focus(), 50);
+        }
+      });
+      
+      regionOptions?.addEventListener("click", async (e) => {
+        const button = (e.target as Element).closest("[data-region-value]");
+        if (!(button instanceof HTMLElement)) return;
+        const item = JSON.parse(button.dataset.regionValue || "{}");
+        
+        regionState.province = { name: item.province };
+        regionState.city = { name: item.regency };
+        regionState.district = { name: item.district };
+        regionState.postal = item.code;
+        
+        updateRegionLabel();
+        regionMenu?.classList.add("hidden");
+        if (regionSearchInput) regionSearchInput.value = "";
+        if (regionOptions) regionOptions.innerHTML = "";
+      });
+      const renderStreetSuggestions = async () => {
+        if (!streetSearchInput || !streetOptions) return;
+        const val = streetSearchInput.value.trim();
+        if (val.length > 0 && val.length < 3) {
+          streetOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Ketik minimal 3 karakter untuk mencari.</p>`;
+          return;
+        }
+        
+        streetOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Memuat daftar jalan...</p>`;
+        
+        try {
+          // Jika kosong, cari default "Jalan" agar memunculkan daftar jalan terdekat di kota tersebut
+          const queryVal = val.length === 0 ? "Jalan" : val;
+          const cityClean = (regionState.city as { name?: string } | null)?.name?.replace(/KABUPATEN |KOTA /i, "");
+          // Jika masih mencari default, tambahkan kecamatan agar lebih akurat (jika ada)
+          const parts = val.length === 0 
+            ? [queryVal, (regionState.district as { name?: string } | null)?.name, cityClean, "Indonesia"].filter(Boolean).join(", ")
+            : [queryVal, cityClean, "Indonesia"].filter(Boolean).join(", ");
+          
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(parts)}`).then(r => r.json());
+          
+          let html = "";
+          
+          if (res && res.length > 0) {
+            html += res.map((place: unknown) => `
+              <button type="button" class="block w-full p-4 text-left hover:bg-primary/5 border-b border-primary/5 last:border-0" data-street="${(place as LocationItem).display_name.split(",")[0].replace(/"/g, '&quot;')}">
+                <div class="font-bold text-sm text-foreground">${(place as LocationItem).display_name.split(",")[0]}</div>
+                <div class="text-[11px] text-foreground/60 mt-1 line-clamp-1">${(place as LocationItem).display_name}</div>
+              </button>
+            `).join("");
+          }
+          
+          if (val.length > 0) {
+            html += `
+              <button type="button" class="block w-full p-4 text-left hover:bg-primary/5 bg-primary/5 text-primary border-t border-primary/10" data-street="${val.replace(/"/g, '&quot;')}">
+                <div class="font-bold text-sm">Gunakan "${val}"</div>
+                <div class="text-[11px] opacity-80 mt-1">Lanjutkan dengan nama yang Anda ketik</div>
+              </button>
+            `;
+          }
+          
+          streetOptions.innerHTML = html;
+        } catch {
+          streetOptions.innerHTML = `<p class="px-5 py-4 text-sm text-foreground/50 text-center">Gagal mencari jalan.</p>`;
+        }
+      };
+      
+      streetButton?.addEventListener("click", () => {
+        streetMenu?.classList.toggle("hidden");
+        if (!streetMenu?.classList.contains("hidden")) {
+          setTimeout(() => streetSearchInput?.focus(), 50);
+          if (streetSearchInput && streetSearchInput.value.trim().length === 0) {
+             renderStreetSuggestions();
+          }
+        }
+      });
+      
+      streetSearchInput?.addEventListener("input", () => {
+        window.clearTimeout(Number(streetSearchInput.dataset.timer || 0));
+        streetSearchInput.dataset.timer = String(window.setTimeout(renderStreetSuggestions, 350));
+      });
+      phoneInput?.addEventListener("input", () => {
+        phoneInput.value = phoneInput.value.replace(/\D/g, "");
+      });
+      streetOptions?.addEventListener("click", async (e) => {
+        const button = (e.target as Element).closest("[data-street]");
+        if (!(button instanceof HTMLElement) || !streetInput || !streetLabel) return;
+        streetInput.value = button.dataset.street || "";
+        streetLabel.textContent = streetInput.value;
+        streetLabel.classList.remove("text-foreground/60");
+        streetMenu?.classList.add("hidden");
+      });
+      mapPreview?.addEventListener("click", async (e) => {
+        if ((e.target as Element).closest("#address-location-btn")) await showMap();
+      });
+      document.addEventListener("click", (e) => {
+        if (!(e.target instanceof Element)) return;
+        const path = e.composedPath();
+        const isRegion = path.some((n) => (n as Element).id === "address-region-picker");
+        const isStreet = path.some((n) => (n as Element).id === "address-street-picker");
+        
+        if (!isRegion) regionMenu?.classList.add("hidden");
+        if (!isStreet) streetMenu?.classList.add("hidden");
+      });
+
+      const addressOptions = addressModal.querySelectorAll('input[name="address-option"]');
+      addressOptions.forEach(opt => {
+        opt.addEventListener("change", (e) => {
+          const target = e.target as HTMLInputElement;
+          if (target.checked) {
+            const container = target.closest("label");
+            if (container) {
+              const name = container.querySelector("[data-address-opt-name]")?.textContent || "";
+              const phone = container.querySelector("[data-address-opt-phone]")?.textContent || "";
+              const fullNode = container.querySelector("[data-address-opt-full]");
+              const full = fullNode?.innerHTML || "";
+              // const district = fullNode?.getAttribute("data-address-opt-district") || "";
+
+              const sumName = document.querySelector("[data-summary-address-name]");
+              const sumPhone = document.querySelector("[data-summary-address-phone]");
+              const sumFull = document.querySelector("[data-summary-address-full]");
+
+              if (sumName) sumName.textContent = name;
+              if (sumPhone) sumPhone.textContent = phone;
+              if (sumFull) sumFull.innerHTML = full;
+
+              if (addressSummary && addressEmpty) {
+                addressEmpty.classList.add("hidden");
+                addressSummary.classList.remove("hidden");
+                addressSummary.classList.add("flex");
+                
+                if (typeof window.loadShippingOptions === "function") {
+                  // window.loadShippingOptions();
+                }
+              }
+            }
+            closeAddressModal();
+          }
+        });
+      });
+    }
+
+
+    
+    // Check saved language
+    const savedLang = localStorage.getItem("tuneboss-lang");
+    if (savedLang) document.documentElement.lang = savedLang;
+
+    updateLanguage();
+    render();
+    new MutationObserver(updateLanguage).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  };
+
+  document.addEventListener("astro:page-load", initCheckoutPage);
+</script>
+
+<style>
+  .checkout-input {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    background: transparent;
+    padding: 1rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .checkout-input:focus {
+    border-color: var(--primary);
+  }
+
+  .address-region-tab {
+    padding: 0.9rem 0.5rem;
+    border-bottom: 2px solid transparent;
+    color: color-mix(in srgb, var(--foreground) 80%, transparent);
+    font-weight: 600;
+  }
+
+  .address-region-tab.active {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .address-region-tab:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+  }
+</style>

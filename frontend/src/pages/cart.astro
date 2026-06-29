@@ -16,7 +16,7 @@ export const prerender = false;
 </head>
 
 <TuneBossChrome>
-  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+  <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">
     <div id="cart-container" class="mx-auto max-w-5xl opacity-0 transition-opacity duration-300">
       
       <!-- Empty State -->
@@ -76,16 +76,6 @@ export const prerender = false;
                 Rp. 0
               </span>
             </div>
-            
-            <div class="mb-6 flex items-start gap-3">
-              <input type="checkbox" id="cart-terms-checkbox" class="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-primary" />
-              <label for="cart-terms-checkbox" class="text-xs text-foreground/80 leading-relaxed cursor-pointer select-none">
-                <span data-i18n="cart.agreeLabel">Saya menyetujui </span>
-                <button type="button" id="cart-terms-open" class="text-primary hover:underline font-semibold" data-i18n="cart.agreeLink">
-                  Syarat & Ketentuan Pengiriman
-                </button>
-              </label>
-            </div>
 
             <button id="cart-page-checkout-btn" class="flex items-center justify-center w-full h-12 gap-2 bg-primary text-white hover:bg-[#c95b04] font-bold uppercase tracking-widest transition-all opacity-50 pointer-events-none" style="color: white !important;">
               <CreditCard size={20} aria-hidden="true" />
@@ -97,28 +87,12 @@ export const prerender = false;
     </div>
   </main>
 
-  <!-- Terms Modal -->
-  <div id="cart-terms-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300 px-4">
-    <div class="bg-background max-w-xl w-full p-6 shadow-2xl relative translate-y-8 transition-transform duration-300 border border-primary/20" id="cart-terms-modal-content">
-      <button type="button" id="cart-terms-close-x" class="absolute top-4 right-4 text-foreground/50 hover:text-primary transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <h3 data-i18n="cart.termsModalTitle" class="text-xl font-bold uppercase tracking-widest mb-4 pr-8 text-foreground">Syarat & Ketentuan Pengiriman</h3>
-      <div class="space-y-4 text-sm text-foreground/80 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-        <p data-i18n="cart.termsModalCopy1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-        <p data-i18n="cart.termsModalCopy2">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-        <p data-i18n="cart.termsModalCopy3">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-        <p data-i18n="cart.termsModalCopy4">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
-      </div>
-      <div class="mt-6 pt-4 border-t border-primary/20 flex justify-end">
-        <button type="button" id="cart-terms-close-btn" data-i18n="cart.termsModalClose" class="px-6 py-2 bg-primary text-white font-bold uppercase tracking-widest hover:bg-[#c95b04] transition-colors text-sm" style="color: white !important;">TUTUP</button>
-      </div>
-    </div>
-  </div>
+
 </TuneBossChrome>
 
 <script>
   import { gsap } from "gsap";
+  import { navigate } from "astro:transitions/client";
 
   const initCartPage = () => {
     const container = document.getElementById("cart-container");
@@ -128,7 +102,7 @@ export const prerender = false;
     
     if (!container || !emptyState || !filledState || !listRoot) return;
 
-    let cart = [];
+    let cart: CartItem[];
     try {
       cart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
     } catch {
@@ -137,7 +111,7 @@ export const prerender = false;
 
     const formatRupiah = (value: number) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
     
-    const saveCart = (newCart: any[]) => {
+    const saveCart = (newCart: CartItem[]) => {
       localStorage.setItem("tuneboss-cart", JSON.stringify(newCart));
       window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
       render(newCart);
@@ -157,9 +131,9 @@ export const prerender = false;
       });
     };
 
-    (window as any).updateCartItemQuantity = (id: string, delta: number) => {
+    window.updateCartItemQuantity = (id: string, delta: number) => {
       let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-      currentCart = currentCart.map((item: any) => {
+      currentCart = currentCart.map((item: CartItem) => {
         if (item.id === id) {
           const max = Number(item.max || 99) || 99;
           const newQty = Math.max(1, Math.min(item.quantity + delta, max));
@@ -170,12 +144,12 @@ export const prerender = false;
       saveCart(currentCart);
     };
 
-    (window as any).setCartItemQuantity = (id: string, qtyStr: string) => {
+    window.setCartItemQuantity = (id: string, qtyStr: string) => {
       const val = parseInt(qtyStr, 10);
       if (isNaN(val) || val < 1) return;
       
       let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-      currentCart = currentCart.map((item: any) => {
+      currentCart = currentCart.map((item: CartItem) => {
         if (item.id === id) {
           const max = Number(item.max || 99) || 99;
           const newQty = Math.max(1, Math.min(val, max));
@@ -186,13 +160,13 @@ export const prerender = false;
       saveCart(currentCart);
     };
 
-    (window as any).toggleAllCartItems = (selected: boolean) => {
+    window.toggleAllCartItems = (selected: boolean) => {
       let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-      currentCart = currentCart.map((item: any) => ({ ...item, selected }));
+      currentCart = currentCart.map((item: CartItem) => ({ ...item, selected }));
       saveCart(currentCart);
     };
 
-    (window as any).removeCartItem = (id: string) => {
+    window.removeCartItem = (id: string) => {
       const itemEl = document.getElementById(`cart-item-${id}`);
       if (itemEl) {
         gsap.to(itemEl, {
@@ -207,25 +181,25 @@ export const prerender = false;
           ease: "power2.inOut",
           onComplete: () => {
             let currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-            currentCart = currentCart.filter((item: any) => item.id !== id);
+            currentCart = currentCart.filter((item: CartItem) => item.id !== id);
             saveCart(currentCart);
           }
         });
       }
     };
 
-    const render = (currentCart: any[]) => {
-      const selectedItems = currentCart.filter(i => i.selected !== false);
+    const render = (currentCart: CartItem[]) => {
+      const selectedItems = currentCart.filter((i: CartItem) => i.selected !== false);
       const totalProducts = selectedItems.length;
-      const totalItems = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
-      const totalPrice = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const allSelected = currentCart.length > 0 && currentCart.every(i => i.selected !== false);
+      const totalItems = selectedItems.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
+      const totalPrice = selectedItems.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
+      const allSelected = currentCart.length > 0 && currentCart.every((i: CartItem) => i.selected !== false);
       
       const selectAllCheckbox = document.getElementById("cart-select-all") as HTMLInputElement;
       if (selectAllCheckbox) selectAllCheckbox.checked = allSelected;
 
-      if (typeof (window as any).updateCheckoutBtn === 'function') {
-        (window as any).updateCheckoutBtn();
+      if (typeof window.updateCheckoutBtn === 'function') {
+        window.updateCheckoutBtn();
       }
       
       const headerProducts = document.getElementById("cart-total-products-header");
@@ -242,8 +216,8 @@ export const prerender = false;
       if (summaryProducts) summaryProducts.textContent = String(totalProducts);
       if (summaryItems) summaryItems.textContent = String(totalItems);
       
-      if (summarySub) animateNumber(summarySub, totalPrice, true);
-      if (summaryTotal) animateNumber(summaryTotal, totalPrice, true);
+      if (summarySub) animateNumber(summarySub, Number(totalPrice), true);
+      if (summaryTotal) animateNumber(summaryTotal, Number(totalPrice), true);
 
       if (currentCart.length === 0) {
         filledState.classList.add("hidden");
@@ -264,8 +238,8 @@ export const prerender = false;
       const iconTrash = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>`;
 
       // Determine items that are already in DOM
-      const existingIds = Array.from(listRoot.children).map(el => el.id.replace('cart-item-', ''));
-      const newIds = currentCart.map(item => String(item.id));
+      // const existingIds = Array.from(listRoot.children).map(el => el.id.replace('cart-item-', ''));
+      // const newIds = currentCart.map(item => String(item.id));
       
       currentCart.forEach(item => {
         const itemId = String(item.id);
@@ -292,10 +266,10 @@ export const prerender = false;
           // Create new element
           const article = document.createElement("article");
           article.id = `cart-item-${itemId}`;
-          article.className = "flex items-center gap-4 p-4 bg-background border border-primary/20 mb-3 shadow-sm overflow-hidden";
+          article.className = "flex items-start gap-3 p-3 bg-background border border-primary/20 mb-3 shadow-sm overflow-hidden sm:gap-4 sm:p-4";
           article.innerHTML = `
             <input type="checkbox" class="cart-item-checkbox h-5 w-5 shrink-0 accent-primary cursor-pointer" onchange="window.toggleCartItemSelection('${itemId}')" ${item.selected !== false ? 'checked' : ''} />
-            <div class="w-20 h-20 shrink-0 bg-background flex items-center justify-center p-2">
+            <div class="w-16 h-16 shrink-0 bg-background flex items-center justify-center p-2 sm:w-20 sm:h-20">
                 <img src="${item.image || "/images/tuneboss-motorcycle-ecu.png"}" alt="${item.name}" class="w-full h-full object-contain" />
             </div>
             <div class="flex-1 min-w-0">
@@ -308,8 +282,8 @@ export const prerender = false;
                         ${iconTrash}
                     </button>
                 </div>
-                <div class="flex items-center justify-between mt-4">
-                    <div class="flex items-center border border-primary/20">
+                <div class="flex flex-col gap-3 mt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex w-fit shrink-0 items-center border border-primary/20">
                         <button type="button" onclick="window.updateCartItemQuantity('${itemId}', -1)" class="flex h-9 w-9 items-center justify-center transition-colors hover:bg-primary hover:text-white">
                             ${iconMinus}
                         </button>
@@ -318,7 +292,7 @@ export const prerender = false;
                             ${iconPlus}
                         </button>
                     </div>
-                    <span class="item-total-price text-sm font-bold text-primary" data-value="${item.price * item.quantity}">
+                    <span class="item-total-price block whitespace-nowrap text-right text-sm font-bold text-primary sm:text-left" data-value="${item.price * item.quantity}">
                         ${formatRupiah(item.price * item.quantity)}
                     </span>
                 </div>
@@ -330,67 +304,47 @@ export const prerender = false;
       });
 
       // Synchronize language for injected items
-      if (typeof (window as any).scheduleBrowserLanguageSync === "function") {
-        (window as any).scheduleBrowserLanguageSync();
+      if (typeof window.scheduleBrowserLanguageSync === "function") {
+        window.scheduleBrowserLanguageSync?.();
       }
 
       // Show container
       gsap.to(container, { opacity: 1, duration: 0.3 });
     };
 
-    // Checkbox and Modal logic
-    const checkbox = document.getElementById("cart-terms-checkbox") as HTMLInputElement;
     const checkoutBtn = document.getElementById("cart-page-checkout-btn");
     
-    if (checkbox && checkoutBtn) {
-      (window as any).updateCheckoutBtn = () => {
+    if (checkoutBtn) {
+      window.updateCheckoutBtn = () => {
+        const btn = document.getElementById("cart-page-checkout-btn");
+        if (!btn) return;
         const currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-        const hasSelectedItems = currentCart.some((i: any) => i.selected !== false);
-        if (checkbox.checked && hasSelectedItems) {
-          checkoutBtn.classList.remove("opacity-50", "pointer-events-none");
+        const hasSelectedItems = currentCart.some((i: CartItem) => i.selected !== false);
+        const label = btn.querySelector("[data-i18n]");
+        const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
+        if (label) {
+          const isEnglish = document.documentElement.lang === "en";
+          label.setAttribute("data-i18n", isLoggedIn ? "cart.checkoutBtn" : "cart.loginToCheckout");
+          label.textContent = isLoggedIn ? (isEnglish ? "Proceed to Checkout" : "Lanjut Checkout") : (isEnglish ? "Login to Checkout" : "Login untuk Checkout");
+        }
+        if (hasSelectedItems) {
+          btn.classList.remove("opacity-50", "pointer-events-none");
         } else {
-          checkoutBtn.classList.add("opacity-50", "pointer-events-none");
+          btn.classList.add("opacity-50", "pointer-events-none");
         }
       };
       
-      checkbox.addEventListener("change", (window as any).updateCheckoutBtn);
-      (window as any).updateCheckoutBtn();
+      window.updateCheckoutBtn();
 
       checkoutBtn.addEventListener("click", () => {
         const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
         if (isLoggedIn) {
-          alert("Lanjut ke pembayaran / Gateway...");
+          navigate("/checkout");
         } else {
-          if (typeof (window as any).openAuthDialog === "function") {
-            (window as any).openAuthDialog("login");
+          if (typeof window.openAuthDialog === "function") {
+            window.openAuthDialog("login");
           }
         }
-      });
-    }
-
-    const modal = document.getElementById("cart-terms-modal");
-    const modalContent = document.getElementById("cart-terms-modal-content");
-    const btnOpen = document.getElementById("cart-terms-open");
-    const btnCloseX = document.getElementById("cart-terms-close-x");
-    const btnClose = document.getElementById("cart-terms-close-btn");
-
-    if (modal && btnOpen && btnCloseX && btnClose) {
-      const openModal = (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        modal.classList.remove("opacity-0", "pointer-events-none");
-        if (modalContent) modalContent.classList.remove("translate-y-8");
-      };
-      const closeModal = () => {
-        modal.classList.add("opacity-0", "pointer-events-none");
-        if (modalContent) modalContent.classList.add("translate-y-8");
-      };
-
-      btnOpen.addEventListener("click", openModal);
-      btnCloseX.addEventListener("click", closeModal);
-      btnClose.addEventListener("click", closeModal);
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) closeModal();
       });
     }
 

@@ -16,7 +16,7 @@ export const prerender = false;
 </head>
 
 <TuneBossChrome>
-  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+  <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">
     <section class="mx-auto max-w-2xl">
       <div class="mb-10">
         <p data-i18n="account.title" class="mb-5 text-xs font-bold uppercase tracking-[0.35em] text-primary">Account</p>
@@ -48,7 +48,7 @@ export const prerender = false;
             <input class="h-4 w-4 accent-primary" type="checkbox" />
             <span data-i18n="auth.remember">Remember me</span>
           </label>
-          <button data-i18n="auth.forgot" class="text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-primary" type="button">Forgot password?</button>
+          <button data-auth-switch="forgot" data-i18n="auth.forgot" class="text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-primary" type="button">Forgot password?</button>
         </div>
 
         <button data-i18n="auth.signin" class="w-full bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Sign In</button>
@@ -81,6 +81,7 @@ export const prerender = false;
 
 <script>
   import { z } from "zod";
+  import { navigate } from "astro:transitions/client";
 
   const bindLoginPage = () => {
     const form = document.querySelector("form");
@@ -97,9 +98,10 @@ export const prerender = false;
           el.classList.add("hidden");
         });
 
+        const lang = document.documentElement.lang === "en" ? "en" : "id";
         const schema = z.object({
-          email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
-          password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+          email: z.string().min(1, { message: lang === "en" ? "Email is required" : "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: lang === "en" ? "Invalid email format" : "Format email tidak valid" }),
+          password: z.string().min(6, { message: lang === "en" ? "Password must be at least 6 characters" : "Password minimal 6 karakter" }),
         });
 
         const formData = {
@@ -124,8 +126,19 @@ export const prerender = false;
           return;
         }
 
+        const email = formData.email.trim().toLowerCase();
+        if (typeof window.isOtpVerified === "function" && !window.isOtpVerified(email)) {
+          if (typeof window.showToast === "function") {
+            const lang = document.documentElement.lang === "en" ? "en" : "id";
+            const title = lang === "en" ? "Account Not Found" : "Akun Tidak Ditemukan";
+            const message = lang === "en" ? "Please register an account first before logging in." : "Silakan daftar akun terlebih dahulu sebelum login.";
+            window.showToast(title, message);
+          }
+          return;
+        }
+
         document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-        window.location.replace("/dashboard");
+        navigate("/dashboard");
       });
     }
   };

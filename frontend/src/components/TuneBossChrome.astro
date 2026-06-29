@@ -150,8 +150,8 @@ import AlertDialog from "./AlertDialog.astro";
         <strong data-cart-total>Rp. 0</strong>
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <button data-cart-close data-i18n="cart.continue" class="border border-primary/20 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary" type="button">Lanjut Belanja</button>
-        <button data-cart-checkout-btn class="bg-primary px-4 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" type="button">Checkout</button>
+        <a role="button" tabindex="0" data-cart-close data-i18n="cart.continue" class="flex cursor-pointer items-center justify-center border border-primary/20 px-4 py-3 text-center text-[13px] font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary">Lanjut Belanja</a>
+        <a href="/cart" data-cart-checkout-btn class="flex items-center justify-center bg-primary px-4 py-3 text-center text-[13px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" style="color: white !important;">Checkout</a>
       </div>
     </div>
   </aside>
@@ -201,7 +201,7 @@ import AlertDialog from "./AlertDialog.astro";
           <input class="h-4 w-4 accent-primary" type="checkbox" />
           <span data-i18n="auth.remember">Remember me</span>
         </label>
-        <button data-i18n="auth.forgot" class="tuneboss-link text-[10px]" type="button">Forgot password?</button>
+        <button data-auth-switch="forgot" data-i18n="auth.forgot" class="tuneboss-link text-[10px]" type="button">Forgot password?</button>
       </div>
       <button data-i18n="auth.signin" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Sign In</button>
     </form>
@@ -259,11 +259,129 @@ import AlertDialog from "./AlertDialog.astro";
         </span>
         <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
+      <label class="mb-6 mt-4 flex cursor-pointer items-start gap-3">
+        <input type="checkbox" name="termsAgreed" required class="mt-1 h-4 w-4 shrink-0 rounded border-primary/20 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" />
+        <span class="text-sm leading-relaxed text-foreground/80">
+          <span data-i18n="auth.termsPrefix">Dengan ini saya menyetujui </span><a href="/privacy" target="_blank" class="font-bold !text-primary hover:underline" style="color: var(--primary) !important;" data-i18n="auth.privacyLink">kebijakan privasi</a><span data-i18n="auth.termsAnd"> dan </span><a href="/terms" target="_blank" class="font-bold !text-primary hover:underline" style="color: var(--primary) !important;" data-i18n="auth.termsLink">ketentuan layanan</a>
+        </span>
+      </label>
       <button data-i18n="auth.createAccount" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Create Account</button>
     </form>
     <button data-auth-switch="login" class="mt-5 w-full border border-primary/20 px-5 py-3 text-sm font-bold uppercase tracking-[0.22em] transition-colors hover:border-primary hover:text-primary" type="button">
       <span data-i18n="auth.backToSignin">Back to Sign In</span>
     </button>
+  </div>
+</dialog>
+
+<dialog data-auth-dialog="forgot" class="auth-dialog w-[calc(100vw-2rem)] max-w-lg border border-primary/20 bg-background p-0 text-foreground shadow-2xl">
+  <div class="relative p-7 md:p-8">
+    <button data-auth-close class="absolute right-4 top-4 rounded-full p-2 opacity-70 transition-colors hover:text-primary hover:opacity-100" type="button" aria-label="Close">
+      <X size={18} strokeWidth={1.6} />
+    </button>
+    
+    <!-- Step 1: Request Reset Link -->
+    <div data-forgot-step="1">
+      <div class="mb-6 flex flex-col items-center gap-3 text-center">
+        <div>
+          <Image src={logo} alt="TuneBoss" class="mx-auto mb-6 h-6 w-auto object-contain md:h-8" loading="eager" />
+          <h2 data-i18n="auth.resetTitle" class="text-2xl font-bold uppercase tracking-[0.18em]" aria-label="Reset Password">Reset Password</h2>
+          <p data-i18n="auth.resetCopy" class="mt-3 text-base leading-relaxed text-foreground/70">Enter your email address and we'll send you a link to reset your password</p>
+        </div>
+      </div>
+      <form data-auth-form="forgot" class="space-y-5" novalidate>
+        <label class="block">
+          <span data-i18n="auth.email" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Email Address</span>
+          <input name="email" data-i18n-placeholder="auth.emailPlaceholder" class="auth-input" type="email" autocomplete="email" placeholder="john.doe@example.com" />
+          <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
+        </label>
+        <button data-i18n="auth.sendResetLink" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Send Reset Link</button>
+      </form>
+      <button data-auth-switch="login" class="mt-5 w-full text-center text-sm font-bold tracking-[0.22em] text-foreground/70 transition-colors hover:text-primary flex items-center justify-center gap-2" type="button">
+        <span>&larr;</span> <span data-i18n="auth.backToSignin">Back to Sign In</span>
+      </button>
+    </div>
+
+    <!-- Step 2: Verify Code -->
+    <div data-forgot-step="2" class="hidden">
+      <div class="mb-6 flex flex-col items-center gap-3 text-center">
+        <div>
+          <h2 data-i18n="auth.forgotOtpTitle" class="text-2xl font-bold uppercase tracking-[0.18em]">OTP Verification</h2>
+          <p class="mt-3 text-base leading-relaxed text-foreground/70"><span data-i18n="auth.forgotOtpCopy">Enter the code sent to</span> <strong data-forgot-email class="text-foreground"></strong> <span data-i18n="auth.forgotOtpCopyEnd">to reset your password.</span></p>
+        </div>
+      </div>
+      <form id="forgot-otp-form" data-auth-form="otp" novalidate>
+        <div class="mt-10 flex justify-center gap-2 sm:gap-3">
+          <input data-forgot-otp class="otp-input !w-12 !h-14 sm:!w-14 sm:!h-16 text-center text-2xl font-bold" inputmode="numeric" maxlength="1" />
+          <input data-forgot-otp class="otp-input !w-12 !h-14 sm:!w-14 sm:!h-16 text-center text-2xl font-bold" inputmode="numeric" maxlength="1" />
+          <input data-forgot-otp class="otp-input !w-12 !h-14 sm:!w-14 sm:!h-16 text-center text-2xl font-bold" inputmode="numeric" maxlength="1" />
+          <input data-forgot-otp class="otp-input !w-12 !h-14 sm:!w-14 sm:!h-16 text-center text-2xl font-bold" inputmode="numeric" maxlength="1" />
+          <input data-forgot-otp class="otp-input !w-12 !h-14 sm:!w-14 sm:!h-16 text-center text-2xl font-bold" inputmode="numeric" maxlength="1" />
+          <input data-forgot-otp class="otp-input !w-12 !h-14 sm:!w-14 sm:!h-16 text-center text-2xl font-bold" inputmode="numeric" maxlength="1" />
+        </div>
+        <p data-forgot-otp-error class="mt-3 hidden text-center text-sm font-medium text-red-500"></p>
+        <div class="mt-8 flex gap-4" data-forgot-otp-actions>
+          <button data-forgot-cancel data-i18n="auth.forgotCancel" class="w-full rounded-md border border-primary/20 px-5 py-3 text-sm font-bold transition-colors hover:border-primary hover:text-primary" type="button">Cancel</button>
+          <button data-forgot-verify data-i18n="auth.forgotOtpVerify" class="w-full rounded-md bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#c95b04]" type="submit">Verify OTP</button>
+        </div>
+      </form>
+      
+      <!-- Hidden until code is verified -->
+      <form data-forgot-new-password class="hidden mt-8 space-y-5" novalidate>
+        <div class="w-full h-px bg-primary/10 mb-8"></div>
+        <label class="block">
+          <span data-i18n="auth.newPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">New password</span>
+          <span class="relative block">
+            <input name="password" data-auth-password class="auth-input pr-12" type="password" autocomplete="new-password" placeholder="********" />
+            <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button">
+              <Eye data-eye-show size={20} strokeWidth={1.8} />
+              <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
+            </button>
+          </span>
+          <span data-error-for="password" class="auth-error mt-1 hidden text-xs text-red-500"></span>
+        </label>
+        <label class="block">
+          <span data-i18n="auth.confirmPassword" class="mb-2 block text-sm font-bold uppercase tracking-widest text-primary">Confirm password</span>
+          <span class="relative block">
+            <input name="confirmPassword" data-auth-password class="auth-input pr-12" type="password" autocomplete="new-password" placeholder="********" />
+            <button data-password-toggle class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-foreground/60 transition-colors hover:text-primary" type="button">
+              <Eye data-eye-show size={20} strokeWidth={1.8} />
+              <EyeOff data-eye-hide size={20} strokeWidth={1.8} className="hidden" />
+            </button>
+          </span>
+          <span data-error-for="confirmPassword" class="auth-error mt-1 hidden text-xs text-red-500"></span>
+        </label>
+        <div class="mt-8 flex gap-4">
+          <button data-forgot-cancel-pwd data-i18n="auth.forgotCancel" class="w-full rounded-md border border-primary/20 px-5 py-3 text-sm font-bold transition-colors hover:border-primary hover:text-primary" type="button">Cancel</button>
+          <button data-forgot-submit data-i18n="auth.forgotSubmit" class="w-full rounded-md bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#c95b04]" type="submit">Reset password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<dialog data-otp-dialog class="auth-dialog w-[calc(100vw-2rem)] max-w-md border border-primary/20 bg-background p-0 text-foreground shadow-2xl">
+  <div class="relative p-7">
+    <button data-otp-close class="absolute right-4 top-4 rounded-full p-2 opacity-70 transition-colors hover:text-primary hover:opacity-100" type="button" aria-label="Close">
+      <X size={18} strokeWidth={1.6} />
+    </button>
+    <h2 class="text-2xl font-bold">OTP Verification</h2>
+    <p class="mt-5 text-base leading-relaxed text-foreground/70">Enter the 6-digit code sent to <strong data-otp-email class="text-foreground">example@email.com</strong>.</p>
+    <p class="mt-10 text-center text-sm text-foreground/70">Step 1 of 1: Verify your account</p>
+    <div class="mt-10 grid grid-cols-6 gap-2 sm:gap-3">
+      <input data-otp-input class="otp-input" inputmode="numeric" maxlength="1" />
+      <input data-otp-input class="otp-input" inputmode="numeric" maxlength="1" />
+      <input data-otp-input class="otp-input" inputmode="numeric" maxlength="1" />
+      <input data-otp-input class="otp-input" inputmode="numeric" maxlength="1" />
+      <input data-otp-input class="otp-input" inputmode="numeric" maxlength="1" />
+      <input data-otp-input class="otp-input" inputmode="numeric" maxlength="1" />
+    </div>
+    <p class="mt-10 text-center text-sm text-foreground/70">You can resend OTP in <strong data-otp-timer>01:00</strong></p>
+    <button data-otp-submit class="mt-8 w-full bg-primary px-5 py-4 text-base font-bold text-white transition-colors hover:bg-primary/90 uppercase tracking-widest" type="button" style="color: white !important;">Verify OTP</button>
+    <button data-otp-resend class="mt-5 flex w-full justify-between border border-primary/20 px-5 py-4 text-base font-bold text-foreground/40 transition-colors" type="button" disabled>
+      <span>Resend OTP</span>
+      <span data-otp-resend-timer>01:00</span>
+    </button>
+    <p data-otp-error class="mt-3 hidden text-center text-sm text-red-500">Masukkan 6 digit OTP.</p>
   </div>
 </dialog>
 
@@ -398,6 +516,23 @@ import AlertDialog from "./AlertDialog.astro";
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
   }
 
+  .otp-input {
+    height: 4.25rem;
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--foreground) 45%, transparent);
+    border-radius: 0.5rem;
+    background: transparent;
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    outline: none;
+  }
+
+  .otp-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
   .social-link {
     display: inline-flex;
     color: color-mix(in srgb, var(--foreground) 80%, transparent);
@@ -425,11 +560,7 @@ import AlertDialog from "./AlertDialog.astro";
 <script>
   import { z } from "zod";
 
-  declare global {
-    interface Window {
-      checkAuthStatus: () => void;
-    }
-  }
+
 
   const copy = {
     id: {
@@ -461,6 +592,7 @@ import AlertDialog from "./AlertDialog.astro";
       "cart.subtotalLabel": "Subtotal",
       "cart.totalLabel": "Total",
       "cart.checkoutBtn": "Lanjut Checkout",
+      "cart.loginToCheckout": "Login untuk Checkout",
       "cart.agreeLabel": "Saya menyetujui ",
       "cart.agreeLink": "Syarat & Ketentuan Pengiriman",
       "cart.termsModalTitle": "Syarat & Ketentuan Pengiriman",
@@ -478,6 +610,18 @@ import AlertDialog from "./AlertDialog.astro";
       "auth.loginCopy": "Masuk untuk melihat akun dan pesanan TuneBoss Anda.",
       "auth.registerTitle": "Buat Akun",
       "auth.registerCopy": "Buat akun untuk menyimpan pesanan dan detail TuneBoss Anda.",
+      "auth.resetTitle": "Reset Password",
+      "auth.resetCopy": "Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.",
+      "auth.sendResetLink": "Kirim Link Reset",
+      "auth.forgotOtpTitle": "Verifikasi OTP",
+      "auth.forgotOtpCopy": "Masukkan kode yang dikirimkan ke",
+      "auth.forgotOtpCopyEnd": "untuk mereset kata sandi Anda.",
+      "auth.forgotOtpVerify": "Verifikasi OTP",
+      "auth.forgotInvalidOtp": "Kode tidak valid",
+      "auth.forgotOtpZodErr": "OTP harus 6 digit",
+      "auth.forgotCancel": "Batal",
+      "auth.forgotSubmit": "Reset kata sandi",
+      "auth.newPassword": "Kata sandi baru",
       "auth.name": "Nama",
       "auth.email": "Email",
       "auth.password": "Kata Sandi",
@@ -492,6 +636,10 @@ import AlertDialog from "./AlertDialog.astro";
       "auth.passwordPlaceholder": "Kata sandi Anda",
       "auth.confirmPassword": "Konfirmasi Sandi",
       "auth.confirmPasswordPlaceholder": "Konfirmasi sandi Anda",
+      "auth.termsPrefix": "Dengan ini saya menyetujui ",
+      "auth.privacyLink": "kebijakan privasi",
+      "auth.termsAnd": " dan ",
+      "auth.termsLink": "ketentuan layanan",
       "auth.signinToast": "Masuk berhasil",
       "auth.signinToastCopy": "Anda sudah masuk ke TuneBoss.",
       "auth.registerToast": "Akun dibuat",
@@ -619,6 +767,7 @@ import AlertDialog from "./AlertDialog.astro";
       "cart.subtotalLabel": "Subtotal",
       "cart.totalLabel": "Total",
       "cart.checkoutBtn": "Proceed to Checkout",
+      "cart.loginToCheckout": "Login to Checkout",
       "cart.agreeLabel": "I agree to the ",
       "cart.agreeLink": "Shipping Terms & Conditions",
       "cart.termsModalTitle": "Shipping Terms & Conditions",
@@ -636,6 +785,18 @@ import AlertDialog from "./AlertDialog.astro";
       "auth.loginCopy": "Sign in to view your TuneBoss account and orders.",
       "auth.registerTitle": "Create Account",
       "auth.registerCopy": "Create an account to save your TuneBoss orders and details.",
+      "auth.resetTitle": "Reset Password",
+      "auth.resetCopy": "Enter your email address and we'll send you a link to reset your password.",
+      "auth.sendResetLink": "Send Reset Link",
+      "auth.forgotOtpTitle": "OTP Verification",
+      "auth.forgotOtpCopy": "Enter the code sent to",
+      "auth.forgotOtpCopyEnd": "to reset your password.",
+      "auth.forgotOtpVerify": "Verify OTP",
+      "auth.forgotInvalidOtp": "Invalid code",
+      "auth.forgotOtpZodErr": "OTP must be 6 digits",
+      "auth.forgotCancel": "Cancel",
+      "auth.forgotSubmit": "Reset password",
+      "auth.newPassword": "New password",
       "auth.name": "Name",
       "auth.email": "Email",
       "auth.password": "Password",
@@ -650,6 +811,10 @@ import AlertDialog from "./AlertDialog.astro";
       "auth.passwordPlaceholder": "Your password",
       "auth.confirmPassword": "Confirm Password",
       "auth.confirmPasswordPlaceholder": "Confirm your password",
+      "auth.termsPrefix": "I hereby agree to the ",
+      "auth.privacyLink": "privacy policy",
+      "auth.termsAnd": " and ",
+      "auth.termsLink": "terms of service",
       "auth.signinToast": "Signed in",
       "auth.signinToastCopy": "You are signed in to TuneBoss.",
       "auth.registerToast": "Account created",
@@ -750,6 +915,8 @@ import AlertDialog from "./AlertDialog.astro";
     },
   };
 
+  import { navigate } from "astro:transitions/client";
+
   let tuneBossChromeController: AbortController | undefined;
 
   const initTuneBossChrome = () => {
@@ -776,6 +943,7 @@ import AlertDialog from "./AlertDialog.astro";
   const authDialogs = {
     login: document.querySelector('[data-auth-dialog="login"]'),
     register: document.querySelector('[data-auth-dialog="register"]'),
+    forgot: document.querySelector('[data-auth-dialog="forgot"]'),
   };
   let authScrollY = 0;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -843,7 +1011,7 @@ import AlertDialog from "./AlertDialog.astro";
     });
 
     renderCart();
-    if (typeof window.checkAuthStatus === "function") window.checkAuthStatus();
+    if (typeof window.checkAuthStatus === "function") window.checkAuthStatus?.();
     
     root.classList.remove("lang-en-loading");
   };
@@ -883,11 +1051,11 @@ import AlertDialog from "./AlertDialog.astro";
     window.setTimeout(() => toast.classList.add("is-visible"), 20);
     window.setTimeout(close, 3200);
   };
+  window.showToast = showToast;
 
   const formatRupiah = (value: number) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
   const parseRupiah = (value: string | number) => Number(String(value).replace(/[^\d]/g, "")) || 0;
-  const cartCount = () => cart.reduce((total, item) => total + item.quantity, 0);
-
+  
   const saveCart = () => {
     localStorage.setItem("tuneboss-cart", JSON.stringify(cart));
     window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
@@ -1045,7 +1213,7 @@ import AlertDialog from "./AlertDialog.astro";
     renderCart();
   };
 
-  (window as any).toggleCartItemSelection = (id: string) => {
+  window.toggleCartItemSelection = (id: string) => {
     const item = cart.find((entry) => entry.id === id);
     if (item) {
       item.selected = item.selected === false ? true : false;
@@ -1086,6 +1254,19 @@ import AlertDialog from "./AlertDialog.astro";
   };
 
   const openAuthDialog = (mode = "login") => {
+    const pendingEmail = localStorage.getItem("tuneboss-pending-otp");
+    if (pendingEmail && typeof window.openOtpDialog === "function") {
+      window.openOtpDialog(pendingEmail, () => {
+        document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
+        if (typeof window.checkAuthStatus === "function") {
+          window.checkAuthStatus?.();
+        } else {
+          navigate("/dashboard");
+        }
+      }, true);
+      return;
+    }
+
     const dialog = authDialogs[mode as keyof typeof authDialogs] || authDialogs.login;
     document.body.dataset.authSwitching = "true";
     Object.values(authDialogs).forEach((item) => {
@@ -1097,6 +1278,7 @@ import AlertDialog from "./AlertDialog.astro";
       dialog.showModal();
     }
   };
+  window.openAuthDialog = openAuthDialog;
 
   document.querySelectorAll("[data-auth-open]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1127,6 +1309,309 @@ import AlertDialog from "./AlertDialog.astro";
       if (event.target === dialog) dialog.close();
     }, { signal });
   });
+
+  const otpDialog = document.querySelector("[data-otp-dialog]");
+  const otpEmail = document.querySelector("[data-otp-email]");
+  const otpInputs = Array.from(document.querySelectorAll("[data-otp-input]"));
+  const otpError = document.querySelector("[data-otp-error]");
+  let pendingOtpEmail = "";
+  let pendingOtpComplete: (() => void) | null = null;
+  let otpTimerId: number | undefined;
+
+  const verifiedEmails = () => JSON.parse(localStorage.getItem("tuneboss-verified-emails") || "[]");
+  const isOtpVerified = (email: string) => verifiedEmails().includes(email);
+  window.isOtpVerified = isOtpVerified;
+  const markOtpVerified = (email: string) => {
+    localStorage.setItem("tuneboss-verified-emails", JSON.stringify(Array.from(new Set([...verifiedEmails(), email]))));
+  };
+  const startOtpTimer = () => {
+    let seconds = 60;
+    window.clearInterval(otpTimerId);
+    
+    const resendBtn = document.querySelector("[data-otp-resend]");
+    if (resendBtn instanceof HTMLButtonElement) {
+      resendBtn.disabled = true;
+      resendBtn.classList.add("text-foreground/40", "border-primary/20");
+      resendBtn.classList.remove("text-primary", "hover:border-primary", "cursor-pointer");
+    }
+
+    const tick = () => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      const text = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+      document.querySelectorAll("[data-otp-timer], [data-otp-resend-timer]").forEach(el => el.textContent = text);
+      
+      if (seconds <= 0) {
+        window.clearInterval(otpTimerId);
+        if (resendBtn instanceof HTMLButtonElement) {
+          resendBtn.disabled = false;
+          resendBtn.classList.remove("text-foreground/40", "border-primary/20");
+          resendBtn.classList.add("text-primary", "hover:border-primary", "cursor-pointer");
+          document.querySelectorAll("[data-otp-resend-timer]").forEach(el => el.textContent = "");
+        }
+      }
+      seconds -= 1;
+    };
+    tick();
+    otpTimerId = window.setInterval(tick, 1000);
+  };
+  const openOtpDialog = (email: string, onComplete: () => void, isReopen = false) => {
+    localStorage.setItem("tuneboss-pending-otp", email);
+    pendingOtpEmail = email;
+    pendingOtpComplete = onComplete;
+    if (otpEmail) otpEmail.textContent = email;
+    if (otpError) otpError.classList.add("hidden");
+    otpInputs.forEach(input => {
+      if (input instanceof HTMLInputElement) input.value = "";
+    });
+    if (otpDialog instanceof HTMLDialogElement) {
+      lockAuthScroll();
+      otpDialog.showModal();
+      (otpInputs[0] as HTMLInputElement | undefined)?.focus();
+      
+      if (!isReopen) {
+        startOtpTimer();
+      } else {
+        window.clearInterval(otpTimerId);
+        document.querySelectorAll("[data-otp-timer], [data-otp-resend-timer]").forEach(el => el.textContent = "");
+        const resendBtn = document.querySelector("[data-otp-resend]");
+        if (resendBtn instanceof HTMLButtonElement) {
+          resendBtn.disabled = false;
+          resendBtn.classList.remove("text-foreground/40", "border-primary/20");
+          resendBtn.classList.add("text-primary", "hover:border-primary", "cursor-pointer");
+        }
+      }
+    }
+  };
+  window.openOtpDialog = openOtpDialog;
+  otpInputs.forEach((input, index) => {
+    input.addEventListener("input", () => {
+      if (!(input instanceof HTMLInputElement)) return;
+      input.value = input.value.replace(/\D/g, "").slice(0, 1);
+      if (input.value) (otpInputs[index + 1] as HTMLInputElement | undefined)?.focus();
+    }, { signal });
+  });
+  document.querySelector("[data-otp-submit]")?.addEventListener("click", () => {
+    const code = otpInputs.map(input => input instanceof HTMLInputElement ? input.value : "").join("");
+    if (code.length !== 6) {
+      if (otpError) otpError.classList.remove("hidden");
+      return;
+    }
+    markOtpVerified(pendingOtpEmail);
+    localStorage.removeItem("tuneboss-pending-otp");
+    if (otpDialog instanceof HTMLDialogElement) otpDialog.close();
+    pendingOtpComplete?.();
+  }, { signal });
+  document.querySelector("[data-otp-close]")?.addEventListener("click", () => {
+    if (otpDialog instanceof HTMLDialogElement) otpDialog.close();
+    unlockAuthScroll();
+  });
+
+  document.querySelector("[data-otp-resend]")?.addEventListener("click", () => {
+    const resendBtn = document.querySelector("[data-otp-resend]");
+    if (resendBtn instanceof HTMLButtonElement && !resendBtn.disabled) {
+      startOtpTimer();
+      // Optional: Add a toast/notification here if needed
+    }
+  });
+
+  if (otpDialog instanceof HTMLDialogElement) {
+    otpDialog.addEventListener("close", () => {
+      unlockAuthScroll();
+      localStorage.removeItem("tuneboss-pending-otp");
+    }, { signal });
+  }
+
+  // Forgot password flow
+  const forgotDialog = document.querySelector('[data-auth-dialog="forgot"]');
+  const forgotStep1 = document.querySelector('[data-forgot-step="1"]');
+  const forgotStep2 = document.querySelector('[data-forgot-step="2"]');
+  const forgotForm = document.querySelector('[data-auth-form="forgot"]');
+  const forgotEmailDisplay = document.querySelector('[data-forgot-email]');
+  const forgotOtps = Array.from(document.querySelectorAll('[data-forgot-otp]'));
+  const forgotNewPasswordForm = document.querySelector('[data-forgot-new-password]');
+  const forgotVerifyBtn = document.querySelector('[data-forgot-verify]');
+  const forgotSubmitBtn = document.querySelector('[data-forgot-submit]');
+  const forgotCancelBtn = document.querySelector('[data-forgot-cancel]');
+  const forgotCancelPwdBtn = document.querySelector('[data-forgot-cancel-pwd]');
+  const forgotOtpError = document.querySelector('[data-forgot-otp-error]');
+  const forgotOtpForm = document.querySelector('#forgot-otp-form');
+  const forgotOtpActions = document.querySelector('[data-forgot-otp-actions]');
+
+  forgotForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!(forgotForm instanceof HTMLFormElement)) return;
+    const emailInput = forgotForm.elements.namedItem("email");
+    const emailStr = emailInput instanceof HTMLInputElement ? emailInput.value : "";
+    
+    const err = forgotForm.querySelector(".auth-error");
+    if (err) {
+      err.textContent = "";
+      err.classList.add("hidden");
+    }
+
+    const emailSchema = z.object({
+      email: z.string().min(1, { message: root.lang === "en" ? "Email is required" : "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: root.lang === "en" ? "Invalid email format" : "Format email tidak valid" })
+    });
+
+    const result = emailSchema.safeParse({ email: emailStr });
+
+    if (result.success) {
+      if (forgotEmailDisplay) forgotEmailDisplay.textContent = emailStr;
+      forgotStep1?.classList.add("hidden");
+      forgotStep2?.classList.remove("hidden");
+      (forgotOtps[0] as HTMLInputElement | undefined)?.focus();
+    } else {
+      if (err) {
+        err.textContent = result.error.issues?.[0]?.message || result.error.errors?.[0]?.message || "Format tidak valid";
+        err.classList.remove("hidden");
+      }
+    }
+  }, { signal });
+
+  forgotOtps.forEach((input, index) => {
+    input.addEventListener("input", () => {
+      if (!(input instanceof HTMLInputElement)) return;
+      input.value = input.value.replace(/\D/g, "").slice(0, 1);
+      if (input.value) {
+        if (index < 5) (forgotOtps[index + 1] as HTMLInputElement | undefined)?.focus();
+      }
+    }, { signal });
+  });
+
+  forgotOtpForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const code = forgotOtps.map(i => i instanceof HTMLInputElement ? i.value : "").join("");
+    const otpSchema = z.object({
+      otp: z.string()
+        .min(1, { message: root.lang === "en" ? "Please enter OTP" : "Masukkan OTP" })
+        .length(6, { message: root.lang === "en" ? "OTP must be 6 digits" : "OTP harus 6 digit" })
+    });
+
+    const result = otpSchema.safeParse({ otp: code });
+    if (!result.success) {
+      const msg = result.error.issues?.[0]?.message || result.error.errors?.[0]?.message || "Format tidak valid";
+      if (forgotOtpError) {
+        forgotOtpError.textContent = msg;
+        forgotOtpError.classList.remove("hidden");
+      }
+      return;
+    }
+
+    // Simulasi verifikasi OTP (misal sukses)
+    if (forgotOtpError) forgotOtpError.classList.add("hidden");
+    forgotOtpActions?.classList.add("hidden");
+    forgotNewPasswordForm?.classList.remove("hidden");
+    forgotOtps.forEach(i => {
+      if (i instanceof HTMLInputElement) {
+        i.readOnly = true;
+        i.classList.add("opacity-50", "pointer-events-none", "border-green-500", "border-2");
+      }
+    });
+  }, { signal });
+
+  forgotNewPasswordForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (forgotSubmitBtn) forgotSubmitBtn.textContent = "MEMPROSES...";
+    if (!(forgotNewPasswordForm instanceof HTMLFormElement)) return;
+    const passwordInput = forgotNewPasswordForm.elements.namedItem("password");
+    const confirmPasswordInput = forgotNewPasswordForm.elements.namedItem("confirmPassword");
+    
+    const passwordStr = passwordInput instanceof HTMLInputElement ? passwordInput.value : "";
+    const confirmPasswordStr = confirmPasswordInput instanceof HTMLInputElement ? confirmPasswordInput.value : "";
+
+    forgotNewPasswordForm.querySelectorAll(".auth-error").forEach(el => {
+      el.textContent = "";
+      el.classList.add("hidden");
+    });
+
+    const resetSchema = z.object({
+      password: z.string().min(6, { message: root.lang === "en" ? "Password must be at least 6 characters" : "Password minimal 6 karakter" }),
+      confirmPassword: z.string().min(1, { message: root.lang === "en" ? "Confirm password is required" : "Konfirmasi password wajib diisi" }),
+    }).refine((data) => data.password === data.confirmPassword, {
+      message: root.lang === "en" ? "Passwords do not match" : "Password tidak sama",
+      path: ["confirmPassword"],
+    });
+
+    const result = resetSchema.safeParse({
+      password: passwordStr,
+      confirmPassword: confirmPasswordStr
+    });
+
+    if (!result.success) {
+      const issues = result.error.issues || result.error.errors || [];
+      issues.forEach(err => {
+        const fieldName = err?.path?.[0] || "";
+        const errorSpan = forgotNewPasswordForm.querySelector(`[data-error-for="${fieldName}"]`) || forgotNewPasswordForm.querySelector(".auth-error");
+        if (errorSpan) {
+          errorSpan.textContent = err.message;
+          errorSpan.classList.remove("hidden");
+        }
+      });
+      if (forgotSubmitBtn) {
+        forgotSubmitBtn.textContent = root.lang === "en" ? "Reset password" : "Reset kata sandi";
+      }
+      return; // Stop if invalid
+    }
+
+    if (forgotDialog instanceof HTMLDialogElement) forgotDialog.close();
+    
+    // reset form
+    if (forgotForm instanceof HTMLFormElement) forgotForm.reset();
+    if (forgotNewPasswordForm instanceof HTMLFormElement) forgotNewPasswordForm.reset();
+    forgotStep1?.classList.remove("hidden");
+    forgotStep2?.classList.add("hidden");
+    forgotNewPasswordForm?.classList.add("hidden");
+    forgotOtpActions?.classList.remove("hidden");
+    forgotOtps.forEach(i => {
+      if (i instanceof HTMLInputElement) {
+        i.value = "";
+        i.readOnly = false;
+        i.classList.remove("opacity-50", "pointer-events-none", "border-green-500", "border-2");
+      }
+    });
+
+    const title = root.lang === "en" ? "Password Reset" : "Kata Sandi Direset";
+    const msg = root.lang === "en" ? "Your password has been changed successfully." : "Kata sandi Anda berhasil diubah.";
+    showToast(title, msg);
+    openAuthDialog("login");
+  }, { signal });
+
+  const handleForgotCancel = () => {
+    if (forgotDialog instanceof HTMLDialogElement) forgotDialog.close();
+    // reset form
+    if (forgotForm instanceof HTMLFormElement) forgotForm.reset();
+    if (forgotNewPasswordForm instanceof HTMLFormElement) forgotNewPasswordForm.reset();
+    forgotStep1?.classList.remove("hidden");
+    forgotStep2?.classList.add("hidden");
+    forgotNewPasswordForm?.classList.add("hidden");
+    forgotOtpActions?.classList.remove("hidden");
+    forgotOtps.forEach(i => {
+      if (i instanceof HTMLInputElement) {
+        i.value = "";
+        i.readOnly = false;
+        i.classList.remove("opacity-50", "pointer-events-none", "border-green-500", "border-2");
+      }
+    });
+    if (forgotOtpError) forgotOtpError.classList.add("hidden");
+  };
+
+  forgotCancelBtn?.addEventListener("click", handleForgotCancel);
+  forgotCancelPwdBtn?.addEventListener("click", handleForgotCancel);
+
+  const completeAuth = (mode: "login" | "register") => {
+    const lang = root.lang === "en" ? "en" : "id";
+    const titleKey = mode === "register" ? "auth.registerToast" : "auth.signinToast";
+    const copyKey = mode === "register" ? "auth.registerToastCopy" : "auth.signinToastCopy";
+    showToast(copy[lang][titleKey], copy[lang][copyKey]);
+    document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
+    if (typeof window.checkAuthStatus === "function") {
+      window.checkAuthStatus?.();
+    } else {
+      window.location.reload();
+    }
+    if (typeof window.updateCheckoutBtn === "function") window.updateCheckoutBtn();
+  };
 
   document.querySelectorAll("[data-auth-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
@@ -1188,15 +1673,23 @@ import AlertDialog from "./AlertDialog.astro";
         return;
       }
 
-      const lang = root.lang === "en" ? "en" : "id";
-      const titleKey = mode === "register" ? "auth.registerToast" : "auth.signinToast";
-      const copyKey = mode === "register" ? "auth.registerToastCopy" : "auth.signinToastCopy";
-      showToast(copy[lang][titleKey], copy[lang][copyKey]);
       form.closest("dialog")?.close();
+      const email = formData.email.trim().toLowerCase();
 
-      document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-      if (typeof window.checkAuthStatus === "function") window.checkAuthStatus();
-      else window.location.reload();
+      if (mode === "register") {
+        openOtpDialog(email, () => completeAuth(mode));
+        return;
+      }
+
+      // For login
+      if (!isOtpVerified(email)) {
+        const title = root.lang === "en" ? "Account Not Found" : "Akun Tidak Ditemukan";
+        const message = root.lang === "en" ? "Please register an account first before logging in." : "Silakan daftar akun terlebih dahulu sebelum login.";
+        showToast(title, message);
+        return;
+      }
+
+      completeAuth(mode);
     }, { signal });
   });
 
@@ -1323,18 +1816,17 @@ import AlertDialog from "./AlertDialog.astro";
     if (checkoutBtn) {
       const lang = root.lang === "en" ? "en" : "id";
       checkoutBtn.textContent = copy[lang]["cart.checkout"];
-      (checkoutBtn as HTMLElement).onclick = () => { window.location.href = "/cart"; };
     }
   };
-  window.checkAuthStatus();
+  window.checkAuthStatus?.();
 
   const logoutConfirmBtn = document.querySelector("#logout-dialog [data-dialog-confirm]");
   if (logoutConfirmBtn) {
     logoutConfirmBtn.addEventListener("click", () => {
       document.cookie = "tuneboss-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      window.checkAuthStatus();
+      window.checkAuthStatus?.();
       setMenu(false);
-      window.location.href = "/";
+      navigate("/");
     }, { signal });
   }
 
@@ -1361,6 +1853,18 @@ import AlertDialog from "./AlertDialog.astro";
       );
     });
   });
+
+  const path = window.location.pathname.replace(/\/$/, "");
+  if (path === "/login" || path === "/register") {
+    const pendingEmail = localStorage.getItem("tuneboss-pending-otp");
+    if (pendingEmail) {
+      openOtpDialog(pendingEmail, () => {
+        document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
+        navigate("/dashboard");
+      }, true);
+    }
+  }
+
   };
 
   initTuneBossChrome();

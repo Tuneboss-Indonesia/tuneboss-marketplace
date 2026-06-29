@@ -15,17 +15,21 @@ export const prerender = false;
 </head>
 
 <TuneBossChrome>
-  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12 flex flex-col items-center justify-center">
+  <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32 flex flex-col items-center justify-center">
     <section class="mx-auto w-full max-w-2xl text-center">
       <div id="status-container" class="opacity-0 transition-opacity duration-700">
         <!-- Text Content -->
         <div class="mb-10">
           <p data-i18n="checkout.eyebrow" class="mb-5 text-xs font-bold uppercase tracking-[0.35em] text-primary">Checkout</p>
-          <h1 id="status-title" class="font-display text-4xl uppercase tracking-wider md:text-6xl">Memuat...</h1>
+          <h1 id="status-title" class="font-display text-2xl sm:text-4xl md:text-6xl uppercase tracking-wider break-words hyphens-auto">Memuat...</h1>
           <p id="status-message" class="mx-auto mt-6 max-w-lg text-base leading-relaxed text-foreground/70 md:text-lg">
             Mohon tunggu, kami sedang memeriksa status pesanan Anda.
           </p>
           <p id="status-order-id" class="mt-8 text-sm font-bold tracking-widest text-primary"></p>
+        </div>
+
+        <div id="status-actions" class="hidden flex-col gap-4 mt-10 md:flex-row md:justify-center">
+          <!-- Buttons injected by JS -->
         </div>
 
       </div>
@@ -40,13 +44,29 @@ export const prerender = false;
     const statusMessage = document.getElementById("status-message");
     
     const parts = window.location.pathname.split("/").filter(Boolean);
-    // Path: /checkout/[id]/[status] => parts: ["checkout", id, status]
     const orderId = parts[1] || "TB-UNKNOWN";
-    const rawStatus = parts[2] || "success";
-    const status = (["success", "failed", "pending"].includes(rawStatus) ? rawStatus : "success") as "success" | "failed" | "pending";
+    
+    // Check if status is passed via query params (from Xendit redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryStatus = urlParams.get("status");
+
+    const stateKey = `tuneboss-order-status-${orderId}`;
+    let rawStatus = sessionStorage.getItem(stateKey) || "pending";
+
+    if (queryStatus && ["success", "failed", "pending", "canceled"].includes(queryStatus)) {
+      rawStatus = queryStatus;
+      sessionStorage.setItem(stateKey, rawStatus);
+      
+      // Clean up the URL to remove the query params for a cleaner look
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+
+    const status = (["success", "failed", "pending", "canceled"].includes(rawStatus) ? rawStatus : "pending") as "success" | "failed" | "pending" | "canceled";
 
     const content = {
       id: {
+        buttons: { pay: "BAYAR SEKARANG", cancel: "BATALKAN PESANAN", track: "LACAK PESANAN", back: "KEMBALI" },
         success: {
           title: "Pembayaran Berhasil",
           message: "Terima kasih! Pesanan Anda telah berhasil diproses dan sedang kami siapkan untuk pengiriman.",
@@ -58,9 +78,14 @@ export const prerender = false;
         pending: {
           title: "Menunggu Pembayaran",
           message: "Pesanan Anda sedang menunggu penyelesaian pembayaran. Silakan selesaikan pembayaran sesuai instruksi.",
+        },
+        canceled: {
+          title: "Pesanan Dibatalkan",
+          message: "Pesanan Anda telah dibatalkan. Jika ini adalah sebuah kesalahan, silakan buat pesanan baru.",
         }
       },
       en: {
+        buttons: { pay: "PAY NOW", cancel: "CANCEL ORDER", track: "TRACK ORDER", back: "BACK" },
         success: {
           title: "Payment Successful",
           message: "Thank you! Your order has been successfully processed and is being prepared for shipment.",
@@ -72,6 +97,10 @@ export const prerender = false;
         pending: {
           title: "Awaiting Payment",
           message: "Your order is awaiting payment completion. Please complete the payment according to the instructions.",
+        },
+        canceled: {
+          title: "Order Canceled",
+          message: "Your order has been canceled. If this was a mistake, please place a new order.",
         }
       }
     };
@@ -91,6 +120,38 @@ export const prerender = false;
       
       // Apply Tab Title
       document.title = `${currentContent.title} | TuneBoss ID`;
+
+      const statusActions = document.getElementById("status-actions");
+      
+      if (statusActions) {
+        statusActions.classList.remove("hidden");
+        statusActions.classList.add("flex");
+
+        if (status === "pending") {
+          statusActions.innerHTML = `
+            <button id="btn-pay" class="bg-primary px-8 py-3 text-sm font-bold tracking-widest text-white hover:bg-primary/90 transition-colors uppercase text-center" style="color: white !important;">${content[lang].buttons.pay}</button>
+            <button id="btn-cancel" class="border border-primary/20 px-8 py-3 text-sm font-bold tracking-widest text-foreground hover:border-primary transition-colors uppercase text-center">${content[lang].buttons.cancel}</button>
+          `;
+
+          document.getElementById("btn-pay")?.addEventListener("click", () => {
+            sessionStorage.setItem(stateKey, "success");
+            window.location.reload();
+          });
+          document.getElementById("btn-cancel")?.addEventListener("click", () => {
+            sessionStorage.setItem(stateKey, "canceled");
+            window.location.reload();
+          });
+
+        } else if (status === "success") {
+          statusActions.innerHTML = `
+            <a href="/dashboard" class="bg-primary px-8 py-3 text-sm font-bold tracking-widest text-white hover:bg-primary/90 transition-colors uppercase text-center" style="color: white !important;">${content[lang].buttons.track}</a>
+          `;
+        } else if (status === "failed" || status === "canceled") {
+          statusActions.innerHTML = `
+            <a href="/products" class="border border-primary/20 px-8 py-3 text-sm font-bold tracking-widest text-foreground hover:border-primary transition-colors uppercase text-center">${content[lang].buttons.back}</a>
+          `;
+        }
+      }
     };
 
     updateContent();

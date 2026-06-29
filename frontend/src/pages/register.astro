@@ -16,7 +16,7 @@ export const prerender = false;
 </head>
 
 <TuneBossChrome>
-  <main class="min-h-screen bg-background px-6 pb-24 pt-36 md:px-12">
+  <main class="min-h-screen bg-background px-6 pb-24 pt-24 md:px-12 md:pt-32">
     <section class="mx-auto max-w-2xl">
       <div class="mb-10">
         <p data-i18n="account.title" class="mb-5 text-xs font-bold uppercase tracking-[0.35em] text-primary">Account</p>
@@ -61,6 +61,13 @@ export const prerender = false;
           <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
         </label>
 
+        <label class="mb-6 mt-4 flex cursor-pointer items-start gap-3">
+          <input type="checkbox" name="termsAgreed" required class="mt-1 h-4 w-4 shrink-0 rounded border-primary/20 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" />
+          <span class="text-sm leading-relaxed text-foreground/80">
+            <span data-i18n="auth.termsPrefix">Dengan ini saya menyetujui </span><a href="/privacy" target="_blank" class="font-bold !text-primary hover:underline" style="color: var(--primary) !important;" data-i18n="auth.privacyLink">kebijakan privasi</a><span data-i18n="auth.termsAnd"> dan </span><a href="/terms" target="_blank" class="font-bold !text-primary hover:underline" style="color: var(--primary) !important;" data-i18n="auth.termsLink">ketentuan layanan</a>
+          </span>
+        </label>
+
         <button data-i18n="auth.createAccount" class="w-full bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Create Account</button>
 
         <a href="/login" class="flex items-center justify-center gap-3 border border-primary/20 px-5 py-4 text-sm font-bold uppercase tracking-[0.22em] transition-colors hover:border-primary hover:text-primary">
@@ -91,6 +98,7 @@ export const prerender = false;
 
 <script>
   import { z } from "zod";
+  import { navigate } from "astro:transitions/client";
 
   const bindRegisterPage = () => {
     const form = document.querySelector("form");
@@ -108,13 +116,14 @@ export const prerender = false;
           el.classList.add("hidden");
         });
 
+        const lang = document.documentElement.lang === "en" ? "en" : "id";
         const schema = z.object({
-          name: z.string().min(1, "Nama wajib diisi"),
-          email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
-          password: z.string().min(6, "Password minimal 6 karakter"),
-          confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+          name: z.string().min(1, lang === "en" ? "Name is required" : "Nama wajib diisi"),
+          email: z.string().min(1, { message: lang === "en" ? "Email is required" : "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: lang === "en" ? "Invalid email format" : "Format email tidak valid" }),
+          password: z.string().min(6, lang === "en" ? "Password must be at least 6 characters" : "Password minimal 6 karakter"),
+          confirmPassword: z.string().min(1, lang === "en" ? "Confirm password is required" : "Konfirmasi password wajib diisi"),
         }).refine((data) => data.password === data.confirmPassword, {
-          message: "Password tidak sama",
+          message: lang === "en" ? "Passwords do not match" : "Password tidak sama",
           path: ["confirmPassword"],
         });
 
@@ -144,8 +153,17 @@ export const prerender = false;
           return;
         }
 
-        document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-        window.location.replace("/dashboard");
+        const email = formData.email.trim().toLowerCase();
+
+        if (typeof window.openOtpDialog === "function") {
+          window.openOtpDialog(email, () => {
+            document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
+            navigate("/dashboard");
+          });
+        } else {
+          document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
+          navigate("/dashboard");
+        }
       });
     }
   };

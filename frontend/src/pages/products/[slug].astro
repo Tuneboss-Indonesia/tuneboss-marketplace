@@ -457,7 +457,7 @@ const reviews = [
       const qtyInput = root.querySelector("[data-cart-qty]");
       let active = 0;
 
-      const show = (index) => {
+      const show = (index: number) => {
         if (!(main instanceof HTMLImageElement) || !dots.length) return;
         active = (index + dots.length) % dots.length;
         const button = dots[active];
@@ -492,7 +492,7 @@ const reviews = [
       const value = select.querySelector("[data-review-sort-value]");
       const options = select.querySelectorAll("[data-review-sort-option]");
 
-      const setOpen = (open) => {
+      const setOpen = (open: boolean) => {
         button?.setAttribute("aria-expanded", String(open));
         menu?.classList.toggle("invisible", !open);
         menu?.classList.toggle("opacity-0", !open);
@@ -543,11 +543,11 @@ const reviews = [
             const lang = document.documentElement.lang === "en" ? "en" : "id";
             const title = lang === "en" ? "Link Copied" : "Tautan Disalin";
             const desc = lang === "en" ? "Product link copied to clipboard." : "Tautan produk disalin ke papan klip.";
-            if (typeof showToast === "function") showToast(title, desc);
+            if (typeof window.showToast === "function") window.showToast(title, desc);
             else alert(title + ": " + desc);
           }
-        } catch (err) {
-          if (err.name !== "AbortError") {
+        } catch (err: unknown) {
+          if ((err as Error).name !== "AbortError") {
             console.error("Error sharing:", err);
           }
         }
