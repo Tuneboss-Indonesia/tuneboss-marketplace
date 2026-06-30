@@ -35,6 +35,7 @@ import SEO from "@/components/SEO.astro";
             return (
               <a 
                 href={item.path}
+                aria-label={item.title}
                 class:list={[
                   "flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors",
                   isActive 

@@ -33,6 +33,7 @@ import AlertDialog from "./AlertDialog.astro";
     </div>
 
     <a href="/" class="z-50 flex-none" aria-label="TuneBoss Home">
+      <span class="sr-only">TuneBoss Home</span>
       <Image src={logo} alt="TuneBoss" class="h-6 w-auto object-contain md:h-10" loading="eager" />
     </a>
 
@@ -50,6 +51,7 @@ import AlertDialog from "./AlertDialog.astro";
         <User size={20} strokeWidth={2} className="transition-colors group-hover:text-primary" />
       </button>
       <a href="/account/settings" data-auth-icon-user class="hidden group transition-transform duration-300 hover:scale-110" aria-label="Account Settings">
+        <span class="sr-only">Account Settings</span>
         <User size={20} strokeWidth={2} className="text-primary transition-colors hover:text-primary/80" />
       </a>
     </div>
@@ -62,6 +64,7 @@ import AlertDialog from "./AlertDialog.astro";
   <aside data-menu-panel class="relative flex h-full w-full -translate-x-full flex-col border-r border-primary/10 bg-white/95 text-foreground shadow-2xl backdrop-blur-3xl transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] dark:bg-black/95 md:w-[450px]">
     <div class="flex items-center justify-between px-10 pb-6 pt-8">
       <a href="/" aria-label="TuneBoss Home">
+        <span class="sr-only">TuneBoss Home</span>
         <Image src={logo} alt="TuneBoss" class="h-9 w-auto object-contain" loading="eager" />
       </a>
       <button data-menu-close class="group p-2 transition-colors hover:text-primary" type="button" aria-label="Close menu">
@@ -150,8 +153,8 @@ import AlertDialog from "./AlertDialog.astro";
         <strong data-cart-total>Rp. 0</strong>
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <a role="button" tabindex="0" data-cart-close data-i18n="cart.continue" class="flex cursor-pointer items-center justify-center border border-primary/20 px-4 py-3 text-center text-[13px] font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary">Lanjut Belanja</a>
-        <a href="/cart" data-cart-checkout-btn class="flex items-center justify-center bg-primary px-4 py-3 text-center text-[13px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" style="color: white !important;">Checkout</a>
+        <button type="button" role="button" data-cart-close data-i18n="cart.continue" class="flex cursor-pointer items-center justify-center border border-primary/20 px-4 py-3 text-center text-[13px] font-bold uppercase tracking-widest transition-colors hover:border-primary hover:text-primary">Lanjut Belanja</button>
+        <a href="/cart" data-cart-checkout-btn aria-label="Checkout" class="flex items-center justify-center bg-primary px-4 py-3 text-center text-[13px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04]" style="color: white !important;">Checkout</a>
       </div>
     </div>
   </aside>
@@ -162,6 +165,7 @@ import AlertDialog from "./AlertDialog.astro";
 </button>
 
 <a data-wa-float href="https://wa.me/628175792805" target="_blank" rel="noreferrer" class="fixed bottom-16 left-5 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#c95b04] md:bottom-8 md:left-8" aria-label="Hubungi TuneBoss via WhatsApp">
+  <span class="sr-only">WhatsApp</span>
   <FaWhatsapp size={20} className="text-white" aria-hidden="true" />
 </a>
 
@@ -405,6 +409,7 @@ import AlertDialog from "./AlertDialog.astro";
     <div class="mb-16 grid grid-cols-1 gap-14 md:grid-cols-2 lg:grid-cols-[1.35fr_0.8fr_1.2fr_0.9fr] lg:gap-20">
       <div>
         <a href="/" class="mb-6 block" aria-label="TuneBoss Home">
+          <span class="sr-only">TuneBoss Home</span>
           <Image src={logo} alt="TuneBoss" class="h-10 w-auto object-contain" loading="lazy" />
         </a>
         <p class="max-w-md text-sm font-light leading-relaxed text-primary">
@@ -434,10 +439,10 @@ import AlertDialog from "./AlertDialog.astro";
       <div>
         <h4 data-i18n="footer.follow" class="mb-6 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Follow Us</h4>
         <ul class="flex items-center space-x-5">
-          <li><a class="social-link" href="https://www.facebook.com/tunebossid" aria-label="Facebook" rel="noreferrer"><FaFacebookF size={18} /></a></li>
-          <li><a class="social-link" href="https://www.instagram.com/tuneboss.id" aria-label="Instagram" rel="noreferrer"><FaInstagram size={20} /></a></li>
-          <li><a class="social-link" href="https://www.youtube.com/@tunebossid" aria-label="YouTube" rel="noreferrer"><FaYoutube size={22} /></a></li>
-          <li><a class="social-link" href="https://www.tiktok.com/@tuneboss.id" aria-label="TikTok" rel="noreferrer"><FaTiktok size={18} /></a></li>
+          <li><a class="social-link" href="https://www.facebook.com/tunebossid" aria-label="Facebook" rel="noreferrer"><span class="sr-only">Facebook</span><FaFacebookF size={18} /></a></li>
+          <li><a class="social-link" href="https://www.instagram.com/tuneboss.id" aria-label="Instagram" rel="noreferrer"><span class="sr-only">Instagram</span><FaInstagram size={20} /></a></li>
+          <li><a class="social-link" href="https://www.youtube.com/@tunebossid" aria-label="YouTube" rel="noreferrer"><span class="sr-only">YouTube</span><FaYoutube size={22} /></a></li>
+          <li><a class="social-link" href="https://www.tiktok.com/@tuneboss.id" aria-label="TikTok" rel="noreferrer"><span class="sr-only">TikTok</span><FaTiktok size={18} /></a></li>
         </ul>
       </div>
     </div>
@@ -1298,7 +1303,7 @@ import AlertDialog from "./AlertDialog.astro";
             <div class="flex items-start justify-between gap-4">
               <div class="flex min-w-0 gap-3 items-center">
                 <input type="checkbox" onchange="window.toggleCartItemSelection('${escapeHtml(item.id)}')" class="h-4 w-4 shrink-0 accent-primary cursor-pointer" ${item.selected !== false ? 'checked' : ''} />
-                <img src="${escapeHtml(item.image || "/images/tuneboss-motorcycle-ecu.png")}" alt="" loading="eager" class="h-16 w-16 shrink-0 object-contain" aria-hidden="true" />
+                <div class="h-16 w-16 shrink-0 bg-contain bg-center bg-no-repeat" style="background-image: url('${escapeHtml(item.image || "/images/tuneboss-motorcycle-ecu.png")}');" aria-label="${escapeHtml(item.name || 'Produk TuneBoss')}" role="img"></div>
                 <div class="min-w-0">
                   <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">${escapeHtml(item.brand || "TuneBoss")}</p>
                   <p class="mt-1 text-base font-bold uppercase tracking-wide">${escapeHtml(item.name)}</p>

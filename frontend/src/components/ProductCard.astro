@@ -16,7 +16,8 @@ const productHref = `/products/${item.slug ?? slugify(item.name)}`;
 ---
 
 <div class="group relative h-full cursor-pointer" data-reveal>
-  <a href={productHref} class="relative block h-full">
+  <a href={productHref} aria-labelledby={`product-name-${item.id}`} class="relative block h-full">
+    <span class="sr-only">{item.name}</span>
     {recommended && (
       <div class="absolute right-4 top-4 z-20 flex items-center space-x-2 border border-primary/20 bg-background/80 px-3 py-1.5 shadow-xl backdrop-blur-md">
         <Sparkles size={12} className="text-primary" />
@@ -39,7 +40,7 @@ const productHref = `/products/${item.slug ?? slugify(item.name)}`;
             <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{item.brand}</p>
           </div>
           <div class="flex items-end justify-between pb-2">
-            <p class="text-xl font-bold uppercase leading-none tracking-wide md:text-2xl">{item.name}</p>
+            <p id={`product-name-${item.id}`} class="text-xl font-bold uppercase leading-none tracking-wide md:text-2xl">{item.name}</p>
           </div>
         </div>
         <div class="mt-6 flex items-end justify-between pr-12">

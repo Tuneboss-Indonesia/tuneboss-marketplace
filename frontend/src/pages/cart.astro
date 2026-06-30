@@ -270,7 +270,7 @@ import SEO from "@/components/SEO.astro";
           article.innerHTML = `
             <input type="checkbox" class="cart-item-checkbox h-5 w-5 shrink-0 accent-primary cursor-pointer" onchange="window.toggleCartItemSelection('${itemId}')" ${item.selected !== false ? 'checked' : ''} />
             <div class="w-16 h-16 shrink-0 bg-background flex items-center justify-center p-2 sm:w-20 sm:h-20">
-                <img src="${item.image || "/images/tuneboss-motorcycle-ecu.png"}" alt="${item.name}" class="w-full h-full object-contain" />
+                <div class="w-full h-full bg-contain bg-center bg-no-repeat" style="background-image: url('${item.image || "/images/tuneboss-motorcycle-ecu.png"}');" aria-label="${item.name}" role="img"></div>
             </div>
             <div class="flex-1 min-w-0">
                 <div class="flex items-start justify-between gap-4">

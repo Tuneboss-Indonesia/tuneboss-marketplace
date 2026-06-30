@@ -403,7 +403,7 @@ import SEO from "@/components/SEO.astro";
         listRoot.innerHTML = items.map((item) => `
         <article class="flex gap-3 border border-primary/20 bg-background p-3 md:gap-4 md:p-4">
           <div class="flex h-16 w-16 shrink-0 items-center justify-center bg-background md:h-20 md:w-20">
-              <img src="${item.image || "/images/tuneboss-motorcycle-ecu.png"}" alt="${item.name || ""}" class="h-full w-full object-contain" />
+              <div class="h-full w-full bg-contain bg-center bg-no-repeat" style="background-image: url('${item.image || "/images/tuneboss-motorcycle-ecu.png"}');" aria-label="${item.name || ''}" role="img"></div>
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">${item.brand || "TuneBoss"}</p>
