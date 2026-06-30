@@ -18,7 +18,7 @@ export const prerender = false;
 
       <form id="profile-form" class="space-y-5" onsubmit="return false;">
         <div class="grid gap-2">
-          <label data-i18n="account.name" class="text-sm font-bold uppercase tracking-widest text-foreground">Nama Lengkap</label>
+          <label for="profile-name" data-i18n="account.name" class="text-sm font-bold uppercase tracking-widest text-foreground">Nama Lengkap</label>
           <div class="relative">
             <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
             <input 
@@ -32,10 +32,11 @@ export const prerender = false;
         </div>
 
         <div class="grid gap-2">
-          <label data-i18n="account.email" class="text-sm font-bold uppercase tracking-widest text-foreground">Alamat Email</label>
+          <label for="profile-email" data-i18n="account.email" class="text-sm font-bold uppercase tracking-widest text-foreground">Alamat Email</label>
           <div class="relative">
             <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
             <input 
+              id="profile-email"
               type="email" 
               value="hello@tuneboss.co.id"
               disabled
@@ -46,7 +47,7 @@ export const prerender = false;
         </div>
 
         <div class="grid gap-2">
-          <label data-i18n="account.phone" class="text-sm font-bold uppercase tracking-widest text-foreground">Nomor Telepon</label>
+          <label for="profile-phone" data-i18n="account.phone" class="text-sm font-bold uppercase tracking-widest text-foreground">Nomor Telepon</label>
           <div class="relative">
             <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
             <input 
@@ -78,7 +79,7 @@ export const prerender = false;
 
       <form id="password-form" class="space-y-5">
         <div class="grid gap-2">
-          <label data-i18n="account.currentPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Saat Ini</label>
+          <label for="password-current" data-i18n="account.currentPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Saat Ini</label>
           <div class="relative">
             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
             <input 
@@ -96,7 +97,7 @@ export const prerender = false;
         </div>
 
         <div class="grid gap-2">
-          <label data-i18n="account.newPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Baru</label>
+          <label for="password-new" data-i18n="account.newPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Baru</label>
           <div class="relative">
             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
             <input 
@@ -114,7 +115,7 @@ export const prerender = false;
         </div>
 
         <div class="grid gap-2">
-          <label data-i18n="account.confirmPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Konfirmasi Kata Sandi Baru</label>
+          <label for="password-confirm" data-i18n="account.confirmPassword" class="text-sm font-bold uppercase tracking-widest text-foreground">Konfirmasi Kata Sandi Baru</label>
           <div class="relative">
             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50" />
             <input 
