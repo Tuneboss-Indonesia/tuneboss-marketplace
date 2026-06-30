@@ -1,6 +1,5 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
-import { Image } from "astro:assets";
 import { Search, ChevronRight, Package, Clock, CheckCircle, XCircle, ChevronDown, X } from "lucide-react";
 import "@/styles/global.css";
 
@@ -129,28 +128,31 @@ export const prerender = false;
       </div>
 
       <!-- Order 3: Pending -->
-      <div tabindex="0" role="link" data-tracking-id="INV-2805-TB44" class="tracking-link group block rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary/50 cursor-pointer">
-        <div class="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+      <div tabindex="0" role="link" data-tracking-id="INV-2805-TB44" class="tracking-link group block border border-primary/20 bg-background p-5 transition-all hover:border-primary hover:shadow-md cursor-pointer">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-foreground">INV-2805-TB44</span>
-              <span class="rounded bg-yellow-500/10 px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-yellow-500" data-i18n="history.statusPending">Menunggu Pembayaran</span>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-foreground">INV-2805-TB44</span>
+              <span class="flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-yellow-600 dark:text-yellow-400">
+                <Clock size={12} /> <span>Menunggu Pembayaran</span>
+              </span>
             </div>
-            <p class="mt-1 text-sm text-muted-foreground" data-i18n="history.datePending">10 Mei 2024</p>
+            <p class="text-xs text-muted-foreground">10 Mei 2024</p>
           </div>
           <div class="text-left sm:text-right">
-            <p class="text-xs uppercase tracking-widest text-muted-foreground" data-i18n="history.totalPrice">Total Belanja</p>
-            <p class="text-lg font-bold text-primary">Rp 1.150.000</p>
+            <p class="text-sm text-muted-foreground mb-1" data-i18n="history.totalAmount">Total Amount</p>
+            <p class="font-bold text-foreground">Rp 1.150.000</p>
           </div>
         </div>
-        <div class="flex items-center justify-between rounded-xl bg-muted/50 p-4">
-          <div class="flex items-center gap-4">
-            <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg bg-background border border-border">
-              <Image src="/images/tuneboss-motorcycle-ecu.png" alt="TuneBoss Shift Boss" width={48} height={48} class="h-12 w-auto object-contain" />
+        <hr class="border-border/50 mb-4" />
+        <div class="flex items-center justify-between">
+          <div class="flex items-start gap-3">
+            <div class="flex shrink-0 items-start pt-0.5 text-muted-foreground">
+              <Package size={20} />
             </div>
-            <div>
-              <p class="font-bold text-foreground">TuneBoss Shift Boss (Quickshifter)</p>
-              <p class="text-sm text-muted-foreground">1 barang x Rp 1.150.000</p>
+            <div class="flex flex-col gap-1">
+              <p class="text-sm font-medium text-foreground">1x TuneBoss Shift Boss (Quickshifter)</p>
+              <p class="text-xs text-muted-foreground mt-1">Menunggu pembayaran</p>
             </div>
           </div>
           <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors mt-2" />

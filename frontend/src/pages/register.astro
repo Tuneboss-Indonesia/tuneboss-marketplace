@@ -76,7 +76,7 @@ import SEO from "@/components/SEO.astro";
           </span>
         </label>
 
-        <button data-i18n="auth.createAccount" class="w-full bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Create Account</button>
+        <button data-i18n="auth.createAccount" class="w-full bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary" type="submit" disabled>Create Account</button>
 
         <a href="/login" class="flex items-center justify-center gap-3 border border-primary/20 px-5 py-4 text-sm font-bold uppercase tracking-[0.22em] transition-colors hover:border-primary hover:text-primary">
           <LogIn size={17} strokeWidth={1.7} />
@@ -112,12 +112,25 @@ import SEO from "@/components/SEO.astro";
     const form = document.querySelector("form");
     if (form instanceof HTMLFormElement && form.dataset.bound !== "true") {
       form.dataset.bound = "true";
+      const termsInput = form.elements.namedItem("termsAgreed");
+      const submitButton = form.querySelector('button[type="submit"]');
+      const syncSubmitButton = () => {
+        if (termsInput instanceof HTMLInputElement && submitButton instanceof HTMLButtonElement) {
+          submitButton.disabled = !termsInput.checked;
+        }
+      };
+      if (termsInput instanceof HTMLInputElement) {
+        termsInput.addEventListener("change", syncSubmitButton);
+      }
+      syncSubmitButton();
+
       form.addEventListener("submit", (event) => {
         event.preventDefault();
 
         const nameInput = form.elements.namedItem("name");
         const emailInput = form.elements.namedItem("email");
         const passwordInput = form.elements.namedItem("password");
+        const termsInput = form.elements.namedItem("termsAgreed");
 
         form.querySelectorAll(".auth-error").forEach(el => {
           el.textContent = "";
@@ -130,6 +143,7 @@ import SEO from "@/components/SEO.astro";
           email: z.string().min(1, { message: lang === "en" ? "Email is required" : "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: lang === "en" ? "Invalid email format" : "Format email tidak valid" }),
           password: z.string().min(6, lang === "en" ? "Password must be at least 6 characters" : "Password minimal 6 karakter"),
           confirmPassword: z.string().min(1, lang === "en" ? "Confirm password is required" : "Konfirmasi password wajib diisi"),
+          termsAgreed: z.literal(true, { message: lang === "en" ? "Please accept the terms" : "Wajib menyetujui ketentuan layanan" }),
         }).refine((data) => data.password === data.confirmPassword, {
           message: lang === "en" ? "Passwords do not match" : "Password tidak sama",
           path: ["confirmPassword"],
@@ -142,6 +156,7 @@ import SEO from "@/components/SEO.astro";
           email: emailInput instanceof HTMLInputElement ? emailInput.value : "",
           password: passwordInput instanceof HTMLInputElement ? passwordInput.value : "",
           confirmPassword: confirmPasswordInput instanceof HTMLInputElement ? confirmPasswordInput.value : "",
+          termsAgreed: termsInput instanceof HTMLInputElement ? termsInput.checked : false,
         };
 
         const result = schema.safeParse(formData);

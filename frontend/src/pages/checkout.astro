@@ -470,10 +470,11 @@ import SEO from "@/components/SEO.astro";
           })
         });
         
-        const data = await res.json();
+        const responseText = await res.text();
+        const data = responseText ? JSON.parse(responseText) : {};
         
-        if (data.error) {
-          throw new Error(data.error);
+        if (!res.ok || data.error) {
+          throw new Error(data.error || "Gagal membuat tagihan Xendit.");
         }
         
         if (data.invoice_url) {

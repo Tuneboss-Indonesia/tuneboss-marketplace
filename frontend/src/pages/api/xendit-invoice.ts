@@ -1,7 +1,12 @@
 import type { APIRoute } from 'astro';
-import { loadEnv } from 'vite';
 
 export const prerender = false;
+
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -15,15 +20,14 @@ export const POST: APIRoute = async ({ request }) => {
       customer
     } = body;
 
-    const env = loadEnv(import.meta.env.MODE, process.cwd(), "");
-    const apiKey = env.XENDIT_SECRET_KEY || import.meta.env.XENDIT_SECRET_KEY || process.env.XENDIT_SECRET_KEY;
+    const apiKey = import.meta.env.XENDIT_SECRET_KEY || process.env.XENDIT_SECRET_KEY;
 
     if (!apiKey || apiKey === "YOUR_XENDIT_SECRET_KEY_HERE") {
-      return new Response(JSON.stringify({ error: "API Key Xendit belum dikonfigurasi di file .env" }), { status: 500 });
+      return json({ error: "XENDIT_SECRET_KEY belum dikonfigurasi di environment production." }, 500);
     }
 
     if (!amount) {
-      return new Response(JSON.stringify({ error: "Total pembayaran (amount) tidak valid" }), { status: 400 });
+      return json({ error: "Total pembayaran (amount) tidak valid" }, 400);
     }
 
     // Xendit uses Basic Auth with the Secret Key as the username, and an empty password
@@ -55,24 +59,22 @@ export const POST: APIRoute = async ({ request }) => {
       body: JSON.stringify(invoicePayload)
     });
 
-    const xenditData = await xenditRes.json();
+    const xenditText = await xenditRes.text();
+    const xenditData = xenditText ? JSON.parse(xenditText) : {};
 
     if (!xenditRes.ok) {
       console.error("Xendit Error:", xenditData);
-      return new Response(JSON.stringify({ error: xenditData.message || "Gagal membuat tagihan Xendit" }), { status: xenditRes.status });
+      return json({ error: xenditData.message || xenditData.error_code || "Gagal membuat tagihan Xendit" }, xenditRes.status);
     }
 
-    return new Response(JSON.stringify({ 
+    return json({ 
       invoice_url: xenditData.invoice_url,
       id: xenditData.id
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
     });
 
   } catch (error: unknown) {
     console.error("Xendit Invoice API Error:", error);
-    const msg = error instanceof Error ? (error.stack || error.message) : "Internal server error";
-    return new Response(JSON.stringify({ error: msg }), { status: 500 });
+    const msg = error instanceof Error ? error.message : "Internal server error";
+    return json({ error: msg }, 500);
   }
 }

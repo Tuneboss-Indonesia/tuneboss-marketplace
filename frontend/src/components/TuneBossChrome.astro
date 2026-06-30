@@ -276,12 +276,12 @@ import AlertDialog from "./AlertDialog.astro";
         <span class="auth-error mt-1 hidden text-xs text-red-500"></span>
       </label>
       <label class="mb-6 mt-4 flex cursor-pointer items-start gap-3">
-        <input type="checkbox" name="termsAgreed" required class="mt-1 h-4 w-4 shrink-0 rounded border-primary/20 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" />
+        <input data-register-terms type="checkbox" name="termsAgreed" required class="mt-1 h-4 w-4 shrink-0 rounded border-primary/20 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" />
         <span class="text-sm leading-relaxed text-foreground/80">
           <span data-i18n="auth.termsPrefix">Dengan ini saya menyetujui </span><a href="/privacy" target="_blank" class="font-bold !text-primary hover:underline" style="color: var(--primary) !important;" data-i18n="auth.privacyLink">kebijakan privasi</a><span data-i18n="auth.termsAnd"> dan </span><a href="/terms" target="_blank" class="font-bold !text-primary hover:underline" style="color: var(--primary) !important;" data-i18n="auth.termsLink">ketentuan layanan</a>
         </span>
       </label>
-      <button data-i18n="auth.createAccount" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04]" type="submit">Create Account</button>
+      <button data-register-submit data-i18n="auth.createAccount" class="w-full border border-primary bg-primary px-5 py-4 text-base font-bold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#c95b04] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary" type="submit" disabled>Create Account</button>
     </form>
     <button data-auth-switch="login" class="mt-5 w-full border border-primary/20 px-5 py-3 text-sm font-bold uppercase tracking-[0.22em] transition-colors hover:border-primary hover:text-primary" type="button">
       <span data-i18n="auth.backToSignin">Back to Sign In</span>
@@ -1791,6 +1791,20 @@ import AlertDialog from "./AlertDialog.astro";
   forgotCancelBtn?.addEventListener("click", handleForgotCancel);
   forgotCancelPwdBtn?.addEventListener("click", handleForgotCancel);
 
+  const syncRegisterSubmit = () => {
+    const registerTerms = document.querySelector("[data-register-terms]");
+    const registerSubmit = document.querySelector("[data-register-submit]");
+    if (registerTerms instanceof HTMLInputElement && registerSubmit instanceof HTMLButtonElement) {
+      registerSubmit.disabled = !registerTerms.checked;
+    }
+  };
+  document.addEventListener("change", (event) => {
+    if (event.target instanceof HTMLInputElement && event.target.matches("[data-register-terms]")) {
+      syncRegisterSubmit();
+    }
+  }, { signal });
+  syncRegisterSubmit();
+
   const completeAuth = (mode: "login" | "register") => {
     const lang = root.lang === "en" ? "en" : "id";
     const titleKey = mode === "register" ? "auth.registerToast" : "auth.signinToast";
@@ -1815,6 +1829,7 @@ import AlertDialog from "./AlertDialog.astro";
       const passwordInput = form.elements.namedItem("password");
       const nameInput = form.elements.namedItem("name");
       const confirmPasswordInput = form.elements.namedItem("confirmPassword");
+      const termsInput = form.elements.namedItem("termsAgreed");
 
       form.querySelectorAll(".auth-error").forEach(el => {
         el.textContent = "";
@@ -1828,6 +1843,7 @@ import AlertDialog from "./AlertDialog.astro";
           password: z.string().min(6, { message: "Password minimal 6 karakter" }),
           name: z.string().min(1, { message: "Nama wajib diisi" }),
           confirmPassword: z.string().min(1, { message: "Konfirmasi password wajib diisi" }),
+          termsAgreed: z.literal(true, { message: "Wajib menyetujui ketentuan layanan" }),
         }).refine((data) => data.password === data.confirmPassword, {
           message: "Password tidak sama",
           path: ["confirmPassword"],
@@ -1844,7 +1860,8 @@ import AlertDialog from "./AlertDialog.astro";
         password: passwordInput instanceof HTMLInputElement ? passwordInput.value : "",
         ...(mode === "register" ? { 
           name: nameInput instanceof HTMLInputElement ? nameInput.value : "",
-          confirmPassword: confirmPasswordInput instanceof HTMLInputElement ? confirmPasswordInput.value : ""
+          confirmPassword: confirmPasswordInput instanceof HTMLInputElement ? confirmPasswordInput.value : "",
+          termsAgreed: termsInput instanceof HTMLInputElement ? termsInput.checked : false
         } : {})
       };
 

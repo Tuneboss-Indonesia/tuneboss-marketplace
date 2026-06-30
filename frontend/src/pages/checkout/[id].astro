@@ -152,8 +152,9 @@ import SEO from "@/components/SEO.astro";
                 })
               });
               
-              const data = await res.json();
-              if (data.error) throw new Error(data.error);
+              const responseText = await res.text();
+              const data = responseText ? JSON.parse(responseText) : {};
+              if (!res.ok || data.error) throw new Error(data.error || "Gagal membuat tagihan Xendit.");
               if (data.invoice_url) {
                  window.location.href = data.invoice_url;
               }
