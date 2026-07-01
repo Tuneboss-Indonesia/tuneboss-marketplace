@@ -1,7 +1,7 @@
 ---
 import { Image } from "astro:assets";
 
-import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Star, Tag } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Star, Tag, X } from "lucide-react";
 import ProductCard from "@/components/ProductCard.astro";
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
 import ecuImage from "../../../public/images/tuneboss-motorcycle-ecu.png";
@@ -273,11 +273,11 @@ const productSchema = JSON.stringify([
 
         <div class="grid gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(420px,0.98fr)] lg:gap-16">
           <section aria-label="Galeri produk" class="space-y-4">
-            <div class="relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-primary/10 bg-primary/[0.03] p-8 md:p-14">
+            <div data-gallery-zoom-container class="gallery-zoom-container relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-primary/10 bg-primary/[0.03] p-8 md:p-14">
               <button data-gallery-prev class="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-primary/15 bg-background/80 transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button" aria-label="Gambar sebelumnya">
                 <ChevronLeft size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>
-              <Image data-gallery-main src={ecuImage} alt={product.name} loading="eager" class="h-full w-full object-contain transition-transform duration-700 hover:scale-105" />
+              <Image data-gallery-main src={ecuImage} alt={product.name} loading="eager" class="gallery-main-image h-full w-full object-contain transition-transform duration-300" />
               <button data-gallery-next class="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-primary/15 bg-background/80 transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button" aria-label="Gambar berikutnya">
                 <ChevronRight size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>
@@ -445,6 +445,17 @@ const productSchema = JSON.stringify([
             ))}
           </div>
         </section>
+
+        <div data-image-lightbox class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 opacity-0 transition-opacity duration-300" aria-hidden="true">
+          <button data-image-lightbox-backdrop class="absolute inset-0" type="button" aria-label="Tutup popup gambar"></button>
+          <figure class="relative z-10 m-0 w-full max-w-5xl">
+            <button data-image-lightbox-close class="absolute right-2 top-2 z-20 inline-flex h-11 w-11 items-center justify-center border border-primary bg-primary text-white transition-colors hover:border-[#c95b04] hover:bg-[#c95b04]" type="button" aria-label="Tutup gambar">
+              <X size={18} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+            <img data-image-lightbox-image class="max-h-[90svh] w-full object-contain" src={product.image} alt={product.name} loading="lazy" />
+          </figure>
+        </div>
+
       </div>
     </section>
   </main>
@@ -474,9 +485,20 @@ const productSchema = JSON.stringify([
 
     document.querySelectorAll("[data-loaded-content]").forEach((root) => {
       const main = root.querySelector("[data-gallery-main]");
+      const zoomContainer = root.querySelector("[data-gallery-zoom-container]");
+      const lightbox = root.querySelector("[data-image-lightbox]");
+      const lightboxImage = root.querySelector("[data-image-lightbox-image]");
+      const lightboxCloseButton = root.querySelector("[data-image-lightbox-close]");
+      const lightboxBackdrop = root.querySelector("[data-image-lightbox-backdrop]");
       const dots = Array.from(root.querySelectorAll("[data-gallery-dot]"));
       const qtyInput = root.querySelector("[data-cart-qty]");
       let active = 0;
+
+      const resetZoom = () => {
+        if (!(zoomContainer instanceof HTMLElement) || !(main instanceof HTMLImageElement)) return;
+        zoomContainer.classList.remove("is-zooming");
+        main.style.transformOrigin = "50% 50%";
+      };
 
       const show = (index: number) => {
         if (!(main instanceof HTMLImageElement) || !dots.length) return;
@@ -484,6 +506,14 @@ const productSchema = JSON.stringify([
         const button = dots[active];
         const src = button?.getAttribute("data-gallery-src");
         if (src) main.src = src;
+        if (src && lightboxImage instanceof HTMLImageElement && lightbox instanceof HTMLElement && lightbox.getAttribute("aria-hidden") === "false") {
+          lightboxImage.src = src;
+          lightboxImage.alt = main.alt || "Product image";
+        }
+        resetZoom();
+        if (zoomContainer instanceof HTMLElement && zoomContainer.matches(":hover")) {
+          zoomContainer.classList.add("is-zooming");
+        }
         dots.forEach((dot, dotIndex) => {
           dot.classList.toggle("bg-primary", dotIndex === active);
           dot.classList.toggle("border-primary", dotIndex === active);
@@ -495,6 +525,62 @@ const productSchema = JSON.stringify([
       dots.forEach((dot, index) => dot.addEventListener("click", () => show(index)));
       root.querySelector("[data-gallery-prev]")?.addEventListener("click", () => show(active - 1));
       root.querySelector("[data-gallery-next]")?.addEventListener("click", () => show(active + 1));
+
+      if (zoomContainer instanceof HTMLElement && main instanceof HTMLImageElement) {
+        const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+
+        const onPointerMove = (event: PointerEvent) => {
+          if (!canHover.matches) return;
+          zoomContainer.classList.add("is-zooming");
+          const rect = zoomContainer.getBoundingClientRect();
+          const x = ((event.clientX - rect.left) / rect.width) * 100;
+          const y = ((event.clientY - rect.top) / rect.height) * 100;
+          const clampedX = Math.max(0, Math.min(100, x));
+          const clampedY = Math.max(0, Math.min(100, y));
+          main.style.transformOrigin = `${clampedX}% ${clampedY}%`;
+        };
+
+        zoomContainer.addEventListener("pointerenter", () => {
+          if (!canHover.matches) return;
+          zoomContainer.classList.add("is-zooming");
+        });
+        zoomContainer.addEventListener("pointermove", onPointerMove);
+        zoomContainer.addEventListener("pointerleave", resetZoom);
+        canHover.addEventListener("change", () => {
+          if (!canHover.matches) resetZoom();
+        });
+      }
+
+      const setLightboxOpen = (open: boolean) => {
+        if (!(lightbox instanceof HTMLElement)) return;
+        lightbox.classList.toggle("pointer-events-none", !open);
+        lightbox.classList.toggle("opacity-0", !open);
+        lightbox.classList.toggle("opacity-100", open);
+        lightbox.setAttribute("aria-hidden", String(!open));
+        document.body.classList.toggle("is-lightbox-open", open);
+      };
+
+      const openLightbox = () => {
+        if (!(main instanceof HTMLImageElement) || !(lightboxImage instanceof HTMLImageElement)) return;
+        lightboxImage.src = main.currentSrc || main.src;
+        lightboxImage.alt = main.alt || "Product image";
+        setLightboxOpen(true);
+      };
+
+      const closeLightbox = () => setLightboxOpen(false);
+
+      if (zoomContainer instanceof HTMLElement) {
+        zoomContainer.addEventListener("click", (event) => {
+          if (event.target instanceof Element && event.target.closest("[data-gallery-prev], [data-gallery-next]")) return;
+          openLightbox();
+        });
+      }
+
+      lightboxCloseButton?.addEventListener("click", closeLightbox);
+      lightboxBackdrop?.addEventListener("click", closeLightbox);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeLightbox();
+      });
 
       if (qtyInput instanceof HTMLInputElement) {
         const clampQuantity = () => {
@@ -576,5 +662,38 @@ const productSchema = JSON.stringify([
     });
   };
 
+  document.addEventListener("astro:before-swap", () => {
+    document.querySelectorAll("[data-loadable]").forEach((section) => {
+      section.classList.remove("is-loaded");
+    });
+  });
+
   document.addEventListener("astro:page-load", initProductPage);
 </script>
+
+<style>
+  .gallery-main-image {
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+
+  .gallery-zoom-container.is-zooming .gallery-main-image {
+    transform: scale(1.85);
+    cursor: zoom-in;
+  }
+
+  .gallery-main-image {
+    cursor: zoom-in;
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    .gallery-zoom-container.is-zooming .gallery-main-image {
+      transform: none;
+    }
+  }
+
+  :global(body.is-lightbox-open) {
+    overflow: hidden;
+  }
+
+</style>
