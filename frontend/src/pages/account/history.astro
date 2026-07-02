@@ -1,43 +1,10 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
-import { Search, ChevronRight, Package, Clock, CheckCircle, XCircle, ChevronDown, X } from "lucide-react";
+import OrderHistoryWrapper from "@/components/OrderHistoryList.tsx";
+import { Search, ChevronDown, X } from "lucide-react";
 import "@/styles/global.css";
 
 export const prerender = false;
-
-type OrderItem = { id: string; name: string; quantity: number; unitPrice: number };
-type Order = { id: string; status: string; total: number; createdAt: string; updatedAt: string; items: OrderItem[] };
-
-const apiUrl = (import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
-let orders: Order[] = [];
-
-try {
-  const response = await fetch(`${apiUrl}/orders`, {
-    headers: { cookie: Astro.request.headers.get("cookie") ?? "" },
-  });
-  if (response.ok) {
-    const data = await response.json();
-    orders = Array.isArray(data.orders) ? data.orders : [];
-  }
-} catch {
-  orders = [];
-}
-
-const currency = new Intl.NumberFormat("id-ID", { currency: "IDR", style: "currency", maximumFractionDigits: 0 });
-const statusMeta = {
-  pending: { className: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400", icon: Clock, label: "Menunggu Pembayaran" },
-  paid: { className: "bg-blue-500/10 text-blue-600 dark:text-blue-400", icon: Package, label: "Dibayar" },
-  fulfilled: { className: "bg-green-500/10 text-green-600 dark:text-green-400", icon: CheckCircle, label: "Selesai" },
-  cancelled: { className: "bg-red-500/10 text-red-600 dark:text-red-400", icon: XCircle, label: "Dibatalkan" },
-} as const;
-
-const metaFor = (status: string) => statusMeta[status as keyof typeof statusMeta] ?? statusMeta.pending;
-const noteFor = (status: string) => ({
-  pending: "Menunggu pembayaran",
-  paid: "Pembayaran diterima, pesanan diproses",
-  fulfilled: "Pesanan selesai",
-  cancelled: "Pesanan dibatalkan",
-}[status] ?? status);
 ---
 
 <AccountLayout title="Purchase History" activePath="/account/history" i18nTitleKey="account.history">
@@ -80,67 +47,9 @@ const noteFor = (status: string) => ({
       </div>
     </div>
 
-    <!-- Orders List -->
+<!-- Orders List -->
     <div class="space-y-4">
-      {orders.length === 0 ? (
-        <div class="border border-primary/20 bg-background p-8 text-center text-sm text-muted-foreground">
-          Belum ada riwayat pesanan.
-        </div>
-      ) : orders.map((order) => {
-        const meta = metaFor(order.status);
-        const StatusIcon = meta.icon;
-        const isCancelled = order.status === "cancelled";
-        const canReview = order.status === "fulfilled";
-        const products = order.items.map((item) => item.name);
-        return (
-          <div tabindex="0" role="link" data-tracking-id={order.id} class:list={["tracking-link group block border border-primary/20 bg-background p-5 transition-all hover:border-primary hover:shadow-md cursor-pointer", isCancelled && "opacity-60 grayscale hover:grayscale-0 hover:opacity-100"]}>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="font-bold text-foreground">{order.id}</span>
-                  <span class={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${meta.className}`}>
-                    <StatusIcon size={12} /> <span>{meta.label}</span>
-                  </span>
-                </div>
-                <p class="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("id-ID")}</p>
-              </div>
-              <div class="text-left sm:text-right">
-                <p class="text-sm text-muted-foreground mb-1" data-i18n="history.totalAmount">Total Amount</p>
-                <p class:list={["font-bold text-foreground", isCancelled && "line-through"]}>{currency.format(order.total)}</p>
-              </div>
-            </div>
-            <hr class="border-border/50 mb-4" />
-            <div class="flex items-center justify-between">
-              <div class="flex items-start gap-3">
-                <div class="flex shrink-0 items-start pt-0.5 text-muted-foreground">
-                  <Package size={20} />
-                </div>
-                <div class="flex flex-col gap-1">
-                  {order.items.map((item) => <p class="text-sm font-medium text-foreground">{item.quantity}x {item.name}</p>)}
-                  <p class="text-xs text-muted-foreground mt-1">{noteFor(order.status)}</p>
-                </div>
-              </div>
-              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors mt-2" />
-            </div>
-            {(order.status === "pending" || canReview) && (
-              <>
-                <hr class="border-border/50 my-4" />
-                <div class="flex items-center justify-end">
-                  {order.status === "pending" ? (
-                    <button data-href={`/checkout/${order.id}?status=pending`} class="js-action-btn bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-primary/90" data-i18n="history.payNow">
-                      Bayar Sekarang
-                    </button>
-                  ) : (
-                    <button onclick="return false;" data-order-id={order.id} data-products={JSON.stringify(products)} class="btn-review border border-primary bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-white" data-i18n="history.giveReview">
-                      Beri Review
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })}
+      <OrderHistoryWrapper client:load />
     </div>
   </div>
 
@@ -168,52 +77,8 @@ const noteFor = (status: string) => ({
 </AccountLayout>
 
 <script>
-  import { z } from "zod";
-
   document.addEventListener('astro:page-load', () => {
     const lang = document.documentElement.lang || 'id';
-    const messages = {
-      id: {
-        invalidId: "Order ID hanya boleh berisi huruf, angka, dan strip"
-      },
-      en: {
-        invalidId: "Order ID can only contain letters, numbers, and dashes"
-      }
-    };
-    const m = messages[lang as keyof typeof messages] || messages.id;
-
-    const items = document.querySelectorAll('.tracking-link');
-    const searchInput = document.getElementById("history-search") as HTMLInputElement;
-
-    function handleSearch() {
-      const q = searchInput?.value.toLowerCase().trim() || "";
-      const errorMsgEl = document.getElementById('search-error-msg');
-      
-      if (errorMsgEl) errorMsgEl.remove();
-
-      if (q.length > 0 && !z.string().regex(/^[a-zA-Z0-9-]+$/).safeParse(q).success) {
-        if(searchInput) {
-           const error = document.createElement('p');
-           error.id = 'search-error-msg';
-           error.className = 'absolute -bottom-6 left-0 text-xs text-red-500 animate-fade-in';
-           error.innerText = m.invalidId;
-           searchInput.parentNode?.appendChild(error);
-        }
-        return;
-      }
-
-      items.forEach(item => {
-        const idText = item.querySelector('.font-bold')?.textContent?.toLowerCase() || "";
-        const matches = idText.includes(q);
-        if (matches) {
-           (item as HTMLElement).style.display = 'block';
-        } else {
-           (item as HTMLElement).style.display = 'none';
-        }
-      });
-    }
-
-    searchInput?.addEventListener('input', handleSearch);
 
     // Select dropdown logic
     document.querySelectorAll("[data-select]").forEach((select) => {
@@ -420,45 +285,6 @@ const noteFor = (status: string) => ({
       }
       
       closeReviewModal();
-    });
-
-    const trackingLinks = document.querySelectorAll('.tracking-link');
-    trackingLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        // Only intercept if we didn't click inside a button (like 'Beri Review' or 'Pesanan Diterima')
-        const target = e.target as HTMLElement;
-        if (target.closest('button')) return;
-        
-        e.preventDefault();
-        const trackingId = link.getAttribute('data-tracking-id');
-        if (trackingId) {
-          sessionStorage.setItem('tuneboss-tracking-id', trackingId);
-          window.location.href = '/tracking';
-        }
-      });
-      // Handle keyboard navigation (Enter/Space)
-      link.addEventListener('keydown', (e) => {
-        const ev = e as KeyboardEvent;
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          const target = ev.target as HTMLElement;
-          if (target.closest('button')) return;
-          const trackingId = link.getAttribute('data-tracking-id');
-          if (trackingId) {
-            sessionStorage.setItem('tuneboss-tracking-id', trackingId);
-            window.location.href = '/tracking';
-          }
-        }
-      });
-    });
-
-    const actionBtns = document.querySelectorAll('.js-action-btn');
-    actionBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const href = btn.getAttribute('data-href');
-        if (href) window.location.href = href;
-      });
     });
   });
 </script>
