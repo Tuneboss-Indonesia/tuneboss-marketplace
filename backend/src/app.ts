@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import type { Request, Response } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -74,6 +75,10 @@ const passwordSchema = z.object({
   newPassword: z.string().min(8),
 });
 
+const adminOrderStatusSchema = z.object({
+  status: z.enum(["draft", "pending", "paid", "cancelled", "fulfilled"]),
+});
+
 const xenditWebhookSchema = z.object({
   external_id: z.string().uuid(),
   status: z.string(),
@@ -83,6 +88,52 @@ function safeEqual(a: string, b: string) {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+async function requireStaff(req: Request, res: Response) {
+  const user = await currentUser(req);
+  if (!user) {
+    res.status(401).json({ message: "Silakan login." });
+    return null;
+  }
+  if (user.role !== "admin" && user.role !== "staff") {
+    res.status(403).json({ message: "Akses admin diperlukan." });
+    return null;
+  }
+  return user;
+}
+
+async function orderDetail(order: typeof orders.$inferSelect) {
+  const items = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      quantity: orderItems.quantity,
+      unitPrice: orderItems.unitPrice,
+    })
+    .from(orderItems)
+    .innerJoin(products, eq(orderItems.productId, products.id))
+    .where(eq(orderItems.orderId, order.id));
+
+  const [customer] = order.customerId
+    ? await db.select({ email: users.email, id: users.id, name: users.name, phone: users.phone }).from(users).where(eq(users.id, order.customerId)).limit(1)
+    : [];
+  const [address] = order.addressId
+    ? await db.select().from(addresses).where(eq(addresses.id, order.addressId)).limit(1)
+    : [];
+
+  return {
+    address: address ?? null,
+    addressId: order.addressId,
+    createdAt: order.createdAt,
+    customer: customer ?? null,
+    customerId: order.customerId,
+    id: order.id,
+    items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
+    status: order.status,
+    total: Number(order.total),
+    updatedAt: order.updatedAt,
+  };
 }
 
 app.use(cors({
@@ -141,6 +192,47 @@ app.patch("/api/account/password", async (req, res) => {
     .where(eq(users.id, user.id));
 
   return res.json({ ok: true });
+});
+
+app.get("/api/admin/orders", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const rows = await db.select().from(orders).orderBy(desc(orders.createdAt));
+  const data = [];
+  for (const order of rows) data.push(await orderDetail(order));
+
+  return res.json({ orders: data });
+});
+
+app.get("/api/admin/orders/:id", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
+
+  const [order] = await db.select().from(orders).where(eq(orders.id, id.data)).limit(1);
+  if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+
+  return res.json({ order: await orderDetail(order) });
+});
+
+app.patch("/api/admin/orders/:id/status", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
+
+  const parsed = adminOrderStatusSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [updated] = await db
+    .update(orders)
+    .set({ status: parsed.data.status, updatedAt: new Date() })
+    .where(eq(orders.id, id.data))
+    .returning();
+  if (!updated) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+
+  return res.json({ order: await orderDetail(updated) });
 });
 
 app.get("/api/products", async (_req, res) => {
