@@ -262,6 +262,8 @@ import SEO from "@/components/SEO.astro";
   import { z } from "zod";
   import L from "leaflet";
 
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+
   const initCheckoutPage = () => {
     const listRoot = document.querySelector("[data-checkout-list]");
     const emptyRoot = document.querySelector("[data-checkout-empty]");
@@ -427,47 +429,37 @@ import SEO from "@/components/SEO.astro";
     document.querySelector("[data-create-order]")?.addEventListener("click", async (e) => {
       const btn = e.currentTarget as HTMLButtonElement;
       const sumName = document.querySelector("[data-summary-address-name]")?.textContent;
-      const sumPhone = document.querySelector("[data-summary-address-phone]")?.textContent;
       const items: CartItem[] = readCart();
       // const shippingVal = sumName === "Ambil di Tempat" ? "AMBIL_DI_TEMPAT" : "JNE";
-      const shippingCost = 0; // Ongkir statis 0 di web
       
       if (!sumName || items.length === 0) {
         errorRoot.textContent = (copy as Record<string, Record<string, string>>)[lang()]?.required || "Mohon lengkapi alamat dan pesanan Anda.";
         errorRoot.classList.remove("hidden");
         return;
       }
-
-      // Hitung subtotal dan total
-      const subtotal = items.reduce((sum: number, item: CartItem) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
-      const totalAmount = subtotal + shippingCost;
-      
-      // Siapkan payload invoice Xendit
-      const orderId = `TB-${Date.now().toString().slice(-8)}`;
-      
+       
       try {
         btn.disabled = true;
+        errorRoot.classList.add("hidden");
         
         btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...`;
-        
-        const res = await fetch('/api/xendit-invoice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const orderRes = await fetch(`${apiUrl}/orders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
-            externalId: orderId,
-            amount: totalAmount,
-            payerEmail: "guest@tuneboss.com",
-            description: `Pembayaran Pesanan TuneBoss - ${orderId}`,
-            customer: {
-               given_names: sumName,
-               mobile_number: sumPhone
-            },
-            items: items.map((item: CartItem) => ({
-               name: (item as CartItem).name,
-               quantity: (item as CartItem).quantity,
-               price: (item as CartItem).price
-            })).concat(shippingCost > 0 ? [{ name: "Ongkos Kirim", quantity: 1, price: shippingCost }] : [])
-          })
+            items: items.map((item) => ({ id: String(item.id), quantity: Number(item.quantity || 1) })),
+          }),
+        });
+        const orderData = await orderRes.json().catch(() => ({}));
+        if (!orderRes.ok || !orderData.order) throw new Error(orderData.message || "Gagal membuat pesanan.");
+        const order = orderData.order as { id: string; items: { name: string; quantity: number; price: number }[] };
+        
+        const res = await fetch(`${apiUrl}/payments/xendit/invoice`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ orderId: order.id })
         });
         
         const responseText = await res.text();
@@ -478,8 +470,8 @@ import SEO from "@/components/SEO.astro";
         }
         
         if (data.invoice_url) {
-           sessionStorage.setItem("tuneboss-last-order", JSON.stringify({ id: orderId, items }));
-           sessionStorage.setItem(`tuneboss-order-status-${orderId}`, "pending");
+           sessionStorage.setItem("tuneboss-last-order", JSON.stringify({ id: order.id, items: order.items }));
+           sessionStorage.setItem(`tuneboss-order-status-${order.id}`, "pending");
            window.location.href = data.invoice_url; // Redirect ke Xendit
         }
       } catch (err: unknown) {

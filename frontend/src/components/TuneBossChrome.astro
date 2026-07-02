@@ -1118,6 +1118,7 @@ import AlertDialog from "./AlertDialog.astro";
   const { signal } = tuneBossChromeController;
 
   const root = document.documentElement;
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
   const navbar = document.querySelector("[data-navbar]");
   const menu = document.querySelector("[data-menu]");
   const panel = document.querySelector("[data-menu-panel]");
@@ -1141,6 +1142,18 @@ import AlertDialog from "./AlertDialog.astro";
   let authScrollY = 0;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let cart: any[] = [];
+
+  const apiRequest = async (path: string, body?: unknown) => {
+    const response = await fetch(`${apiUrl}${path}`, {
+      method: body ? "POST" : "GET",
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      credentials: "include",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || data.error || "Request failed");
+    return data;
+  };
 
   const setMenu = (open: boolean) => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -1447,19 +1460,6 @@ import AlertDialog from "./AlertDialog.astro";
   };
 
   const openAuthDialog = (mode = "login") => {
-    const pendingEmail = localStorage.getItem("tuneboss-pending-otp");
-    if (pendingEmail && typeof window.openOtpDialog === "function") {
-      window.openOtpDialog(pendingEmail, () => {
-        document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-        if (typeof window.checkAuthStatus === "function") {
-          window.checkAuthStatus?.();
-        } else {
-          navigate("/account/settings");
-        }
-      }, true);
-      return;
-    }
-
     const dialog = authDialogs[mode as keyof typeof authDialogs] || authDialogs.login;
     document.body.dataset.authSwitching = "true";
     Object.values(authDialogs).forEach((item) => {
@@ -1810,7 +1810,6 @@ import AlertDialog from "./AlertDialog.astro";
     const titleKey = mode === "register" ? "auth.registerToast" : "auth.signinToast";
     const copyKey = mode === "register" ? "auth.registerToastCopy" : "auth.signinToastCopy";
     showToast(copy[lang][titleKey], copy[lang][copyKey]);
-    document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
     if (typeof window.checkAuthStatus === "function") {
       window.checkAuthStatus?.();
     } else {
@@ -1820,9 +1819,10 @@ import AlertDialog from "./AlertDialog.astro";
   };
 
   document.querySelectorAll("[data-auth-form]").forEach((form) => {
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!(form instanceof HTMLFormElement)) return;
+      if (form.dataset.authForm !== "login" && form.dataset.authForm !== "register") return;
       const mode = form.dataset.authForm === "register" ? "register" : "login";
 
       const emailInput = form.elements.namedItem("email");
@@ -1840,7 +1840,7 @@ import AlertDialog from "./AlertDialog.astro";
       if (mode === "register") {
         schema = z.object({
           email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
-          password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+          password: z.string().min(8, { message: "Password minimal 8 karakter" }),
           name: z.string().min(1, { message: "Nama wajib diisi" }),
           confirmPassword: z.string().min(1, { message: "Konfirmasi password wajib diisi" }),
           termsAgreed: z.literal(true, { message: "Wajib menyetujui ketentuan layanan" }),
@@ -1851,7 +1851,7 @@ import AlertDialog from "./AlertDialog.astro";
       } else {
         schema = z.object({
           email: z.string().min(1, { message: "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Format email tidak valid" }),
-          password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+          password: z.string().min(8, { message: "Password minimal 8 karakter" }),
         });
       }
 
@@ -1882,23 +1882,21 @@ import AlertDialog from "./AlertDialog.astro";
         return;
       }
 
-      form.closest("dialog")?.close();
       const email = formData.email.trim().toLowerCase();
+      const submit = form.querySelector('button[type="submit"]');
+      if (submit instanceof HTMLButtonElement) submit.disabled = true;
 
-      if (mode === "register") {
-        openOtpDialog(email, () => completeAuth(mode));
-        return;
+      try {
+        await apiRequest(`/auth/${mode}`, mode === "register"
+          ? { email, name: formData.name, password: formData.password }
+          : { email, password: formData.password });
+        form.closest("dialog")?.close();
+        completeAuth(mode);
+      } catch (error) {
+        showToast(root.lang === "en" ? "Authentication failed" : "Autentikasi gagal", error instanceof Error ? error.message : "Request failed");
+      } finally {
+        if (submit instanceof HTMLButtonElement) submit.disabled = false;
       }
-
-      // For login
-      if (!isOtpVerified(email)) {
-        const title = root.lang === "en" ? "Account Not Found" : "Akun Tidak Ditemukan";
-        const message = root.lang === "en" ? "Please register an account first before logging in." : "Silakan daftar akun terlebih dahulu sebelum login.";
-        showToast(title, message);
-        return;
-      }
-
-      completeAuth(mode);
     }, { signal });
   });
 
@@ -2003,8 +2001,8 @@ import AlertDialog from "./AlertDialog.astro";
   browserLanguageObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
   if (isBrowserTranslated()) syncBrowserTranslateLanguage();
 
-  window.checkAuthStatus = () => {
-    const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
+  window.checkAuthStatus = async () => {
+    const isLoggedIn = await apiRequest("/auth/me").then((data) => Boolean(data.user)).catch(() => false);
     document.querySelectorAll("[data-auth-guest]").forEach(el => el.classList.toggle("hidden", isLoggedIn));
     document.querySelectorAll("[data-auth-user]").forEach(el => {
       if (isLoggedIn) {
@@ -2031,9 +2029,9 @@ import AlertDialog from "./AlertDialog.astro";
 
   const logoutConfirmBtn = document.querySelector("#logout-dialog [data-dialog-confirm]");
   if (logoutConfirmBtn) {
-    logoutConfirmBtn.addEventListener("click", () => {
-      document.cookie = "tuneboss-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      window.checkAuthStatus?.();
+    logoutConfirmBtn.addEventListener("click", async () => {
+      await apiRequest("/auth/logout", {}).catch(() => undefined);
+      await window.checkAuthStatus?.();
       setMenu(false);
       navigate("/");
     }, { signal });
@@ -2062,17 +2060,6 @@ import AlertDialog from "./AlertDialog.astro";
       );
     });
   });
-
-  const path = window.location.pathname.replace(/\/$/, "");
-  if (path === "/login" || path === "/register") {
-    const pendingEmail = localStorage.getItem("tuneboss-pending-otp");
-    if (pendingEmail) {
-      openOtpDialog(pendingEmail, () => {
-        document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-        navigate("/account/settings");
-      }, true);
-    }
-  }
 
   };
 

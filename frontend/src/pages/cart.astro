@@ -94,6 +94,11 @@ import SEO from "@/components/SEO.astro";
   import { gsap } from "gsap";
   import { navigate } from "astro:transitions/client";
 
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+  const isLoggedIn = async () => fetch(`${apiUrl}/auth/me`, { credentials: "include" })
+    .then((response) => response.ok)
+    .catch(() => false);
+
   const initCartPage = () => {
     const container = document.getElementById("cart-container");
     const emptyState = document.getElementById("cart-empty");
@@ -321,11 +326,10 @@ import SEO from "@/components/SEO.astro";
         const currentCart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
         const hasSelectedItems = currentCart.some((i: CartItem) => i.selected !== false);
         const label = btn.querySelector("[data-i18n]");
-        const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
         if (label) {
           const isEnglish = document.documentElement.lang === "en";
-          label.setAttribute("data-i18n", isLoggedIn ? "cart.checkoutBtn" : "cart.loginToCheckout");
-          label.textContent = isLoggedIn ? (isEnglish ? "Proceed to Checkout" : "Lanjut Checkout") : (isEnglish ? "Login to Checkout" : "Login untuk Checkout");
+          label.setAttribute("data-i18n", "cart.checkoutBtn");
+          label.textContent = isEnglish ? "Proceed to Checkout" : "Lanjut Checkout";
         }
         if (hasSelectedItems) {
           btn.classList.remove("opacity-50", "pointer-events-none");
@@ -336,9 +340,8 @@ import SEO from "@/components/SEO.astro";
       
       window.updateCheckoutBtn();
 
-      checkoutBtn.addEventListener("click", () => {
-        const isLoggedIn = document.cookie.includes("tuneboss-auth=true");
-        if (isLoggedIn) {
+      checkoutBtn.addEventListener("click", async () => {
+        if (await isLoggedIn()) {
           navigate("/checkout");
         } else {
           if (typeof window.openAuthDialog === "function") {

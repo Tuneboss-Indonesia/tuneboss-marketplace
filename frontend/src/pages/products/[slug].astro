@@ -293,16 +293,16 @@ const productSchema = JSON.stringify([
             <div class="mb-5 flex flex-wrap gap-3">
               <span class="inline-flex items-center gap-2 text-sm font-medium text-primary">
                 <Tag size={17} strokeWidth={1.8} aria-hidden="true" />
-                {product.brand}
+                <span data-product-brand>{product.brand}</span>
               </span>
             </div>
-            <h1 id="product-title" class="max-w-4xl text-5xl font-black uppercase leading-[0.9] tracking-wide md:text-7xl">{product.name}</h1>
+            <h1 id="product-title" data-product-name class="max-w-4xl text-5xl font-black uppercase leading-[0.9] tracking-wide md:text-7xl">{product.name}</h1>
 
             <div class="mt-6 flex flex-wrap items-end gap-3">
-              <span class="text-3xl font-light md:text-4xl">{product.price}</span>
+              <span data-product-price class="text-3xl font-light md:text-4xl">{product.price}</span>
             </div>
             <p class="mt-4 text-sm font-bold uppercase tracking-[0.18em] text-primary">
-              <span data-i18n="detail.stock">Stok</span>: <span>{product.stock}</span> <span data-i18n="detail.units">unit</span>
+              <span data-i18n="detail.stock">Stok</span>: <span data-product-stock>{product.stock}</span> <span data-i18n="detail.units">unit</span>
             </p>
 
             <div data-cart-form class="my-8 flex flex-col gap-4 sm:flex-row sm:items-stretch">
@@ -335,7 +335,7 @@ const productSchema = JSON.stringify([
               </button>
             </div>
 
-            <p class="max-w-2xl text-base leading-8 text-primary md:text-lg">{product.description}</p>
+            <p data-product-description class="max-w-2xl text-base leading-8 text-primary md:text-lg">{product.description}</p>
 
             <div class="mt-10 border-t border-primary/10 pt-8">
               <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -462,6 +462,8 @@ const productSchema = JSON.stringify([
 </TuneBossChrome>
 
 <script>
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+
   const closeReviewSorts = () => {
     document.querySelectorAll("[data-review-sort-button]").forEach((button) => {
       button.setAttribute("aria-expanded", "false");
@@ -477,7 +479,40 @@ const productSchema = JSON.stringify([
     closeReviewSorts();
   });
 
+  const loadApiProduct = async () => {
+    const slug = window.location.pathname.split("/").filter(Boolean).at(-1);
+    if (!slug) return;
+    try {
+      const response = await fetch(`${apiUrl}/products/${encodeURIComponent(slug)}`);
+      const data = await response.json();
+      const item = data.product as { id: string; brand: string; name: string; price: string; stock: number; description: string; image: string } | undefined;
+      if (!response.ok || !item) return;
+
+      document.querySelectorAll("[data-product-brand]").forEach((node) => { node.textContent = item.brand; });
+      document.querySelectorAll("[data-product-name]").forEach((node) => { node.textContent = item.name; });
+      document.querySelectorAll("[data-product-price]").forEach((node) => { node.textContent = item.price; });
+      document.querySelectorAll("[data-product-stock]").forEach((node) => { node.textContent = String(item.stock); });
+      document.querySelectorAll("[data-product-description]").forEach((node) => { node.textContent = item.description; });
+      document.querySelectorAll("[data-add-cart]").forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        node.dataset.productId = item.id;
+        node.dataset.productName = item.name;
+        node.dataset.productPrice = item.price;
+        node.dataset.productImage = item.image;
+        node.dataset.productBrand = item.brand;
+        node.dataset.productMax = String(item.stock || 99);
+      });
+      document.querySelectorAll("[data-cart-qty]").forEach((node) => {
+        if (node instanceof HTMLInputElement) node.dataset.max = String(item.stock || 99);
+      });
+      document.title = `${item.name} | TuneBoss ID`;
+    } catch {
+      // Static product content stays visible when the API is unavailable.
+    }
+  };
+
   const initProductPage = () => {
+    loadApiProduct();
     document.querySelectorAll("[data-loadable]").forEach((section) => {
       section.classList.remove("is-loaded");
       window.setTimeout(() => section.classList.add("is-loaded"), Number(section.getAttribute("data-load-delay") || 600));

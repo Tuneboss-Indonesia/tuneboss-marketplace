@@ -37,7 +37,9 @@ import SEO from "@/components/SEO.astro";
 </TuneBossChrome>
 
 <script>
-  document.addEventListener("astro:page-load", () => {
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+
+  document.addEventListener("astro:page-load", async () => {
     const container = document.getElementById("status-container");
     const statusTitle = document.getElementById("status-title");
     const statusMessage = document.getElementById("status-message");
@@ -59,6 +61,18 @@ import SEO from "@/components/SEO.astro";
       // Clean up the URL to remove the query params for a cleaner look
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/tracking/${encodeURIComponent(orderId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        const backendStatus = data.order?.status;
+        rawStatus = backendStatus === "paid" || backendStatus === "fulfilled" ? "success" : backendStatus === "cancelled" ? "canceled" : "pending";
+        sessionStorage.setItem(stateKey, rawStatus);
+      }
+    } catch {
+      // Query/session state remains as fallback while payment webhook catches up.
     }
 
     const status = (["success", "failed", "pending", "canceled"].includes(rawStatus) ? rawStatus : "pending") as "success" | "failed" | "pending" | "canceled";

@@ -38,6 +38,20 @@ function readSessionToken(req: Request) {
   return match ? decodeURIComponent(match.slice(cookieName.length + 1)) : null;
 }
 
+export async function currentUser(req: Request) {
+  const token = readSessionToken(req);
+  if (!token) return null;
+
+  const [row] = await db
+    .select({ email: user.email, id: user.id, name: user.name, role: user.role })
+    .from(session)
+    .innerJoin(user, eq(session.userId, user.id))
+    .where(and(eq(session.token, token), gt(session.expiresAt, new Date())))
+    .limit(1);
+
+  return row ?? null;
+}
+
 function setSessionCookie(res: Response, token: string) {
   res.cookie(cookieName, token, {
     httpOnly: true,
@@ -94,18 +108,9 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function me(req: Request, res: Response) {
-  const token = readSessionToken(req);
-  if (!token) return res.status(401).json({ user: null });
-
-  const [row] = await db
-    .select({ email: user.email, id: user.id, name: user.name, role: user.role })
-    .from(session)
-    .innerJoin(user, eq(session.userId, user.id))
-    .where(and(eq(session.token, token), gt(session.expiresAt, new Date())))
-    .limit(1);
-
-  if (!row) return res.status(401).json({ user: null });
-  return res.json({ user: row });
+  const found = await currentUser(req);
+  if (!found) return res.status(401).json({ user: null });
+  return res.json({ user: found });
 }
 
 export async function logout(req: Request, res: Response) {

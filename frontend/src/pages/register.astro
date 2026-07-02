@@ -108,6 +108,8 @@ import SEO from "@/components/SEO.astro";
   import { z } from "zod";
   import { navigate } from "astro:transitions/client";
 
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+
   const bindRegisterPage = () => {
     const form = document.querySelector("form");
     if (form instanceof HTMLFormElement && form.dataset.bound !== "true") {
@@ -124,7 +126,7 @@ import SEO from "@/components/SEO.astro";
       }
       syncSubmitButton();
 
-      form.addEventListener("submit", (event) => {
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         const nameInput = form.elements.namedItem("name");
@@ -141,7 +143,7 @@ import SEO from "@/components/SEO.astro";
         const schema = z.object({
           name: z.string().min(1, lang === "en" ? "Name is required" : "Nama wajib diisi"),
           email: z.string().min(1, { message: lang === "en" ? "Email is required" : "Email wajib diisi" }).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: lang === "en" ? "Invalid email format" : "Format email tidak valid" }),
-          password: z.string().min(6, lang === "en" ? "Password must be at least 6 characters" : "Password minimal 6 karakter"),
+          password: z.string().min(8, lang === "en" ? "Password must be at least 8 characters" : "Password minimal 8 karakter"),
           confirmPassword: z.string().min(1, lang === "en" ? "Confirm password is required" : "Konfirmasi password wajib diisi"),
           termsAgreed: z.literal(true, { message: lang === "en" ? "Please accept the terms" : "Wajib menyetujui ketentuan layanan" }),
         }).refine((data) => data.password === data.confirmPassword, {
@@ -178,18 +180,25 @@ import SEO from "@/components/SEO.astro";
 
         const email = formData.email.trim().toLowerCase();
         const redirect = new URLSearchParams(window.location.search).get("redirect");
+        const submit = form.querySelector('button[type="submit"]');
+        if (submit instanceof HTMLButtonElement) submit.disabled = true;
 
-        if (typeof window.openOtpDialog === "function") {
-          window.openOtpDialog(email, () => {
-            if (redirect) {
-              navigate(redirect);
-            } else {
-              navigate("/account/settings");
-            }
+        try {
+          const response = await fetch(`${apiUrl}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email, name: formData.name, password: formData.password }),
           });
-        } else {
-          document.cookie = "tuneboss-auth=true; path=/; max-age=31536000";
-          navigate("/account/settings");
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.message || data.error || "Register gagal");
+          navigate(redirect || "/account/settings");
+        } catch (error) {
+          if (typeof window.showToast === "function") {
+            window.showToast(lang === "en" ? "Register failed" : "Register gagal", error instanceof Error ? error.message : "Request failed");
+          }
+        } finally {
+          syncSubmitButton();
         }
       });
     }
