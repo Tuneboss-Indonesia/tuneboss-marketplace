@@ -31,7 +31,7 @@ import SEO from "@/components/SEO.astro";
             id="order_id" 
             name="order_id" 
             data-i18n-placeholder="tracking.placeholder"
-            placeholder="e.g. INV-2610-TB99" 
+            placeholder="Order ID" 
             autocomplete="off"
             required
             class="h-14 w-full rounded-none border border-primary/20 bg-transparent pl-12 pr-4 text-sm font-medium transition-colors focus:border-primary focus:outline-none"
@@ -65,7 +65,7 @@ import SEO from "@/components/SEO.astro";
     const btn = document.getElementById('btn-track');
 
     // Define Zod schema for order ID validation
-  const orderIdSchema = z.string().min(1, { message: "ID Pesanan diperlukan." }).startsWith("INV-", { message: "tracking.zodError" });
+  const orderIdSchema = z.string().min(1, { message: "ID Pesanan diperlukan." }).uuid({ message: "tracking.zodError" });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -82,7 +82,7 @@ import SEO from "@/components/SEO.astro";
         
         let errorMsg;
         if (errorKey === "tracking.zodError") {
-          errorMsg = isEn ? "Invalid Order ID. Format must start with 'INV-'." : "ID Pesanan tidak valid. Format harus berawalan 'INV-'.";
+            errorMsg = isEn ? "Invalid Order ID." : "ID Pesanan tidak valid.";
         } else {
           errorMsg = isEn ? "Order ID is required." : "ID Pesanan diperlukan.";
         }

@@ -27,6 +27,21 @@ export const session = pgTable("session", {
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
 });
 
+export const addresses = pgTable("addresses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerId: text("customer_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  label: text("label").notNull().default("Rumah"),
+  recipientName: text("recipient_name").notNull(),
+  phone: text("phone").notNull(),
+  addressLine: text("address_line").notNull(),
+  city: text("city").notNull().default(""),
+  province: text("province").notNull().default(""),
+  postalCode: text("postal_code").notNull().default(""),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),

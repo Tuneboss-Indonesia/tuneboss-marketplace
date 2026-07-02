@@ -5,7 +5,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, login, logout, me, register } from "./auth.js";
 import { db } from "./db/client.js";
-import { orderItems, orders, products, stockMovements } from "./db/schema.js";
+import { addresses, orderItems, orders, products, stockMovements } from "./db/schema.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -46,6 +46,21 @@ const orderSchema = z.object({
 
 const invoiceSchema = z.object({
   orderId: z.string().uuid(),
+});
+
+const addressSchema = z.object({
+  addressLine: z.string().trim().min(5),
+  city: z.string().trim().optional().default(""),
+  isDefault: z.boolean().optional().default(false),
+  label: z.string().trim().optional().default("Rumah"),
+  phone: z.string().trim().min(8),
+  postalCode: z.string().trim().optional().default(""),
+  province: z.string().trim().optional().default(""),
+  recipientName: z.string().trim().min(3),
+});
+
+const addressPatchSchema = addressSchema.partial().refine((value) => Object.keys(value).length > 0, {
+  message: "Minimal satu field harus diisi.",
 });
 
 const xenditWebhookSchema = z.object({
@@ -112,6 +127,117 @@ app.get("/api/tracking/:orderId", async (req, res) => {
       updatedAt: order.updatedAt,
     },
   });
+});
+
+app.get("/api/orders", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk melihat riwayat pesanan." });
+
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.customerId, user.id))
+    .orderBy(desc(orders.createdAt));
+
+  const data = [];
+  for (const order of rows) {
+    const items = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        quantity: orderItems.quantity,
+        unitPrice: orderItems.unitPrice,
+      })
+      .from(orderItems)
+      .innerJoin(products, eq(orderItems.productId, products.id))
+      .where(eq(orderItems.orderId, order.id));
+
+    data.push({
+      createdAt: order.createdAt,
+      id: order.id,
+      items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
+      status: order.status,
+      total: Number(order.total),
+      updatedAt: order.updatedAt,
+    });
+  }
+
+  return res.json({ orders: data });
+});
+
+app.get("/api/addresses", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk melihat alamat." });
+
+  const rows = await db
+    .select()
+    .from(addresses)
+    .where(eq(addresses.customerId, user.id))
+    .orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
+
+  return res.json({ addresses: rows });
+});
+
+app.post("/api/addresses", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk menyimpan alamat." });
+
+  const parsed = addressSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const id = randomUUID();
+  await db.transaction(async (tx) => {
+    if (parsed.data.isDefault) {
+      await tx.update(addresses).set({ isDefault: false, updatedAt: new Date() }).where(eq(addresses.customerId, user.id));
+    }
+    await tx.insert(addresses).values({ ...parsed.data, customerId: user.id, id });
+  });
+
+  const [address] = await db.select().from(addresses).where(eq(addresses.id, id)).limit(1);
+  return res.status(201).json({ address });
+});
+
+app.patch("/api/addresses/:id", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk mengubah alamat." });
+
+  const parsed = addressPatchSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [address] = await db
+    .select()
+    .from(addresses)
+    .where(and(eq(addresses.id, req.params.id), eq(addresses.customerId, user.id)))
+    .limit(1);
+  if (!address) return res.status(404).json({ message: "Alamat tidak ditemukan." });
+
+  await db.transaction(async (tx) => {
+    if (parsed.data.isDefault) {
+      await tx.update(addresses).set({ isDefault: false, updatedAt: new Date() }).where(eq(addresses.customerId, user.id));
+    }
+    await tx
+      .update(addresses)
+      .set({ ...parsed.data, updatedAt: new Date() })
+      .where(and(eq(addresses.id, address.id), eq(addresses.customerId, user.id)));
+  });
+
+  const [updated] = await db.select().from(addresses).where(eq(addresses.id, address.id)).limit(1);
+  return res.json({ address: updated });
+});
+
+app.delete("/api/addresses/:id", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk menghapus alamat." });
+
+  const [address] = await db
+    .select()
+    .from(addresses)
+    .where(and(eq(addresses.id, req.params.id), eq(addresses.customerId, user.id)))
+    .limit(1);
+  if (!address) return res.status(404).json({ message: "Alamat tidak ditemukan." });
+
+  await db.delete(addresses).where(and(eq(addresses.id, address.id), eq(addresses.customerId, user.id)));
+  return res.status(204).send();
 });
 
 app.post("/api/orders", async (req, res) => {
