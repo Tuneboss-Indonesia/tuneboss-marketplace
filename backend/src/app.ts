@@ -5,7 +5,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, login, logout, me, register } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, orderItems, orders, products, stockMovements } from "./db/schema.js";
+import { addresses, orderItems, orders, products, stockMovements, user as users } from "./db/schema.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -64,6 +64,10 @@ const addressPatchSchema = addressSchema.partial().refine((value) => Object.keys
   message: "Minimal satu field harus diisi.",
 });
 
+const profileSchema = z.object({
+  name: z.string().trim().min(3),
+});
+
 const xenditWebhookSchema = z.object({
   external_id: z.string().uuid(),
   status: z.string(),
@@ -90,6 +94,28 @@ app.post("/api/auth/register", register);
 app.post("/api/auth/login", login);
 app.get("/api/auth/me", me);
 app.post("/api/auth/logout", logout);
+
+app.get("/api/account", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk melihat profil." });
+  return res.json({ user });
+});
+
+app.patch("/api/account", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk mengubah profil." });
+
+  const parsed = profileSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [updated] = await db
+    .update(users)
+    .set({ name: parsed.data.name, updatedAt: new Date() })
+    .where(eq(users.id, user.id))
+    .returning({ email: users.email, id: users.id, name: users.name, role: users.role });
+
+  return res.json({ user: updated });
+});
 
 app.get("/api/products", async (_req, res) => {
   const rows = await db

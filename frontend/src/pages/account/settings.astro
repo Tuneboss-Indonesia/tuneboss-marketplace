@@ -38,7 +38,6 @@ export const prerender = false;
             <input 
               id="profile-email"
               type="email" 
-              value="hello@tuneboss.co.id"
               disabled
               class="w-full border border-primary/20 bg-primary/5 p-4 pl-12 outline-none transition-colors text-foreground/60 cursor-not-allowed"
             />
@@ -145,6 +144,8 @@ export const prerender = false;
 <script>
   import { z } from "zod";
 
+  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+
   document.addEventListener('astro:page-load', () => {
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(btn => {
@@ -186,12 +187,27 @@ export const prerender = false;
 
     const profileSchema = z.object({
       name: z.string().min(3, { message: m.nameMin }),
-      phone: z.string().min(9, { message: m.phoneMin }),
+      phone: z.string().optional(),
     });
+
+    const loadProfile = async () => {
+      const nameInput = document.getElementById("profile-name") as HTMLInputElement | null;
+      const emailInput = document.getElementById("profile-email") as HTMLInputElement | null;
+      try {
+        const response = await fetch(`${apiUrl}/account`, { credentials: "include" });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.user) {
+          if (nameInput) nameInput.value = data.user.name || "";
+          if (emailInput) emailInput.value = data.user.email || "";
+        }
+      } catch {
+        // Keep empty form if profile cannot be loaded.
+      }
+    };
 
     const profileForm = document.getElementById('profile-form');
     if (profileForm) {
-      profileForm.addEventListener('submit', (e) => {
+      profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         profileForm.querySelectorAll(".zod-error").forEach(el => el.remove());
         
@@ -214,9 +230,26 @@ export const prerender = false;
           });
           return;
         }
-        alert('Profil berhasil disimpan! (Hanya simulasi)');
+        try {
+          const response = await fetch(`${apiUrl}/account`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name: result.data.name }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.message || "Gagal menyimpan profil.");
+          alert('Profil berhasil disimpan!');
+        } catch (error) {
+          const msg = document.createElement("p");
+          msg.className = "zod-error text-[11px] font-medium text-red-500 mt-1.5 px-1";
+          msg.textContent = (error as Error).message;
+          nameInput.parentElement?.parentElement?.appendChild(msg);
+        }
       });
     }
+
+    void loadProfile();
 
     const passwordSchema = z.object({
       current: z.string().min(6, { message: m.passMin }),
