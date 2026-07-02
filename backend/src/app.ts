@@ -38,6 +38,7 @@ function productDto(product: typeof products.$inferSelect) {
 }
 
 const orderSchema = z.object({
+  addressId: z.string().uuid(),
   items: z.array(z.object({
     id: z.string().min(1),
     quantity: z.coerce.number().int().positive(),
@@ -153,6 +154,7 @@ app.get("/api/orders", async (req, res) => {
       .where(eq(orderItems.orderId, order.id));
 
     data.push({
+      addressId: order.addressId,
       createdAt: order.createdAt,
       id: order.id,
       items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
@@ -247,6 +249,13 @@ app.post("/api/orders", async (req, res) => {
   const parsed = orderSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
+  const [address] = await db
+    .select()
+    .from(addresses)
+    .where(and(eq(addresses.id, parsed.data.addressId), eq(addresses.customerId, user.id)))
+    .limit(1);
+  if (!address) return res.status(400).json({ message: "Pilih alamat pengiriman yang valid." });
+
   const requested = new Map<string, number>();
   for (const item of parsed.data.items) {
     requested.set(item.id, (requested.get(item.id) ?? 0) + item.quantity);
@@ -274,7 +283,7 @@ app.post("/api/orders", async (req, res) => {
 
   const orderId = randomUUID();
   await db.transaction(async (tx) => {
-    await tx.insert(orders).values({ customerId: user.id, id: orderId, status: "pending", total });
+    await tx.insert(orders).values({ addressId: address.id, customerId: user.id, id: orderId, status: "pending", total });
     await tx.insert(orderItems).values(items.map((item) => ({
       orderId,
       productId: item.product.id,
@@ -285,6 +294,7 @@ app.post("/api/orders", async (req, res) => {
 
   return res.status(201).json({
     order: {
+      addressId: address.id,
       id: orderId,
       status: "pending",
       total: Number(total),

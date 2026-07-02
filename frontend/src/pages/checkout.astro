@@ -263,6 +263,17 @@ import SEO from "@/components/SEO.astro";
   import L from "leaflet";
 
   const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+  type Address = {
+    id: string;
+    label: string;
+    recipientName: string;
+    phone: string;
+    addressLine: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    isDefault: boolean;
+  };
 
   const initCheckoutPage = () => {
     const listRoot = document.querySelector("[data-checkout-list]");
@@ -349,6 +360,8 @@ import SEO from "@/components/SEO.astro";
 
     const formatRupiah = (value: number) => `Rp. ${new Intl.NumberFormat("id-ID").format(value)}`;
     const lang = () => document.documentElement.lang === "en" ? "en" : "id";
+    let addresses: Address[] = [];
+    let selectedAddressId = "";
     const readCart = () => {
       try {
         const cart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
@@ -377,6 +390,63 @@ import SEO from "@/components/SEO.astro";
 
     const setText = (selector: string, value: string) => {
       document.querySelectorAll(selector).forEach((node) => { node.textContent = String(value); });
+    };
+
+    const addressText = (address: Address) => [address.addressLine, address.city, address.province, address.postalCode].filter(Boolean).join(", ");
+
+    const selectAddress = (address: Address) => {
+      selectedAddressId = address.id;
+      const sumName = document.querySelector("[data-summary-address-name]");
+      const sumPhone = document.querySelector("[data-summary-address-phone]");
+      const sumFull = document.querySelector("[data-summary-address-full]");
+
+      if (sumName) sumName.textContent = address.recipientName;
+      if (sumPhone) sumPhone.textContent = address.phone;
+      if (sumFull) sumFull.textContent = addressText(address);
+
+      const badge = document.getElementById("checkout-address-primary-badge");
+      badge?.classList.toggle("hidden", !address.isDefault);
+
+      const addressSummary = document.getElementById("checkout-address-summary");
+      const addressEmpty = document.getElementById("checkout-address-empty");
+      addressEmpty?.classList.add("hidden");
+      addressSummary?.classList.remove("hidden");
+      addressSummary?.classList.add("flex");
+    };
+
+    const renderAddressOptions = () => {
+      const list = document.getElementById("modal-address-list");
+      const empty = document.getElementById("modal-address-empty-msg");
+      if (!list || !empty) return;
+
+      empty.classList.toggle("hidden", addresses.length > 0);
+      empty.classList.toggle("flex", addresses.length === 0);
+      list.innerHTML = addresses.map((address, index) => `
+        <label class="flex items-start gap-4 cursor-pointer group ${index > 0 ? "pt-6 border-t border-primary/10" : ""}">
+          <input type="radio" name="address-option" value="${address.id}" class="mt-1 shrink-0 h-5 w-5 accent-primary" ${address.id === selectedAddressId ? "checked" : ""} />
+          <div class="flex-1 text-sm text-foreground/80">
+            <div class="flex flex-wrap items-center justify-between mb-1 gap-2">
+              <div class="font-bold text-foreground">
+                <span>${address.recipientName}</span>
+                <span class="font-normal text-foreground/60 ml-2 border-l border-foreground/20 pl-2">${address.phone}</span>
+              </div>
+            </div>
+            <p>${addressText(address)}</p>
+          </div>
+        </label>
+      `).join("");
+    };
+
+    const loadAddresses = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/addresses`, { credentials: "include" });
+        const data = await response.json().catch(() => ({}));
+        addresses = response.ok && Array.isArray(data.addresses) ? data.addresses : [];
+        if (addresses.length > 0) selectAddress(addresses.find((address) => address.isDefault) || addresses[0]);
+      } catch {
+        addresses = [];
+      }
+      renderAddressOptions();
     };
 
     const render = (skipListRebuild = false) => {
@@ -428,11 +498,10 @@ import SEO from "@/components/SEO.astro";
 
     document.querySelector("[data-create-order]")?.addEventListener("click", async (e) => {
       const btn = e.currentTarget as HTMLButtonElement;
-      const sumName = document.querySelector("[data-summary-address-name]")?.textContent;
       const items: CartItem[] = readCart();
       // const shippingVal = sumName === "Ambil di Tempat" ? "AMBIL_DI_TEMPAT" : "JNE";
-      
-      if (!sumName || items.length === 0) {
+       
+      if (!selectedAddressId || items.length === 0) {
         errorRoot.textContent = (copy as Record<string, Record<string, string>>)[lang()]?.required || "Mohon lengkapi alamat dan pesanan Anda.";
         errorRoot.classList.remove("hidden");
         return;
@@ -448,6 +517,7 @@ import SEO from "@/components/SEO.astro";
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
+            addressId: selectedAddressId,
             items: items.map((item) => ({ id: String(item.id), quantity: Number(item.quantity || 1) })),
           }),
         });
@@ -534,8 +604,6 @@ import SEO from "@/components/SEO.astro";
     const addressSelectBtn = document.getElementById("checkout-address-select-btn");
     const addressAddBtn = document.getElementById("checkout-address-add-btn");
     const addressCloseIcon = document.getElementById("checkout-address-close-icon");
-    const addressSummary = document.getElementById("checkout-address-summary");
-    const addressEmpty = document.getElementById("checkout-address-empty");
     const addressFormModal = document.getElementById("checkout-address-form-modal");
     const addressFormClose = document.getElementById("checkout-address-form-close");
     const addressFormTitle = document.getElementById("checkout-address-form-title");
@@ -872,26 +940,36 @@ import SEO from "@/components/SEO.astro";
             return;
           }
           
-          // Form valid, normally we would save to local state/backend
-          const sumName = document.querySelector("[data-summary-address-name]");
-          const sumPhone = document.querySelector("[data-summary-address-phone]");
-          const sumFull = document.querySelector("[data-summary-address-full]");
-
-          if (sumName) sumName.textContent = data.name;
-          if (sumPhone) sumPhone.textContent = data.phone;
-          if (sumFull) sumFull.innerHTML = `${data.street}<br/>${(regionState.district as { name?: string } | null)?.name}, ${(regionState.city as { name?: string } | null)?.name}, ${data.province} ${regionState.postal}`;
-
-          if (addressSummary && addressEmpty) {
-            addressEmpty.classList.add("hidden");
-            addressSummary.classList.remove("hidden");
-            addressSummary.classList.add("flex");
-          }
-          
-          if (typeof window.loadShippingOptions === "function") {
-            // window.loadShippingOptions((regionState.district as { name?: string } | null)?.name || (regionState.city as { name?: string } | null)?.name);
-          }
-          
-          closeAddressForm();
+          const detailInput = document.getElementById("address-form-detail") as HTMLInputElement | null;
+          fetch(`${apiUrl}/addresses`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              addressLine: [data.street, detailInput?.value.trim()].filter(Boolean).join(", "),
+              city: (regionState.city as { name?: string } | null)?.name || "",
+              isDefault: addresses.length === 0,
+              label: "Rumah",
+              phone: data.phone,
+              postalCode: regionState.postal,
+              province: data.province,
+              recipientName: data.name,
+            }),
+          })
+            .then(async (response) => {
+              const payload = await response.json().catch(() => ({}));
+              if (!response.ok || !payload.address) throw new Error(payload.message || "Gagal menyimpan alamat.");
+              addresses = [payload.address, ...addresses.filter((address) => address.id !== payload.address.id)];
+              selectAddress(payload.address);
+              renderAddressOptions();
+              closeAddressForm();
+            })
+            .catch((error: Error) => {
+              const msg = document.createElement("p");
+              msg.className = "zod-error text-[11px] font-medium text-red-500 mt-1.5 px-1";
+              msg.textContent = error.message;
+              nameInput.parentElement?.appendChild(msg);
+            });
         });
       }
       regionButton?.addEventListener("click", () => {
@@ -1001,40 +1079,15 @@ import SEO from "@/components/SEO.astro";
         if (!isStreet) streetMenu?.classList.add("hidden");
       });
 
-      const addressOptions = addressModal.querySelectorAll('input[name="address-option"]');
-      addressOptions.forEach(opt => {
-        opt.addEventListener("change", (e) => {
+      addressModal.addEventListener("change", (e) => {
+        if ((e.target as HTMLInputElement).name === "address-option") {
           const target = e.target as HTMLInputElement;
           if (target.checked) {
-            const container = target.closest("label");
-            if (container) {
-              const name = container.querySelector("[data-address-opt-name]")?.textContent || "";
-              const phone = container.querySelector("[data-address-opt-phone]")?.textContent || "";
-              const fullNode = container.querySelector("[data-address-opt-full]");
-              const full = fullNode?.innerHTML || "";
-              // const district = fullNode?.getAttribute("data-address-opt-district") || "";
-
-              const sumName = document.querySelector("[data-summary-address-name]");
-              const sumPhone = document.querySelector("[data-summary-address-phone]");
-              const sumFull = document.querySelector("[data-summary-address-full]");
-
-              if (sumName) sumName.textContent = name;
-              if (sumPhone) sumPhone.textContent = phone;
-              if (sumFull) sumFull.innerHTML = full;
-
-              if (addressSummary && addressEmpty) {
-                addressEmpty.classList.add("hidden");
-                addressSummary.classList.remove("hidden");
-                addressSummary.classList.add("flex");
-                
-                if (typeof window.loadShippingOptions === "function") {
-                  // window.loadShippingOptions();
-                }
-              }
-            }
+            const address = addresses.find((item) => item.id === target.value);
+            if (address) selectAddress(address);
             closeAddressModal();
           }
-        });
+        }
       });
     }
 
@@ -1046,6 +1099,7 @@ import SEO from "@/components/SEO.astro";
 
     updateLanguage();
     render();
+    void loadAddresses();
     new MutationObserver(updateLanguage).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
   };
 
