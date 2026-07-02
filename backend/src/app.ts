@@ -79,6 +79,26 @@ const adminOrderStatusSchema = z.object({
   status: z.enum(["draft", "pending", "paid", "cancelled", "fulfilled"]),
 });
 
+const adminProductSchema = z.object({
+  categoryId: z.string().uuid().nullable().optional(),
+  description: z.string().trim().optional().default(""),
+  imageUrl: z.string().trim().url().nullable().optional(),
+  isActive: z.boolean().optional().default(true),
+  name: z.string().trim().min(2),
+  price: z.coerce.number().positive(),
+  sku: z.string().trim().min(2),
+  stock: z.coerce.number().int().min(0).optional().default(0),
+});
+
+const adminProductPatchSchema = adminProductSchema.partial().refine((value) => Object.keys(value).length > 0, {
+  message: "Minimal satu field harus diisi.",
+});
+
+const adminStockSchema = z.object({
+  note: z.string().trim().optional().default("Admin stock update"),
+  stock: z.coerce.number().int().min(0),
+});
+
 const xenditWebhookSchema = z.object({
   external_id: z.string().uuid(),
   status: z.string(),
@@ -233,6 +253,108 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
   if (!updated) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
 
   return res.json({ order: await orderDetail(updated) });
+});
+
+app.get("/api/admin/products", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const rows = await db.select().from(products).orderBy(desc(products.createdAt));
+  return res.json({ products: rows.map(productDto) });
+});
+
+app.get("/api/admin/products/:id", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
+
+  const [product] = await db.select().from(products).where(eq(products.id, id.data)).limit(1);
+  if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+
+  return res.json({ product: productDto(product) });
+});
+
+app.post("/api/admin/products", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const parsed = adminProductSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const id = randomUUID();
+  try {
+    const [product] = await db.insert(products).values({
+      ...parsed.data,
+      id,
+      imageUrl: parsed.data.imageUrl ?? null,
+      price: parsed.data.price.toFixed(2),
+    }).returning();
+
+    if (parsed.data.stock > 0) {
+      await db.insert(stockMovements).values({ note: "Initial stock", productId: id, quantity: parsed.data.stock, type: "in" });
+    }
+
+    return res.status(201).json({ product: productDto(product) });
+  } catch {
+    return res.status(409).json({ message: "SKU sudah digunakan." });
+  }
+});
+
+app.patch("/api/admin/products/:id", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
+
+  const parsed = adminProductPatchSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const values = {
+    ...parsed.data,
+    imageUrl: parsed.data.imageUrl === undefined ? undefined : parsed.data.imageUrl,
+    price: parsed.data.price === undefined ? undefined : parsed.data.price.toFixed(2),
+    updatedAt: new Date(),
+  };
+
+  try {
+    const [product] = await db.update(products).set(values).where(eq(products.id, id.data)).returning();
+    if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+    return res.json({ product: productDto(product) });
+  } catch {
+    return res.status(409).json({ message: "SKU sudah digunakan." });
+  }
+});
+
+app.patch("/api/admin/products/:id/stock", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
+
+  const parsed = adminStockSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [current] = await db.select().from(products).where(eq(products.id, id.data)).limit(1);
+  if (!current) return res.status(404).json({ message: "Produk tidak ditemukan." });
+
+  const delta = parsed.data.stock - current.stock;
+  const [product] = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(products)
+      .set({ stock: parsed.data.stock, updatedAt: new Date() })
+      .where(eq(products.id, id.data))
+      .returning();
+    if (delta !== 0) {
+      await tx.insert(stockMovements).values({
+        note: parsed.data.note,
+        productId: id.data,
+        quantity: Math.abs(delta),
+        type: delta > 0 ? "in" : "out",
+      });
+    }
+    return [updated];
+  });
+
+  return res.json({ product: productDto(product) });
 });
 
 app.get("/api/products", async (_req, res) => {
