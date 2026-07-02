@@ -43,7 +43,7 @@ export async function currentUser(req: Request) {
   if (!token) return null;
 
   const [row] = await db
-    .select({ email: user.email, id: user.id, name: user.name, role: user.role })
+    .select({ email: user.email, id: user.id, name: user.name, phone: user.phone, role: user.role })
     .from(session)
     .innerJoin(user, eq(session.userId, user.id))
     .where(and(eq(session.token, token), gt(session.expiresAt, new Date())))
@@ -85,7 +85,7 @@ export async function register(req: Request, res: Response) {
       email: parsed.data.email,
       name: parsed.data.name,
       passwordHash: hashPassword(parsed.data.password),
-    }).returning({ email: user.email, id: user.id, name: user.name, role: user.role });
+    }).returning({ email: user.email, id: user.id, name: user.name, phone: user.phone, role: user.role });
 
     await createSession(res, id, req);
     return res.status(201).json({ user: created });
@@ -104,7 +104,7 @@ export async function login(req: Request, res: Response) {
   }
 
   await createSession(res, found.id, req);
-  return res.json({ user: { email: found.email, id: found.id, name: found.name, role: found.role } });
+  return res.json({ user: { email: found.email, id: found.id, name: found.name, phone: found.phone, role: found.role } });
 }
 
 export async function me(req: Request, res: Response) {

@@ -187,18 +187,20 @@ export const prerender = false;
 
     const profileSchema = z.object({
       name: z.string().min(3, { message: m.nameMin }),
-      phone: z.string().optional(),
+      phone: z.string().min(9, { message: m.phoneMin }),
     });
 
     const loadProfile = async () => {
       const nameInput = document.getElementById("profile-name") as HTMLInputElement | null;
       const emailInput = document.getElementById("profile-email") as HTMLInputElement | null;
+      const phoneInput = document.getElementById("profile-phone") as HTMLInputElement | null;
       try {
         const response = await fetch(`${apiUrl}/account`, { credentials: "include" });
         const data = await response.json().catch(() => ({}));
         if (response.ok && data.user) {
           if (nameInput) nameInput.value = data.user.name || "";
           if (emailInput) emailInput.value = data.user.email || "";
+          if (phoneInput) phoneInput.value = data.user.phone || "";
         }
       } catch {
         // Keep empty form if profile cannot be loaded.
@@ -235,7 +237,7 @@ export const prerender = false;
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ name: result.data.name }),
+            body: JSON.stringify({ name: result.data.name, phone: result.data.phone }),
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.message || "Gagal menyimpan profil.");

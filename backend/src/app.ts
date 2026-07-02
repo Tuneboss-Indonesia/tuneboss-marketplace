@@ -66,6 +66,7 @@ const addressPatchSchema = addressSchema.partial().refine((value) => Object.keys
 
 const profileSchema = z.object({
   name: z.string().trim().min(3),
+  phone: z.string().trim().optional().default(""),
 });
 
 const passwordSchema = z.object({
@@ -115,9 +116,9 @@ app.patch("/api/account", async (req, res) => {
 
   const [updated] = await db
     .update(users)
-    .set({ name: parsed.data.name, updatedAt: new Date() })
+    .set({ name: parsed.data.name, phone: parsed.data.phone, updatedAt: new Date() })
     .where(eq(users.id, user.id))
-    .returning({ email: users.email, id: users.id, name: users.name, role: users.role });
+    .returning({ email: users.email, id: users.id, name: users.name, phone: users.phone, role: users.role });
 
   return res.json({ user: updated });
 });
