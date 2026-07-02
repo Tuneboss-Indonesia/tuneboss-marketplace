@@ -262,7 +262,7 @@ export const prerender = false;
 
     const passwordForm = document.getElementById('password-form');
     if (passwordForm) {
-      passwordForm.addEventListener('submit', (e) => {
+      passwordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         passwordForm.querySelectorAll(".zod-error").forEach(el => el.remove());
         
@@ -288,7 +288,25 @@ export const prerender = false;
           });
           return;
         }
-        alert('Kata sandi berhasil diperbarui! (Hanya simulasi)');
+        try {
+          const response = await fetch(`${apiUrl}/account/password`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ currentPassword: result.data.current, newPassword: result.data.new }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.message || "Gagal memperbarui kata sandi.");
+          currentInput.value = "";
+          newInput.value = "";
+          confirmInput.value = "";
+          alert('Kata sandi berhasil diperbarui!');
+        } catch (error) {
+          const msg = document.createElement("p");
+          msg.className = "zod-error text-[11px] font-medium text-red-500 mt-1.5 px-1";
+          msg.textContent = (error as Error).message;
+          currentInput.parentElement?.parentElement?.appendChild(msg);
+        }
       });
     }
   });

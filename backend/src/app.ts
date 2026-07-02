@@ -3,7 +3,7 @@ import express from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { currentUser, login, logout, me, register } from "./auth.js";
+import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
 import { addresses, orderItems, orders, products, stockMovements, user as users } from "./db/schema.js";
 import { env } from "./env.js";
@@ -68,6 +68,11 @@ const profileSchema = z.object({
   name: z.string().trim().min(3),
 });
 
+const passwordSchema = z.object({
+  currentPassword: z.string().min(8),
+  newPassword: z.string().min(8),
+});
+
 const xenditWebhookSchema = z.object({
   external_id: z.string().uuid(),
   status: z.string(),
@@ -115,6 +120,26 @@ app.patch("/api/account", async (req, res) => {
     .returning({ email: users.email, id: users.id, name: users.name, role: users.role });
 
   return res.json({ user: updated });
+});
+
+app.patch("/api/account/password", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk mengubah kata sandi." });
+
+  const parsed = passwordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [found] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  if (!found || !verifyPassword(parsed.data.currentPassword, found.passwordHash)) {
+    return res.status(400).json({ message: "Kata sandi saat ini salah." });
+  }
+
+  await db
+    .update(users)
+    .set({ passwordHash: hashPassword(parsed.data.newPassword), updatedAt: new Date() })
+    .where(eq(users.id, user.id));
+
+  return res.json({ ok: true });
 });
 
 app.get("/api/products", async (_req, res) => {

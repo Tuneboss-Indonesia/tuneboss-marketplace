@@ -17,13 +17,13 @@ const registerSchema = credentialsSchema.extend({
   name: z.string().trim().min(1),
 });
 
-function hashPassword(password: string) {
+export function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const hash = scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${hash}`;
 }
 
-function verifyPassword(password: string, storedHash: string) {
+export function verifyPassword(password: string, storedHash: string) {
   const [salt, hash] = storedHash.split(":");
   if (!salt || !hash) return false;
   const actual = Buffer.from(scryptSync(password, salt, 64).toString("hex"), "hex");
