@@ -78,8 +78,12 @@ export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   customerId: text("customer_id").references(() => user.id, { onDelete: "set null" }),
   addressId: uuid("address_id").references(() => addresses.id, { onDelete: "set null" }),
+  courier: text("courier").notNull().default(""),
+  deliveredAt: timestamp("delivered_at"),
+  shippedAt: timestamp("shipped_at"),
   status: orderStatus("status").notNull().default("pending"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  trackingNumber: text("tracking_number").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
