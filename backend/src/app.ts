@@ -79,6 +79,13 @@ const adminOrderStatusSchema = z.object({
   status: z.enum(["draft", "pending", "paid", "cancelled", "fulfilled"]),
 });
 
+const adminFulfillmentSchema = z.object({
+  courier: z.string().trim().max(80).optional(),
+  deliveredAt: z.coerce.date().nullable().optional(),
+  shippedAt: z.coerce.date().nullable().optional(),
+  trackingNumber: z.string().trim().max(120).optional(),
+}).refine((value) => Object.keys(value).length > 0, { message: "Minimal satu field harus diisi." });
+
 const adminProductSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
   description: z.string().trim().optional().default(""),
@@ -145,13 +152,17 @@ async function orderDetail(order: typeof orders.$inferSelect) {
   return {
     address: address ?? null,
     addressId: order.addressId,
+    courier: order.courier,
     createdAt: order.createdAt,
     customer: customer ?? null,
     customerId: order.customerId,
+    deliveredAt: order.deliveredAt,
     id: order.id,
     items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
+    shippedAt: order.shippedAt,
     status: order.status,
     total: Number(order.total),
+    trackingNumber: order.trackingNumber,
     updatedAt: order.updatedAt,
   };
 }
@@ -251,6 +262,40 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
     .where(eq(orders.id, id.data))
     .returning();
   if (!updated) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+
+  return res.json({ order: await orderDetail(updated) });
+});
+
+app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
+
+  const parsed = adminFulfillmentSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [order] = await db.select().from(orders).where(eq(orders.id, id.data)).limit(1);
+  if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+  if (order.status === "cancelled") return res.status(400).json({ message: "Pesanan dibatalkan tidak dapat dikirim." });
+
+  const deliveredAt = parsed.data.deliveredAt;
+  const shippedAt = deliveredAt instanceof Date && parsed.data.shippedAt === undefined && !order.shippedAt
+    ? deliveredAt
+    : parsed.data.shippedAt;
+
+  const [updated] = await db
+    .update(orders)
+    .set({
+      courier: parsed.data.courier,
+      deliveredAt,
+      shippedAt,
+      status: deliveredAt instanceof Date ? "fulfilled" : undefined,
+      trackingNumber: parsed.data.trackingNumber,
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, order.id))
+    .returning();
 
   return res.json({ order: await orderDetail(updated) });
 });
@@ -387,10 +432,14 @@ app.get("/api/tracking/:orderId", async (req, res) => {
   return res.json({
     order: {
       createdAt: order.createdAt,
+      courier: order.courier,
+      deliveredAt: order.deliveredAt,
       id: order.id,
       items,
+      shippedAt: order.shippedAt,
       status: order.status,
       total: Number(order.total),
+      trackingNumber: order.trackingNumber,
       updatedAt: order.updatedAt,
     },
   });
@@ -422,10 +471,14 @@ app.get("/api/orders", async (req, res) => {
     data.push({
       addressId: order.addressId,
       createdAt: order.createdAt,
+      courier: order.courier,
+      deliveredAt: order.deliveredAt,
       id: order.id,
       items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
+      shippedAt: order.shippedAt,
       status: order.status,
       total: Number(order.total),
+      trackingNumber: order.trackingNumber,
       updatedAt: order.updatedAt,
     });
   }
