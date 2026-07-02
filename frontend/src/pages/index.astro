@@ -178,7 +178,7 @@ const organizationSchema = JSON.stringify([
 </TuneBossChrome>
 
 <script>
-  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
 
   const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] || char));
   const renderCard = (item: { id: string; slug: string; image: string; name: string; brand: string; price: string; stock: number }) => `

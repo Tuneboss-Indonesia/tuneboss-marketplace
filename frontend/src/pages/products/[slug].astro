@@ -150,12 +150,12 @@ export function getStaticPaths() {
     tags: ["Race", "Harness", "Lightweight", "Serviceable"],
   },
   ];
-  const productList = products.map((product) => ({ ...product, slug: slugify(product.name), images: (product as { images?: string[] }).images ?? [product.image, product.image, product.image] }));
+  const productList = products.map((product) => ({ ...product, slug: slugify(product.name), apiSlug: slugify(`${product.brand} ${product.name}`), images: (product as { images?: string[] }).images ?? [product.image, product.image, product.image] }));
 
-  return productList.map((product) => ({
-    params: { slug: product.slug },
+  return productList.flatMap((product) => [product.slug, product.apiSlug].map((slug) => ({
+    params: { slug },
     props: { product, products: productList },
-  }));
+  })));
 }
 
 const { product, products } = Astro.props;
@@ -462,7 +462,7 @@ const productSchema = JSON.stringify([
 </TuneBossChrome>
 
 <script>
-  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
 
   const closeReviewSorts = () => {
     document.querySelectorAll("[data-review-sort-button]").forEach((button) => {

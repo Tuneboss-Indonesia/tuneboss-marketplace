@@ -17,25 +17,26 @@ const statusMeta: Record<string, { bg: string; text: string; label: string }> = 
 const noteFor = (s: string) => ({ pending: 'Menunggu pembayaran', paid: 'Pembayaran diterima, pesanan diproses', fulfilled: 'Pesanan selesai', cancelled: 'Pesanan dibatalkan' }[s] ?? s)
 
 const border = '1px solid rgba(var(--primary), 0.2)'
+const actionButton = 'px-5 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer'
 
 function OrderCard({ order }: { order: Order }) {
   const meta = statusMeta[order.status] ?? statusMeta.pending
   const isCancelled = order.status === 'cancelled'
   const canReview = order.status === 'fulfilled'
+  const openTracking = () => {
+    sessionStorage.setItem('tuneboss-tracking-id', order.id)
+    window.location.href = '/tracking'
+  }
 
   return (
     <div
-      style={{ border, padding: '20px', background: 'var(--background)', opacity: isCancelled ? 0.6 : 1, filter: isCancelled ? 'grayscale(1)' : undefined, cursor: 'pointer' }}
-      onClick={() => {
-        sessionStorage.setItem('tuneboss-tracking-id', order.id)
-        window.location.href = '/tracking'
-      }}
+      style={{ border, padding: '20px', background: 'var(--background)', opacity: isCancelled ? 0.6 : 1, filter: isCancelled ? 'grayscale(1)' : undefined }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{order.id}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', background: meta.bg, color: meta.text }}>{meta.label}</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold uppercase tracking-widest" style={{ background: meta.bg, color: meta.text }}>{meta.label}</span>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', margin: 0 }}>{new Date(order.createdAt).toLocaleString('id-ID')}</p>
         </div>
@@ -51,23 +52,24 @@ function OrderCard({ order }: { order: Order }) {
           <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', margin: '4px 0 0' }}>{noteFor(order.status)}</p>
         </div>
       </div>
-      {(order.status === 'pending' || canReview) && (
-        <>
-          <hr style={{ border: 'none', borderTop: '1px solid rgba(127,127,127,0.15)', margin: '16px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(127,127,127,0.15)', margin: '16px 0' }} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+            <button type="button" onClick={openTracking} className={actionButton} style={{ border: '1px solid rgba(var(--primary), 0.2)', background: 'transparent', color: 'var(--foreground)' }}>Lacak Pesanan</button>
+        {(order.status === 'pending' || canReview) && (
+          <>
             {order.status === 'pending' ? (
-              <button onClick={(e) => { e.stopPropagation(); window.location.href = `/checkout/${order.id}?status=pending` }} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '10px 20px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>Bayar Sekarang</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); window.location.href = `/checkout/${order.id}?status=pending` }} className={actionButton} style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}>Bayar Sekarang</button>
             ) : (
-              <button onClick={(e) => { e.stopPropagation(); alert('Review feature coming soon') }} style={{ border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', padding: '10px 20px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>Beri Review</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); alert('Review feature coming soon') }} className={actionButton} style={{ border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)' }}>Beri Review</button>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
 
-export function OrderHistoryList() {
+function OrderHistoryList() {
   const { data, isLoading, error } = useApi<OrdersResponse>('/orders')
 
   if (isLoading) return <div style={{ textAlign: 'center', padding: '32px', color: 'var(--muted-foreground)' }}>Memuat riwayat pesanan...</div>

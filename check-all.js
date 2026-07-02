@@ -6,7 +6,7 @@ const commands = [
   { cwd: 'backend', cmd: 'npm run build' },
   { cwd: 'frontend', cmd: 'npm run lint' },
   { cwd: 'frontend', cmd: 'npm run doctor' },
-  { cwd: 'frontend', cmd: 'npx @santi020k/astro-doctor' },
+  { cwd: 'frontend', cmd: 'npm run astro:doctor' },
   { cwd: 'frontend', cmd: 'npx astro check' },
   { cwd: 'frontend', cmd: 'npm run typecheck' },
   { cwd: 'frontend', cmd: 'npm run build' },

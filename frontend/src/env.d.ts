@@ -8,7 +8,7 @@ interface Window {
   updateCheckoutBtn?: () => void;
   toggleCartItemSelection?: (id: string) => void;
   loadShippingOptions?: (location: string) => void;
-  checkAuthStatus?: () => void;
+  checkAuthStatus?: () => Promise<void> | void;
   openAuthDialog?: (mode?: string) => void;
 }
 

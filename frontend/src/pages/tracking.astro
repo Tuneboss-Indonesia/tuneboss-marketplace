@@ -55,7 +55,7 @@ import SEO from "@/components/SEO.astro";
 
 <script>
   import { z } from "zod";
-  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
 
   document.addEventListener("astro:page-load", () => {
     // Simple client-side script for demonstration
@@ -65,7 +65,7 @@ import SEO from "@/components/SEO.astro";
     const btn = document.getElementById('btn-track');
 
     // Define Zod schema for order ID validation
-  const orderIdSchema = z.string().min(1, { message: "ID Pesanan diperlukan." }).uuid({ message: "tracking.zodError" });
+  const orderIdSchema = z.string().min(1, { message: "ID Pesanan diperlukan." }).refine((value) => z.uuid().safeParse(value).success, { message: "tracking.zodError" });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();

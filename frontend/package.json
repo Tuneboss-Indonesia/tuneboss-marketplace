@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
+    "astro:doctor": "astro-doctor",
     "doctor": "react-doctor --no-score --yes",
     "lint": "eslint .",
     "preview": "astro preview",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@santi020k/astro-doctor": "^1.0.2",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^26.0.1",
     "@types/react": "latest",

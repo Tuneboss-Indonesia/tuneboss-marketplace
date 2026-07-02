@@ -150,7 +150,7 @@ import SEO from "@/components/SEO.astro";
 </TuneBossChrome>
 
 <script>
-  const apiUrl = import.meta.env.PUBLIC_API_URL.replace(/\/$/, "");
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
 
   document.addEventListener("astro:page-load", () => {
     let cards = document.querySelectorAll("[data-product-card]");
@@ -172,7 +172,8 @@ import SEO from "@/components/SEO.astro";
     };
 
     const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] || char));
-    const renderCard = (item: { id: string; slug: string; image: string; name: string; brand: string; price: string; stock: number }, page: number) => `
+    type ApiProduct = { id: string; slug: string; image: string; name: string; brand: string; price: string; stock: number };
+    const renderCard = (item: ApiProduct, page: number) => `
       <div data-product-card data-page="${page}">
         <div class="group relative h-full cursor-pointer" data-reveal>
           <a href="/products/${escapeHtml(item.slug)}" aria-label="${escapeHtml(item.name)}" class="relative block h-full">
@@ -205,7 +206,7 @@ import SEO from "@/components/SEO.astro";
       try {
         const response = await fetch(`${apiUrl}/products`);
         const data = await response.json();
-        const apiProducts = Array.isArray(data.products) ? data.products : [];
+        const apiProducts: ApiProduct[] = Array.isArray(data.products) ? data.products : [];
         if (!response.ok || apiProducts.length === 0) return;
         grid.innerHTML = apiProducts.map((item, index) => renderCard(item, Math.floor(index / 9) + 1)).join("");
         const pages = Math.ceil(apiProducts.length / 9);
