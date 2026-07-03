@@ -936,6 +936,18 @@ app.post("/api/payments/xendit/invoice", async (req, res) => {
     });
   }
 
+  const [claimed] = await db
+    .update(orders)
+    .set({ paymentInvoiceStatus: "CREATING", updatedAt: new Date() })
+    .where(and(
+      eq(orders.id, order.id),
+      eq(orders.status, "pending"),
+      sql`(${orders.paymentInvoiceUrl} = '' or ${orders.paymentExpiresAt} <= now() or ${orders.paymentExpiresAt} is null)`,
+      sql`(${orders.paymentInvoiceStatus} != 'CREATING' or ${orders.updatedAt} <= now() - interval '2 minutes')`,
+    ))
+    .returning({ id: orders.id });
+  if (!claimed) return res.status(409).json({ message: "Invoice sedang dibuat. Coba lagi sebentar." });
+
   const rows = await db
     .select({
       name: products.name,
@@ -982,7 +994,10 @@ app.post("/api/payments/xendit/invoice", async (req, res) => {
     status: typeof data.status === "string" ? data.status : String(xenditRes.status),
   });
 
-  if (!xenditRes.ok) return res.status(xenditRes.status).json({ message: data.message || data.error_code || "Gagal membuat tagihan Xendit." });
+  if (!xenditRes.ok) {
+    await db.update(orders).set({ paymentInvoiceStatus: "FAILED", updatedAt: new Date() }).where(eq(orders.id, order.id));
+    return res.status(xenditRes.status).json({ message: data.message || data.error_code || "Gagal membuat tagihan Xendit." });
+  }
 
   const invoiceId = typeof data.id === "string" ? data.id : "";
   const invoiceUrl = typeof data.invoice_url === "string" ? data.invoice_url : "";
