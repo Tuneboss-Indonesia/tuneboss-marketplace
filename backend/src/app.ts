@@ -186,6 +186,9 @@ async function orderDetail(order: typeof orders.$inferSelect) {
     id: order.id,
     items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
     paymentExpiresAt: order.paymentExpiresAt,
+    paymentInvoiceId: order.paymentInvoiceId,
+    paymentInvoiceStatus: order.paymentInvoiceStatus,
+    paymentInvoiceUrl: order.paymentInvoiceUrl,
     shippedAt: order.shippedAt,
     status: order.status,
     stockReserved: order.stockReserved,
@@ -633,6 +636,9 @@ app.get("/api/tracking/:orderId", async (req, res) => {
       id: order.id,
       items,
       paymentExpiresAt: order.paymentExpiresAt,
+      paymentInvoiceId: order.paymentInvoiceId,
+      paymentInvoiceStatus: order.paymentInvoiceStatus,
+      paymentInvoiceUrl: order.paymentInvoiceUrl,
       shippedAt: order.shippedAt,
       status: order.status,
       stockReserved: order.stockReserved,
@@ -674,6 +680,9 @@ app.get("/api/orders", async (req, res) => {
       id: order.id,
       items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
       paymentExpiresAt: order.paymentExpiresAt,
+      paymentInvoiceId: order.paymentInvoiceId,
+      paymentInvoiceStatus: order.paymentInvoiceStatus,
+      paymentInvoiceUrl: order.paymentInvoiceUrl,
       shippedAt: order.shippedAt,
       status: order.status,
       stockReserved: order.stockReserved,
@@ -884,6 +893,15 @@ app.post("/api/payments/xendit/invoice", async (req, res) => {
 
   if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
   if (order.status !== "pending") return res.status(400).json({ message: "Pesanan tidak dapat dibayar." });
+  if (order.paymentInvoiceUrl && order.paymentExpiresAt && order.paymentExpiresAt > new Date()) {
+    return res.json({
+      id: order.paymentInvoiceId,
+      invoice_url: order.paymentInvoiceUrl,
+      paymentExpiresAt: order.paymentExpiresAt,
+      reused: true,
+      status: order.paymentInvoiceStatus,
+    });
+  }
 
   const rows = await db
     .select({
@@ -933,9 +951,19 @@ app.post("/api/payments/xendit/invoice", async (req, res) => {
 
   if (!xenditRes.ok) return res.status(xenditRes.status).json({ message: data.message || data.error_code || "Gagal membuat tagihan Xendit." });
 
-  await db.update(orders).set({ paymentExpiresAt, updatedAt: new Date() }).where(eq(orders.id, order.id));
+  const invoiceId = typeof data.id === "string" ? data.id : "";
+  const invoiceUrl = typeof data.invoice_url === "string" ? data.invoice_url : "";
+  const invoiceStatus = typeof data.status === "string" ? data.status : "";
 
-  return res.json({ id: data.id, invoice_url: data.invoice_url, paymentExpiresAt });
+  await db.update(orders).set({
+    paymentExpiresAt,
+    paymentInvoiceId: invoiceId,
+    paymentInvoiceStatus: invoiceStatus,
+    paymentInvoiceUrl: invoiceUrl,
+    updatedAt: new Date(),
+  }).where(eq(orders.id, order.id));
+
+  return res.json({ id: invoiceId, invoice_url: invoiceUrl, paymentExpiresAt, status: invoiceStatus });
 });
 
 app.post("/api/webhooks/xendit", async (req, res) => {
@@ -964,7 +992,7 @@ app.post("/api/webhooks/xendit", async (req, res) => {
     await db.transaction(async (tx) => {
       const [paid] = await tx
         .update(orders)
-        .set({ status: "paid", stockReserved: false, updatedAt: new Date() })
+        .set({ paymentInvoiceStatus: parsed.data.status, status: "paid", stockReserved: false, updatedAt: new Date() })
         .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
         .returning({ id: orders.id });
       if (!paid) return;
@@ -986,6 +1014,7 @@ app.post("/api/webhooks/xendit", async (req, res) => {
   }
 
   if (["EXPIRED", "FAILED", "VOIDED"].includes(status) && order.status === "pending") {
+    await db.update(orders).set({ paymentInvoiceStatus: parsed.data.status, updatedAt: new Date() }).where(eq(orders.id, order.id));
     await cancelPendingOrder(order, `Payment ${status.toLowerCase()} for order ${order.id}`);
   }
 

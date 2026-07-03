@@ -64,6 +64,13 @@
       "when": 1783000800000,
       "tag": "0008_add_stock_reservation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783004400000,
+      "tag": "0009_add_payment_invoice_fields",
+      "breakpoints": true
     }
   ]
 }
