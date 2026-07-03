@@ -744,6 +744,31 @@ app.post("/api/orders", async (req, res) => {
   });
 });
 
+app.post("/api/orders/:id/cancel", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk membatalkan pesanan." });
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
+
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.id, id.data), eq(orders.customerId, user.id)))
+    .limit(1);
+
+  if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+  if (order.status !== "pending") return res.status(400).json({ message: "Hanya pesanan pending yang dapat dibatalkan." });
+
+  const [updated] = await db
+    .update(orders)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(orders.id, order.id))
+    .returning();
+
+  return res.json({ order: await orderDetail(updated) });
+});
+
 app.post("/api/payments/xendit/invoice", async (req, res) => {
   const user = await currentUser(req);
   if (!user) return res.status(401).json({ message: "Silakan login untuk membayar." });
