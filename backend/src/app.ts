@@ -422,6 +422,24 @@ app.get("/api/admin/products", async (req, res) => {
   return res.json({ products: rows.map(productDto), pagination: pageMeta(Number(total), limit, offset) });
 });
 
+app.get("/api/admin/products/low-stock", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const { limit, offset } = paginationFrom(req);
+  const threshold = Math.max(Number(req.query.threshold) || 5, 0);
+  const where = and(eq(products.isActive, true), sql`${products.stock} <= ${threshold}`);
+  const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(products).where(where);
+  const rows = await db
+    .select()
+    .from(products)
+    .where(where)
+    .orderBy(sql`${products.stock} asc`, desc(products.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  return res.json({ products: rows.map(productDto), threshold, pagination: pageMeta(Number(total), limit, offset) });
+});
+
 app.get("/api/admin/products/:id", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
