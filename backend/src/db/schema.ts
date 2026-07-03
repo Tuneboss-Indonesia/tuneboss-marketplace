@@ -83,6 +83,7 @@ export const orders = pgTable("orders", {
   paymentExpiresAt: timestamp("payment_expires_at"),
   shippedAt: timestamp("shipped_at"),
   status: orderStatus("status").notNull().default("pending"),
+  stockReserved: boolean("stock_reserved").notNull().default(false),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
   trackingNumber: text("tracking_number").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),

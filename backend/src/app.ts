@@ -188,10 +188,33 @@ async function orderDetail(order: typeof orders.$inferSelect) {
     paymentExpiresAt: order.paymentExpiresAt,
     shippedAt: order.shippedAt,
     status: order.status,
+    stockReserved: order.stockReserved,
     total: Number(order.total),
     trackingNumber: order.trackingNumber,
     updatedAt: order.updatedAt,
   };
+}
+
+async function cancelPendingOrder(order: typeof orders.$inferSelect, note: string) {
+  const items = order.stockReserved ? await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)) : [];
+  const [updated] = await db.transaction(async (tx) => {
+    const [cancelled] = await tx
+      .update(orders)
+      .set({ status: "cancelled", stockReserved: false, updatedAt: new Date() })
+      .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
+      .returning();
+    if (!cancelled) return [];
+
+    for (const item of items) {
+      await tx.update(products)
+        .set({ stock: sql`${products.stock} + ${item.quantity}`, updatedAt: new Date() })
+        .where(eq(products.id, item.productId));
+      await tx.insert(stockMovements).values({ note, productId: item.productId, quantity: item.quantity, type: "in" });
+    }
+
+    return [cancelled];
+  });
+  return updated;
 }
 
 app.use(cors({
@@ -334,15 +357,16 @@ app.get("/api/admin/summary", async (req, res) => {
 app.post("/api/admin/orders/expire-pending", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
-  const expired = await db
-    .update(orders)
-    .set({ status: "cancelled", updatedAt: new Date() })
-    .where(and(
-      eq(orders.status, "pending"),
-      sql`${orders.paymentExpiresAt} is not null`,
-      sql`${orders.paymentExpiresAt} <= now()`,
-    ))
-    .returning({ id: orders.id, paymentExpiresAt: orders.paymentExpiresAt });
+  const rows = await db.select().from(orders).where(and(
+    eq(orders.status, "pending"),
+    sql`${orders.paymentExpiresAt} is not null`,
+    sql`${orders.paymentExpiresAt} <= now()`,
+  ));
+  const expired = [];
+  for (const order of rows) {
+    const cancelled = await cancelPendingOrder(order, `Expired order ${order.id}`);
+    if (cancelled) expired.push({ id: cancelled.id, paymentExpiresAt: cancelled.paymentExpiresAt });
+  }
 
   return res.json({ expired });
 });
@@ -386,12 +410,23 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
   const parsed = adminOrderStatusSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
+  const [order] = await db.select().from(orders).where(eq(orders.id, id.data)).limit(1);
+  if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+
+  if (parsed.data.status === "cancelled" && order.status === "pending") {
+    const cancelled = await cancelPendingOrder(order, `Admin cancelled order ${order.id}`);
+    return res.json({ order: await orderDetail(cancelled ?? order) });
+  }
+
   const [updated] = await db
     .update(orders)
-    .set({ status: parsed.data.status, updatedAt: new Date() })
+    .set({
+      status: parsed.data.status,
+      stockReserved: ["paid", "fulfilled"].includes(parsed.data.status) ? false : undefined,
+      updatedAt: new Date(),
+    })
     .where(eq(orders.id, id.data))
     .returning();
-  if (!updated) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
 
   return res.json({ order: await orderDetail(updated) });
 });
@@ -600,6 +635,7 @@ app.get("/api/tracking/:orderId", async (req, res) => {
       paymentExpiresAt: order.paymentExpiresAt,
       shippedAt: order.shippedAt,
       status: order.status,
+      stockReserved: order.stockReserved,
       total: Number(order.total),
       trackingNumber: order.trackingNumber,
       updatedAt: order.updatedAt,
@@ -640,6 +676,7 @@ app.get("/api/orders", async (req, res) => {
       paymentExpiresAt: order.paymentExpiresAt,
       shippedAt: order.shippedAt,
       status: order.status,
+      stockReserved: order.stockReserved,
       total: Number(order.total),
       trackingNumber: order.trackingNumber,
       updatedAt: order.updatedAt,
@@ -764,15 +801,31 @@ app.post("/api/orders", async (req, res) => {
   const total = items.reduce((sum, item) => sum + item.total, 0).toFixed(2);
 
   const orderId = randomUUID();
-  await db.transaction(async (tx) => {
-    await tx.insert(orders).values({ addressId: address.id, customerId: user.id, id: orderId, status: "pending", total });
-    await tx.insert(orderItems).values(items.map((item) => ({
-      orderId,
-      productId: item.product.id,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice.toFixed(2),
-    })));
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(orders).values({ addressId: address.id, customerId: user.id, id: orderId, status: "pending", stockReserved: true, total });
+      await tx.insert(orderItems).values(items.map((item) => ({
+        orderId,
+        productId: item.product.id,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toFixed(2),
+      })));
+
+      for (const item of items) {
+        const [reserved] = await tx.update(products)
+          .set({ stock: sql`${products.stock} - ${item.quantity}`, updatedAt: new Date() })
+          .where(and(eq(products.id, item.product.id), sql`${products.stock} >= ${item.quantity}`))
+          .returning({ id: products.id });
+        if (!reserved) throw new Error("INSUFFICIENT_STOCK");
+        await tx.insert(stockMovements).values({ note: `Reserved for order ${orderId}`, productId: item.product.id, quantity: item.quantity, type: "out" });
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "INSUFFICIENT_STOCK") {
+      return res.status(409).json({ message: "Stok berubah. Silakan cek keranjang dan coba lagi." });
+    }
+    throw error;
+  }
 
   return res.status(201).json({
     order: {
@@ -806,13 +859,9 @@ app.post("/api/orders/:id/cancel", async (req, res) => {
   if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
   if (order.status !== "pending") return res.status(400).json({ message: "Hanya pesanan pending yang dapat dibatalkan." });
 
-  const [updated] = await db
-    .update(orders)
-    .set({ status: "cancelled", updatedAt: new Date() })
-    .where(eq(orders.id, order.id))
-    .returning();
+  const updated = await cancelPendingOrder(order, `Customer cancelled order ${order.id}`);
 
-  return res.json({ order: await orderDetail(updated) });
+  return res.json({ order: await orderDetail(updated ?? order) });
 });
 
 app.post("/api/payments/xendit/invoice", async (req, res) => {
@@ -915,27 +964,29 @@ app.post("/api/webhooks/xendit", async (req, res) => {
     await db.transaction(async (tx) => {
       const [paid] = await tx
         .update(orders)
-        .set({ status: "paid", updatedAt: new Date() })
+        .set({ status: "paid", stockReserved: false, updatedAt: new Date() })
         .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
         .returning({ id: orders.id });
       if (!paid) return;
 
       for (const item of items) {
-        await tx.update(products)
-          .set({ stock: sql`${products.stock} - ${item.quantity}`, updatedAt: new Date() })
-          .where(eq(products.id, item.productId));
-        await tx.insert(stockMovements).values({
-          note: `Order ${order.id}`,
-          productId: item.productId,
-          quantity: item.quantity,
-          type: "sale",
-        });
+        if (!order.stockReserved) {
+          await tx.update(products)
+            .set({ stock: sql`${products.stock} - ${item.quantity}`, updatedAt: new Date() })
+            .where(eq(products.id, item.productId));
+          await tx.insert(stockMovements).values({
+            note: `Order ${order.id}`,
+            productId: item.productId,
+            quantity: item.quantity,
+            type: "sale",
+          });
+        }
       }
     });
   }
 
   if (["EXPIRED", "FAILED", "VOIDED"].includes(status) && order.status === "pending") {
-    await db.update(orders).set({ status: "cancelled", updatedAt: new Date() }).where(eq(orders.id, order.id));
+    await cancelPendingOrder(order, `Payment ${status.toLowerCase()} for order ${order.id}`);
   }
 
   return res.json({ ok: true });
