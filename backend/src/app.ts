@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import type { Request, Response } from "express";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
@@ -148,6 +148,14 @@ async function requireStaff(req: Request, res: Response) {
   return user;
 }
 
+function paginationFrom(req: Request) {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  return { limit, offset };
+}
+
+const pageMeta = (total: number, limit: number, offset: number) => ({ limit, offset, total });
+
 async function orderDetail(order: typeof orders.$inferSelect) {
   const items = await db
     .select({
@@ -247,11 +255,52 @@ app.patch("/api/account/password", async (req, res) => {
 app.get("/api/admin/orders", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
-  const rows = await db.select().from(orders).orderBy(desc(orders.createdAt));
+  const { limit, offset } = paginationFrom(req);
+  const filters: SQL[] = [];
+  const status = adminOrderStatusSchema.shape.status.safeParse(req.query.status);
+  const q = String(req.query.q ?? "").trim();
+
+  if (status.success) filters.push(eq(orders.status, status.data));
+  if (q) {
+    const like = `%${q}%`;
+    filters.push(sql`(${orders.id}::text ilike ${like} or exists (
+      select 1 from "user" customer
+      where customer.id = ${orders.customerId}
+      and (customer.email ilike ${like} or customer.name ilike ${like})
+    ))`);
+  }
+
+  const where = filters.length ? and(...filters) : undefined;
+  const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(orders).where(where);
+  const rows = await db.select().from(orders).where(where).orderBy(desc(orders.createdAt)).limit(limit).offset(offset);
   const data = [];
   for (const order of rows) data.push(await orderDetail(order));
 
-  return res.json({ orders: data });
+  return res.json({ orders: data, pagination: pageMeta(Number(total), limit, offset) });
+});
+
+app.get("/api/admin/customers", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const { limit, offset } = paginationFrom(req);
+  const q = String(req.query.q ?? "").trim();
+  const filters: SQL[] = [eq(users.role, "customer")];
+  if (q) {
+    const like = `%${q}%`;
+    filters.push(sql`(${users.email} ilike ${like} or ${users.name} ilike ${like} or ${users.phone} ilike ${like})`);
+  }
+
+  const where = and(...filters);
+  const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(users).where(where);
+  const customers = await db
+    .select({ createdAt: users.createdAt, email: users.email, id: users.id, name: users.name, phone: users.phone, updatedAt: users.updatedAt })
+    .from(users)
+    .where(where)
+    .orderBy(desc(users.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  return res.json({ customers, pagination: pageMeta(Number(total), limit, offset) });
 });
 
 app.post("/api/admin/orders/expire-pending", async (req, res) => {
@@ -356,8 +405,21 @@ app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
 app.get("/api/admin/products", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
-  const rows = await db.select().from(products).orderBy(desc(products.createdAt));
-  return res.json({ products: rows.map(productDto) });
+  const { limit, offset } = paginationFrom(req);
+  const q = String(req.query.q ?? "").trim();
+  const active = req.query.active === "true" ? true : req.query.active === "false" ? false : undefined;
+  const filters: SQL[] = [];
+
+  if (active !== undefined) filters.push(eq(products.isActive, active));
+  if (q) {
+    const like = `%${q}%`;
+    filters.push(sql`(${products.name} ilike ${like} or ${products.sku} ilike ${like})`);
+  }
+
+  const where = filters.length ? and(...filters) : undefined;
+  const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(products).where(where);
+  const rows = await db.select().from(products).where(where).orderBy(desc(products.createdAt)).limit(limit).offset(offset);
+  return res.json({ products: rows.map(productDto), pagination: pageMeta(Number(total), limit, offset) });
 });
 
 app.get("/api/admin/products/:id", async (req, res) => {
