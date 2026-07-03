@@ -156,6 +156,16 @@ function paginationFrom(req: Request) {
 
 const pageMeta = (total: number, limit: number, offset: number) => ({ limit, offset, total });
 
+type OrderStatus = typeof orders.$inferSelect.status;
+
+function canMoveOrderStatus(from: OrderStatus, to: OrderStatus) {
+  if (from === to) return true;
+  if (from === "draft") return to === "pending" || to === "cancelled";
+  if (from === "pending") return to === "paid" || to === "cancelled";
+  if (from === "paid") return to === "fulfilled";
+  return false;
+}
+
 async function orderDetail(order: typeof orders.$inferSelect) {
   const items = await db
     .select({
@@ -416,6 +426,10 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
   const [order] = await db.select().from(orders).where(eq(orders.id, id.data)).limit(1);
   if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
 
+  if (!canMoveOrderStatus(order.status, parsed.data.status)) {
+    return res.status(400).json({ message: `Status ${order.status} tidak dapat diubah menjadi ${parsed.data.status}.` });
+  }
+
   if (parsed.data.status === "cancelled" && order.status === "pending") {
     const cancelled = await cancelPendingOrder(order, `Admin cancelled order ${order.id}`);
     return res.json({ order: await orderDetail(cancelled ?? order) });
@@ -445,7 +459,9 @@ app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
 
   const [order] = await db.select().from(orders).where(eq(orders.id, id.data)).limit(1);
   if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
-  if (order.status === "cancelled") return res.status(400).json({ message: "Pesanan dibatalkan tidak dapat dikirim." });
+  if (order.status !== "paid" && order.status !== "fulfilled") {
+    return res.status(400).json({ message: "Hanya pesanan paid/fulfilled yang dapat dikirim." });
+  }
 
   const deliveredAt = parsed.data.deliveredAt;
   const shippedAt = deliveredAt instanceof Date && parsed.data.shippedAt === undefined && !order.shippedAt
