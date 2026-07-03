@@ -303,6 +303,34 @@ app.get("/api/admin/customers", async (req, res) => {
   return res.json({ customers, pagination: pageMeta(Number(total), limit, offset) });
 });
 
+app.get("/api/admin/summary", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const [orderTotals] = await db.select({
+    cancelledOrders: sql<number>`count(*) filter (where ${orders.status} = 'cancelled')`,
+    fulfilledOrders: sql<number>`count(*) filter (where ${orders.status} = 'fulfilled')`,
+    paidOrders: sql<number>`count(*) filter (where ${orders.status} = 'paid')`,
+    pendingOrders: sql<number>`count(*) filter (where ${orders.status} = 'pending')`,
+    revenue: sql<string>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid', 'fulfilled')), 0)`,
+    totalOrders: sql<number>`count(*)`,
+  }).from(orders);
+  const [customerTotals] = await db.select({ totalCustomers: sql<number>`count(*)` }).from(users).where(eq(users.role, "customer"));
+  const [productTotals] = await db.select({
+    activeProducts: sql<number>`count(*) filter (where ${products.isActive} = true)`,
+    lowStockProducts: sql<number>`count(*) filter (where ${products.isActive} = true and ${products.stock} <= 5)`,
+    totalProducts: sql<number>`count(*)`,
+  }).from(products);
+
+  return res.json({
+    summary: {
+      ...orderTotals,
+      ...customerTotals,
+      ...productTotals,
+      revenue: Number(orderTotals.revenue),
+    },
+  });
+});
+
 app.post("/api/admin/orders/expire-pending", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
