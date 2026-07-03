@@ -911,11 +911,15 @@ app.post("/api/webhooks/xendit", async (req, res) => {
 
   const status = parsed.data.status.toUpperCase();
   if (["PAID", "SETTLED"].includes(status)) {
-    if (order.status !== "pending") return res.json({ ok: true });
-
     const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
     await db.transaction(async (tx) => {
-      await tx.update(orders).set({ status: "paid", updatedAt: new Date() }).where(eq(orders.id, order.id));
+      const [paid] = await tx
+        .update(orders)
+        .set({ status: "paid", updatedAt: new Date() })
+        .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
+        .returning({ id: orders.id });
+      if (!paid) return;
+
       for (const item of items) {
         await tx.update(products)
           .set({ stock: sql`${products.stock} - ${item.quantity}`, updatedAt: new Date() })
