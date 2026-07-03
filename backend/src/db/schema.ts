@@ -1,4 +1,4 @@
-import { boolean, integer, numeric, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["admin", "staff", "customer"]);
 export const stockMovementType = pgEnum("stock_movement_type", ["in", "out", "sale"]);
@@ -80,6 +80,7 @@ export const orders = pgTable("orders", {
   addressId: uuid("address_id").references(() => addresses.id, { onDelete: "set null" }),
   courier: text("courier").notNull().default(""),
   deliveredAt: timestamp("delivered_at"),
+  paymentExpiresAt: timestamp("payment_expires_at"),
   shippedAt: timestamp("shipped_at"),
   status: orderStatus("status").notNull().default("pending"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
@@ -94,4 +95,16 @@ export const orderItems = pgTable("order_items", {
   productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "restrict" }),
   quantity: integer("quantity").notNull(),
   unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+});
+
+export const paymentEvents = pgTable("payment_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  provider: text("provider").notNull().default("xendit"),
+  eventType: text("event_type").notNull(),
+  status: text("status").notNull().default(""),
+  externalId: text("external_id").notNull().default(""),
+  providerReference: text("provider_reference").notNull().default(""),
+  payload: jsonb("payload").notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

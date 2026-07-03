@@ -6,7 +6,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, orderItems, orders, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, orderItems, orders, paymentEvents, products, stockMovements, user as users } from "./db/schema.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -117,6 +117,24 @@ function safeEqual(a: string, b: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+async function recordPaymentEvent(input: {
+  eventType: string;
+  externalId?: string;
+  orderId?: string | null;
+  payload: unknown;
+  providerReference?: string;
+  status?: string;
+}) {
+  await db.insert(paymentEvents).values({
+    eventType: input.eventType,
+    externalId: input.externalId ?? "",
+    orderId: input.orderId ?? null,
+    payload: input.payload,
+    providerReference: input.providerReference ?? "",
+    status: input.status ?? "",
+  });
+}
+
 async function requireStaff(req: Request, res: Response) {
   const user = await currentUser(req);
   if (!user) {
@@ -159,6 +177,7 @@ async function orderDetail(order: typeof orders.$inferSelect) {
     deliveredAt: order.deliveredAt,
     id: order.id,
     items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
+    paymentExpiresAt: order.paymentExpiresAt,
     shippedAt: order.shippedAt,
     status: order.status,
     total: Number(order.total),
@@ -235,6 +254,22 @@ app.get("/api/admin/orders", async (req, res) => {
   return res.json({ orders: data });
 });
 
+app.post("/api/admin/orders/expire-pending", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const expired = await db
+    .update(orders)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(and(
+      eq(orders.status, "pending"),
+      sql`${orders.paymentExpiresAt} is not null`,
+      sql`${orders.paymentExpiresAt} <= now()`,
+    ))
+    .returning({ id: orders.id, paymentExpiresAt: orders.paymentExpiresAt });
+
+  return res.json({ expired });
+});
+
 app.get("/api/admin/orders/:id", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
@@ -245,6 +280,24 @@ app.get("/api/admin/orders/:id", async (req, res) => {
   if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
 
   return res.json({ order: await orderDetail(order) });
+});
+
+app.get("/api/admin/orders/:id/payment-events", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
+
+  const [order] = await db.select({ id: orders.id }).from(orders).where(eq(orders.id, id.data)).limit(1);
+  if (!order) return res.status(404).json({ message: "Pesanan tidak ditemukan." });
+
+  const events = await db
+    .select()
+    .from(paymentEvents)
+    .where(eq(paymentEvents.orderId, order.id))
+    .orderBy(desc(paymentEvents.createdAt));
+
+  return res.json({ events });
 });
 
 app.patch("/api/admin/orders/:id/status", async (req, res) => {
@@ -436,6 +489,7 @@ app.get("/api/tracking/:orderId", async (req, res) => {
       deliveredAt: order.deliveredAt,
       id: order.id,
       items,
+      paymentExpiresAt: order.paymentExpiresAt,
       shippedAt: order.shippedAt,
       status: order.status,
       total: Number(order.total),
@@ -475,6 +529,7 @@ app.get("/api/orders", async (req, res) => {
       deliveredAt: order.deliveredAt,
       id: order.id,
       items: items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice) })),
+      paymentExpiresAt: order.paymentExpiresAt,
       shippedAt: order.shippedAt,
       status: order.status,
       total: Number(order.total),
@@ -683,9 +738,22 @@ app.post("/api/payments/xendit/invoice", async (req, res) => {
 
   const text = await xenditRes.text();
   const data = text ? JSON.parse(text) : {};
+  const paymentExpiresAt = new Date(Date.now() + payload.invoice_duration * 1000);
+
+  await recordPaymentEvent({
+    eventType: xenditRes.ok ? "invoice.created" : "invoice.failed",
+    externalId: order.id,
+    orderId: order.id,
+    payload: data,
+    providerReference: typeof data.id === "string" ? data.id : "",
+    status: typeof data.status === "string" ? data.status : String(xenditRes.status),
+  });
+
   if (!xenditRes.ok) return res.status(xenditRes.status).json({ message: data.message || data.error_code || "Gagal membuat tagihan Xendit." });
 
-  return res.json({ id: data.id, invoice_url: data.invoice_url });
+  await db.update(orders).set({ paymentExpiresAt, updatedAt: new Date() }).where(eq(orders.id, order.id));
+
+  return res.json({ id: data.id, invoice_url: data.invoice_url, paymentExpiresAt });
 });
 
 app.post("/api/webhooks/xendit", async (req, res) => {
@@ -698,6 +766,14 @@ app.post("/api/webhooks/xendit", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
   const [order] = await db.select().from(orders).where(eq(orders.id, parsed.data.external_id)).limit(1);
+  await recordPaymentEvent({
+    eventType: "webhook.received",
+    externalId: parsed.data.external_id,
+    orderId: order?.id ?? null,
+    payload: req.body,
+    providerReference: typeof req.body.id === "string" ? req.body.id : "",
+    status: parsed.data.status,
+  });
   if (!order) return res.json({ ok: true });
 
   const status = parsed.data.status.toUpperCase();
