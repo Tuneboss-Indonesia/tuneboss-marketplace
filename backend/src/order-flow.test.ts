@@ -3,7 +3,7 @@ import { after, before, test } from "node:test";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 process.env.XENDIT_SECRET_KEY = "test_xendit_key";
 
@@ -13,7 +13,7 @@ const [{ app }, { hashPassword }, { closeDb, db }, schema] = await Promise.all([
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, orders, products, session, user: users } = schema;
+const { addresses, orders, paymentEvents, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -69,6 +69,7 @@ async function fixture(stock = 5) {
   });
 
   const cleanup = async () => {
+    await db.delete(paymentEvents).where(sql`${paymentEvents.orderId} in (select id from orders where customer_id = ${userId})`);
     await db.delete(orders).where(eq(orders.customerId, userId));
     await db.delete(products).where(eq(products.id, productId));
     await db.delete(users).where(eq(users.id, userId));

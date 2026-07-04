@@ -132,7 +132,7 @@ async function recordPaymentEvent(input: {
     payload: input.payload,
     providerReference: input.providerReference ?? "",
     status: input.status ?? "",
-  });
+  }).onConflictDoNothing();
 }
 
 async function requireStaff(req: Request, res: Response) {

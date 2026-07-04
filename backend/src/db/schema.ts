@@ -1,4 +1,5 @@
-import { boolean, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["admin", "staff", "customer"]);
 export const stockMovementType = pgEnum("stock_movement_type", ["in", "out", "sale"]);
@@ -111,4 +112,6 @@ export const paymentEvents = pgTable("payment_events", {
   providerReference: text("provider_reference").notNull().default(""),
   payload: jsonb("payload").notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("payment_events_provider_reference_unique").on(table.providerReference).where(sql`${table.providerReference} <> ''`),
+]);

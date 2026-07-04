@@ -71,6 +71,13 @@
       "when": 1783004400000,
       "tag": "0009_add_payment_invoice_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783008000000,
+      "tag": "0010_deduplicate_payment_events",
+      "breakpoints": true
     }
   ]
 }
