@@ -120,7 +120,8 @@ test("duplicate paid webhook does not reduce reserved stock twice", async () => 
     const created = await post("/api/orders", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 2 }] });
     assert.equal(await stockOf(fx.productId), 3);
 
-    const payload = { external_id: created.order?.id, status: "PAID" };
+    const providerReference = `webhook-${created.order?.id}`;
+    const payload = { external_id: created.order?.id, id: providerReference, status: "PAID" };
     await post("/api/webhooks/xendit", "", payload);
     await post("/api/webhooks/xendit", "", payload);
 
@@ -128,6 +129,11 @@ test("duplicate paid webhook does not reduce reserved stock twice", async () => 
     const [order] = await db.select().from(orders).where(and(eq(orders.id, created.order?.id ?? ""), eq(orders.status, "paid")));
     assert.ok(order);
     assert.equal(order.stockReserved, false);
+    const [{ totalEvents }] = await db
+      .select({ totalEvents: sql<number>`count(*)` })
+      .from(paymentEvents)
+      .where(eq(paymentEvents.providerReference, providerReference));
+    assert.equal(Number(totalEvents), 1);
   } finally {
     await fx.cleanup();
   }
