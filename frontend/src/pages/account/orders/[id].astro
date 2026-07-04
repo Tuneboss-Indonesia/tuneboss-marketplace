@@ -1,6 +1,5 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
-import OrderDetailWrapper from "@/components/OrderDetail.tsx";
 import "@/styles/global.css";
 
 export const prerender = false;
@@ -13,5 +12,98 @@ const { id } = Astro.params;
     <h2 class="text-xl font-bold uppercase tracking-widest text-foreground">Detail Pesanan</h2>
     <p class="mt-1 text-sm text-foreground/70">Lihat item, pembayaran, dan status pengiriman pesanan Anda.</p>
   </div>
-  <OrderDetailWrapper id={id ?? ""} client:load />
+  <div id="order-detail" data-order-id={id ?? ""} class="p-8 text-center text-sm text-foreground/60">Memuat pesanan...</div>
 </AccountLayout>
+
+<script>
+  type OrderItem = { id: string; name: string; quantity: number; unitPrice: number };
+  type Order = {
+    courier?: string | null;
+    createdAt: string;
+    deliveredAt?: string | null;
+    id: string;
+    items: OrderItem[];
+    paymentInvoiceUrl?: string | null;
+    shippedAt?: string | null;
+    status: string;
+    total: number;
+    trackingNumber?: string | null;
+  };
+
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+  const currency = new Intl.NumberFormat("id-ID", { currency: "IDR", maximumFractionDigits: 0, style: "currency" });
+  const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char] || char));
+  let order: Order | null = null;
+
+  const render = () => {
+    const root = document.getElementById("order-detail");
+    if (!root || !order) return;
+    const shipping = [
+      order.courier ? `<p>Kurir: <strong>${escapeHtml(order.courier)}</strong></p>` : "",
+      order.trackingNumber ? `<p>Resi: <strong>${escapeHtml(order.trackingNumber)}</strong></p>` : "",
+      order.shippedAt ? `<p>Dikirim: ${new Date(order.shippedAt).toLocaleString("id-ID")}</p>` : "",
+      order.deliveredAt ? `<p>Diterima: ${new Date(order.deliveredAt).toLocaleString("id-ID")}</p>` : "",
+    ].filter(Boolean).join("");
+    const invoice = order.paymentInvoiceUrl && order.status === "pending"
+      ? `<a class="inline-block cursor-pointer bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white no-underline" href="${order.paymentInvoiceUrl}" style="color: white !important;">Buka Invoice</a>`
+      : "";
+    const pendingActions = order.status === "pending"
+      ? `<button data-pay-order type="button" class="cursor-pointer bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white" style="color: white !important;">Bayar Sekarang</button><button data-cancel-order type="button" class="cursor-pointer border border-red-500 bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-red-500">Batalkan Pesanan</button>`
+      : "";
+
+    root.className = "space-y-6";
+    root.innerHTML = `
+      <div class="flex flex-col gap-4 border border-primary/20 p-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.3em] text-primary">Order ID</p>
+          <h2 class="mt-2 break-all text-xl font-bold text-foreground">${order.id}</h2>
+          <p class="mt-2 text-sm text-foreground/60">${new Date(order.createdAt).toLocaleString("id-ID")}</p>
+        </div>
+        <div class="text-left md:text-right">
+          <p class="text-xs font-bold uppercase tracking-[0.3em] text-foreground/50">Status</p>
+          <p class="mt-2 text-lg font-bold uppercase text-primary">${escapeHtml(order.status)}</p>
+          <p class="mt-1 text-sm text-foreground/60">${currency.format(order.total)}</p>
+        </div>
+      </div>
+      <div class="border border-primary/20 p-5">
+        <h3 class="mb-4 text-sm font-bold uppercase tracking-widest text-foreground">Item Pesanan</h3>
+        <div class="space-y-3">
+          ${order.items.map((item) => `<div class="flex justify-between gap-4 border-b border-primary/10 pb-3 text-sm last:border-0 last:pb-0"><span>${item.quantity}x ${escapeHtml(item.name)}</span><span class="font-bold">${currency.format(item.unitPrice * item.quantity)}</span></div>`).join("")}
+        </div>
+      </div>
+      ${shipping ? `<div class="border border-primary/20 p-5 text-sm text-foreground/70"><h3 class="mb-4 text-sm font-bold uppercase tracking-widest text-foreground">Pengiriman</h3>${shipping}</div>` : ""}
+      <div class="flex flex-wrap gap-3">${invoice}${pendingActions}<a href="/account/history" class="cursor-pointer border border-primary/20 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-foreground no-underline">Kembali</a></div>
+    `;
+  };
+
+  document.addEventListener("astro:page-load", async () => {
+    const root = document.getElementById("order-detail");
+    const id = root?.dataset.orderId || "";
+    root?.addEventListener("click", async (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("[data-pay-order]")) {
+        const response = await fetch(`${apiUrl}/payments/xendit/invoice`, { body: JSON.stringify({ orderId: id }), credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) return alert(body.message || "Gagal membuat invoice.");
+        if (body.invoice_url) window.location.href = body.invoice_url;
+      }
+      if (target?.closest("[data-cancel-order]") && confirm("Batalkan pesanan ini?")) {
+        const response = await fetch(`${apiUrl}/orders/${encodeURIComponent(id)}/cancel`, { credentials: "include", method: "POST" });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) return alert(body.message || "Gagal membatalkan pesanan.");
+        order = { ...(order as Order), status: "cancelled" };
+        render();
+      }
+    });
+
+    try {
+      const response = await fetch(`${apiUrl}/orders/${encodeURIComponent(id)}`, { credentials: "include" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.order) throw new Error();
+      order = body.order;
+      render();
+    } catch {
+      if (root) root.innerHTML = `<div class="p-8 text-center text-sm text-red-500">Pesanan tidak ditemukan.</div>`;
+    }
+  });
+</script>

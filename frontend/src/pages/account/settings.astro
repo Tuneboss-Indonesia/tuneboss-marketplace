@@ -1,6 +1,5 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
-import AccountSettingsForms from "@/components/AccountSettingsForms.tsx";
 import "@/styles/global.css";
 
 export const prerender = false;
@@ -8,6 +7,132 @@ export const prerender = false;
 
 <AccountLayout title="Settings" activePath="/account/settings" i18nTitleKey="account.settings">
   <div class="w-full">
-    <AccountSettingsForms client:load />
+    <section class="mb-12">
+      <div class="mb-8">
+        <h2 data-i18n="account.profileTitle" class="text-xl font-bold uppercase tracking-widest text-foreground">Profil Saya</h2>
+        <p data-i18n="account.profileDesc" class="mt-1 text-sm text-foreground/70">Kelola informasi pribadi dan kontak Anda.</p>
+      </div>
+
+      <form id="profile-form" class="space-y-5">
+        <div class="grid gap-2">
+          <label for="profile-name" data-i18n="account.name" class="text-sm font-bold uppercase tracking-widest text-foreground">Nama Lengkap</label>
+          <input id="profile-name" class="w-full border border-primary/20 bg-transparent p-4 outline-none transition-colors focus:border-primary text-foreground" name="name" type="text" placeholder="Masukkan nama lengkap Anda" />
+          <p data-profile-error="name" class="hidden text-[11px] font-medium text-red-500 mt-1.5 px-1"></p>
+        </div>
+
+        <div class="grid gap-2">
+          <label for="profile-email" data-i18n="account.email" class="text-sm font-bold uppercase tracking-widest text-foreground">Alamat Email</label>
+          <input id="profile-email" class="w-full cursor-not-allowed border border-primary/20 bg-primary/5 p-4 outline-none text-foreground/60" type="email" disabled readonly />
+          <p data-i18n="account.emailHelp" class="text-[11px] uppercase tracking-widest text-foreground/60">Alamat email tidak dapat diubah.</p>
+        </div>
+
+        <div class="grid gap-2">
+          <label for="profile-phone" data-i18n="account.phone" class="text-sm font-bold uppercase tracking-widest text-foreground">Nomor Telepon</label>
+          <input id="profile-phone" class="w-full border border-primary/20 bg-transparent p-4 outline-none transition-colors focus:border-primary text-foreground" name="phone" type="tel" placeholder="Masukkan nomor telepon Anda" />
+          <p data-profile-error="phone" class="hidden text-[11px] font-medium text-red-500 mt-1.5 px-1"></p>
+        </div>
+
+        <button id="profile-submit" type="submit" class="mt-4 flex items-center justify-center gap-3 bg-primary px-8 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04] disabled:cursor-not-allowed disabled:opacity-60" style="color: white !important;">Simpan Profil</button>
+        <p id="profile-message" class="hidden text-[11px] font-medium mt-1.5 px-1"></p>
+      </form>
+    </section>
+
+    <hr class="border-border/50 my-8" />
+
+    <section>
+      <div class="mb-8">
+        <h2 data-i18n="account.passwordTitle" class="text-xl font-bold uppercase tracking-widest text-foreground">Ubah Kata Sandi</h2>
+        <p data-i18n="account.passwordDesc" class="mt-1 text-sm text-foreground/70">Perbarui kata sandi Anda untuk menjaga keamanan akun.</p>
+      </div>
+
+      <form id="password-form" class="space-y-5">
+        <div class="grid gap-2">
+          <label for="password-current" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Saat Ini</label>
+          <input id="password-current" class="w-full border border-primary/20 bg-transparent p-4 outline-none transition-colors focus:border-primary text-foreground" name="currentPassword" type="password" placeholder="Masukkan kata sandi saat ini" />
+        </div>
+        <div class="grid gap-2">
+          <label for="password-next" class="text-sm font-bold uppercase tracking-widest text-foreground">Kata Sandi Baru</label>
+          <input id="password-next" class="w-full border border-primary/20 bg-transparent p-4 outline-none transition-colors focus:border-primary text-foreground" name="newPassword" type="password" placeholder="Masukkan kata sandi baru" />
+        </div>
+        <div class="grid gap-2">
+          <label for="password-confirm" class="text-sm font-bold uppercase tracking-widest text-foreground">Konfirmasi Kata Sandi Baru</label>
+          <input id="password-confirm" class="w-full border border-primary/20 bg-transparent p-4 outline-none transition-colors focus:border-primary text-foreground" type="password" placeholder="Ulangi kata sandi baru" />
+        </div>
+        <button id="password-submit" type="submit" class="mt-4 flex items-center justify-center gap-3 bg-primary px-8 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#c95b04] disabled:cursor-not-allowed disabled:opacity-60" style="color: white !important;">Perbarui Kata Sandi</button>
+        <p id="password-message" class="hidden text-[11px] font-medium mt-1.5 px-1"></p>
+      </form>
+    </section>
   </div>
 </AccountLayout>
+
+<script>
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+  const showMessage = (id: string, message: string, ok = false) => {
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.textContent = message;
+    node.classList.remove("hidden", "text-red-500", "text-green-600");
+    node.classList.add(ok ? "text-green-600" : "text-red-500");
+  };
+
+  document.addEventListener("astro:page-load", async () => {
+    const name = document.getElementById("profile-name") as HTMLInputElement | null;
+    const email = document.getElementById("profile-email") as HTMLInputElement | null;
+    const phone = document.getElementById("profile-phone") as HTMLInputElement | null;
+    const profileForm = document.getElementById("profile-form") as HTMLFormElement | null;
+    const passwordForm = document.getElementById("password-form") as HTMLFormElement | null;
+
+    try {
+      const response = await fetch(`${apiUrl}/account`, { credentials: "include" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || "Gagal memuat profil.");
+      if (name) name.value = body.user?.name || "";
+      if (email) email.value = body.user?.email || "";
+      if (phone) phone.value = body.user?.phone || "";
+    } catch (error) {
+      showMessage("profile-message", error instanceof Error ? error.message : "Gagal memuat profil.");
+    }
+
+    profileForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("profile-submit") as HTMLButtonElement | null;
+      const fullName = name?.value.trim() || "";
+      const phoneValue = phone?.value.trim() || "";
+      if (fullName.length < 3) return showMessage("profile-message", "Nama minimal 3 karakter.");
+      if (phoneValue.length < 8) return showMessage("profile-message", "Nomor telepon tidak valid.");
+      try {
+        if (button) button.disabled = true;
+        const response = await fetch(`${apiUrl}/account`, { body: JSON.stringify({ name: fullName, phone: phoneValue }), credentials: "include", headers: { "Content-Type": "application/json" }, method: "PATCH" });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || "Gagal menyimpan profil.");
+        showMessage("profile-message", "Profil berhasil disimpan.", true);
+      } catch (error) {
+        showMessage("profile-message", error instanceof Error ? error.message : "Gagal menyimpan profil.");
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+
+    passwordForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("password-submit") as HTMLButtonElement | null;
+      const current = (document.getElementById("password-current") as HTMLInputElement | null)?.value || "";
+      const next = (document.getElementById("password-next") as HTMLInputElement | null)?.value || "";
+      const confirm = (document.getElementById("password-confirm") as HTMLInputElement | null)?.value || "";
+      if (next !== confirm) return showMessage("password-message", "Konfirmasi kata sandi tidak cocok.");
+      if (current.length < 8 || next.length < 8) return showMessage("password-message", "Kata sandi minimal 8 karakter.");
+      try {
+        if (button) button.disabled = true;
+        const response = await fetch(`${apiUrl}/account/password`, { body: JSON.stringify({ currentPassword: current, newPassword: next }), credentials: "include", headers: { "Content-Type": "application/json" }, method: "PATCH" });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || "Gagal memperbarui kata sandi.");
+        passwordForm.reset();
+        showMessage("password-message", "Kata sandi berhasil diperbarui.", true);
+      } catch (error) {
+        showMessage("password-message", error instanceof Error ? error.message : "Gagal memperbarui kata sandi.");
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  });
+</script>
