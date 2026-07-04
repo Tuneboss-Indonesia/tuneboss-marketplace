@@ -1,3 +1,4 @@
+import { useDeferredValue, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '../hooks/useApi'
 import { QueryProvider } from './QueryProvider'
@@ -20,6 +21,15 @@ const noteFor = (s: string) => ({ pending: 'Menunggu pembayaran', paid: 'Pembaya
 
 const border = '1px solid rgba(var(--primary), 0.2)'
 const actionButton = 'px-5 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer'
+const inputClass = 'w-full border border-primary/20 bg-transparent p-3 text-sm text-foreground outline-none transition-colors focus:border-primary'
+
+const statusOptions = [
+  ['all', 'Semua Pesanan'],
+  ['pending', 'Menunggu Pembayaran'],
+  ['paid', 'Dibayar'],
+  ['fulfilled', 'Selesai'],
+  ['cancelled', 'Dibatalkan'],
+] as const
 
 function OrderCard({ order }: { order: Order }) {
   const qc = useQueryClient()
@@ -86,17 +96,49 @@ function OrderCard({ order }: { order: Order }) {
 
 function OrderHistoryList() {
   const { data, isLoading, error } = useApi<OrdersResponse>('/orders')
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState<(typeof statusOptions)[number][0]>('all')
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase())
 
   if (isLoading) return <div style={{ textAlign: 'center', padding: '32px', color: 'var(--muted-foreground)' }}>Memuat riwayat pesanan...</div>
   if (error) return <div style={{ textAlign: 'center', padding: '32px', color: '#ef4444' }}>Gagal memuat riwayat pesanan.</div>
 
   const orders = data?.orders ?? []
+  const visibleOrders = orders.filter((order) => {
+    const matchesStatus = status === 'all' || order.status === status
+    const searchable = `${order.id} ${order.status} ${order.items.map((item) => item.name).join(' ')}`.toLowerCase()
+    return matchesStatus && (!deferredQuery || searchable.includes(deferredQuery))
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:justify-between">
+        <label className="flex-1">
+          <span className="sr-only">Cari pesanan</span>
+          <input
+            className={`${inputClass} flex-1`}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cari order ID atau produk..."
+            type="search"
+            value={query}
+          />
+        </label>
+        <label className="sm:w-60">
+          <span className="sr-only">Filter status pesanan</span>
+          <select
+            className={`${inputClass} sm:w-60`}
+            onChange={(event) => setStatus(event.target.value as typeof status)}
+            value={status}
+          >
+            {statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+      </div>
       {orders.length === 0 ? (
         <div style={{ border, padding: '32px', textAlign: 'center', fontSize: '14px', color: 'var(--muted-foreground)' }}>Belum ada riwayat pesanan.</div>
-      ) : orders.map((order) => <OrderCard key={order.id} order={order} />)}
+      ) : visibleOrders.length === 0 ? (
+        <div style={{ border, padding: '32px', textAlign: 'center', fontSize: '14px', color: 'var(--muted-foreground)' }}>Tidak ada pesanan yang cocok.</div>
+      ) : visibleOrders.map((order) => <OrderCard key={order.id} order={order} />)}
     </div>
   )
 }
