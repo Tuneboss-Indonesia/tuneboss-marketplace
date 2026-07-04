@@ -150,11 +150,9 @@ import SEO from "@/components/SEO.astro";
 </TuneBossChrome>
 
 <script>
-  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
-
   document.addEventListener("astro:page-load", () => {
-    let cards = document.querySelectorAll("[data-product-card]");
-    let buttons = document.querySelectorAll("[data-page-button]");
+    const cards = document.querySelectorAll("[data-product-card]");
+    const buttons = document.querySelectorAll("[data-page-button]");
     const searchInput = document.querySelector("[data-i18n-placeholder='products.searchPlaceholder']");
 
     const showPage = (page: string) => {
@@ -169,55 +167,6 @@ import SEO from "@/components/SEO.astro";
 
     const bindPagination = () => {
       buttons.forEach((button) => button.addEventListener("click", () => showPage(button.getAttribute("data-page-button") || "1")));
-    };
-
-    const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] || char));
-    type ApiProduct = { id: string; slug: string; image: string; name: string; brand: string; price: string; stock: number };
-    const renderCard = (item: ApiProduct, page: number) => `
-      <div data-product-card data-page="${page}">
-        <div class="group relative h-full cursor-pointer" data-reveal>
-          <a href="/products/${escapeHtml(item.slug)}" aria-label="${escapeHtml(item.name)}" class="relative block h-full">
-            <div class="flex h-full flex-col overflow-hidden border border-transparent bg-background transition-all duration-500 hover:border-primary/10 group-hover:shadow-lg">
-              <div class="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-transparent p-2 md:aspect-[16/10] md:p-4">
-                <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" class="relative z-0 h-full w-full object-contain transition-all duration-700 group-hover:-translate-y-2 group-hover:scale-110" />
-              </div>
-              <div class="relative flex flex-grow flex-col justify-between border-b border-primary/5 bg-background px-4 pb-4 pt-6 transition-colors duration-500 group-hover:border-primary/30 md:px-5">
-                <div class="flex flex-col space-y-1">
-                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">${escapeHtml(item.brand)}</p>
-                  <p class="text-xl font-bold uppercase leading-none tracking-wide md:text-2xl">${escapeHtml(item.name)}</p>
-                </div>
-                <div class="mt-6 flex items-end justify-between pr-12">
-                  <div><p class="mb-1 text-xs font-light text-primary">From</p><span class="text-lg font-light md:text-xl">${escapeHtml(item.price)}</span></div>
-                  <span class="text-[10px] font-bold uppercase tracking-widest transition-colors group-hover:text-primary">EXPLORE &rsaquo;</span>
-                </div>
-              </div>
-            </div>
-          </a>
-          <button data-add-cart data-product-id="${escapeHtml(item.id)}" data-product-name="${escapeHtml(item.name)}" data-product-price="${escapeHtml(item.price)}" data-product-image="${escapeHtml(item.image)}" data-product-max="${item.stock || 99}" data-product-brand="${escapeHtml(item.brand)}" class="absolute bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center border border-primary/20 bg-background text-foreground transition-all duration-300 hover:border-primary hover:bg-primary hover:text-background md:right-5" type="button" aria-label="Tambah ${escapeHtml(item.name)} ke keranjang">
-            <svg viewBox="0 0 24 24" class="h-[17px] w-[17px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-          </button>
-        </div>
-      </div>`;
-
-    const loadProducts = async () => {
-      const grid = document.querySelector("[data-products-grid]");
-      const pagination = document.querySelector("[data-pagination]");
-      if (!grid || !pagination) return;
-      try {
-        const response = await fetch(`${apiUrl}/products`);
-        const data = await response.json();
-        const apiProducts: ApiProduct[] = Array.isArray(data.products) ? data.products : [];
-        if (!response.ok || apiProducts.length === 0) return;
-        grid.innerHTML = apiProducts.map((item, index) => renderCard(item, Math.floor(index / 9) + 1)).join("");
-        const pages = Math.ceil(apiProducts.length / 9);
-        pagination.innerHTML = Array.from({ length: pages }, (_, index) => `<button data-page-button="${index + 1}" class="h-10 min-w-10 border border-primary/20 px-4 text-sm font-bold transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button">${index + 1}</button>`).join("");
-        cards = document.querySelectorAll("[data-product-card]");
-        buttons = document.querySelectorAll("[data-page-button]");
-        bindPagination();
-        showPage("1");
-      } catch {
-        // Static products stay visible when the API is unavailable.
-      }
     };
 
     bindPagination();
@@ -260,7 +209,6 @@ import SEO from "@/components/SEO.astro";
       });
       showPage("1");
     });
-    loadProducts();
     showPage("1");
 
     document.querySelectorAll("[data-loadable]").forEach((section) => {
