@@ -1,0 +1,17 @@
+---
+import AccountLayout from "@/components/AccountLayout.astro";
+import OrderDetailWrapper from "@/components/OrderDetail.tsx";
+import "@/styles/global.css";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+---
+
+<AccountLayout title="Purchase History" activePath="/account/history" i18nTitleKey="account.history">
+  <div class="mb-8">
+    <h2 class="text-xl font-bold uppercase tracking-widest text-foreground">Detail Pesanan</h2>
+    <p class="mt-1 text-sm text-foreground/70">Lihat item, pembayaran, dan status pengiriman pesanan Anda.</p>
+  </div>
+  <OrderDetailWrapper id={id ?? ""} client:load />
+</AccountLayout>

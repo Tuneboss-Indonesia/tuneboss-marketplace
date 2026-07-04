@@ -1,9 +1,11 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '../hooks/useApi'
 import { QueryProvider } from './QueryProvider'
 
 type OrderItem = { id: string; name: string; quantity: number; unitPrice: number }
 type Order = { id: string; status: string; total: number; createdAt: string; updatedAt: string; items: OrderItem[] }
 type OrdersResponse = { orders: Order[] }
+const API = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000/api'
 
 const currency = new Intl.NumberFormat('id-ID', { currency: 'IDR', style: 'currency', maximumFractionDigits: 0 })
 
@@ -20,9 +22,18 @@ const border = '1px solid rgba(var(--primary), 0.2)'
 const actionButton = 'px-5 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer'
 
 function OrderCard({ order }: { order: Order }) {
+  const qc = useQueryClient()
   const meta = statusMeta[order.status] ?? statusMeta.pending
   const isCancelled = order.status === 'cancelled'
   const canReview = order.status === 'fulfilled'
+  const cancelOrder = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/orders/${order.id}/cancel`, { method: 'POST', credentials: 'include' })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || 'Gagal membatalkan pesanan.')
+      return r.json()
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/orders'] }),
+  })
   const openTracking = () => {
     sessionStorage.setItem('tuneboss-tracking-id', order.id)
     window.location.href = '/tracking'
@@ -54,11 +65,15 @@ function OrderCard({ order }: { order: Order }) {
       </div>
       <hr style={{ border: 'none', borderTop: '1px solid rgba(127,127,127,0.15)', margin: '16px 0' }} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-            <button type="button" onClick={openTracking} className={actionButton} style={{ border: '1px solid rgba(var(--primary), 0.2)', background: 'transparent', color: 'var(--foreground)' }}>Lacak Pesanan</button>
+        <a href={`/account/orders/${order.id}`} className={actionButton} style={{ border: '1px solid rgba(var(--primary), 0.2)', background: 'transparent', color: 'var(--foreground)', textDecoration: 'none' }}>Detail</a>
+        <button type="button" onClick={openTracking} className={actionButton} style={{ border: '1px solid rgba(var(--primary), 0.2)', background: 'transparent', color: 'var(--foreground)' }}>Lacak Pesanan</button>
         {(order.status === 'pending' || canReview) && (
           <>
             {order.status === 'pending' ? (
-              <button type="button" onClick={(e) => { e.stopPropagation(); window.location.href = `/checkout/${order.id}?status=pending` }} className={actionButton} style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}>Bayar Sekarang</button>
+              <>
+                <button type="button" disabled={cancelOrder.isPending} onClick={() => { if (confirm('Batalkan pesanan ini?')) cancelOrder.mutate() }} className={actionButton} style={{ border: '1px solid #ef4444', background: 'transparent', color: '#ef4444', opacity: cancelOrder.isPending ? 0.6 : 1 }}>Batalkan</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); window.location.href = `/checkout/${order.id}?status=pending` }} className={actionButton} style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}>Bayar Sekarang</button>
+              </>
             ) : (
               <button type="button" onClick={(e) => { e.stopPropagation(); alert('Review feature coming soon') }} className={actionButton} style={{ border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)' }}>Beri Review</button>
             )}
