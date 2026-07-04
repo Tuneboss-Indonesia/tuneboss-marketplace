@@ -679,7 +679,10 @@ app.get("/api/products", async (_req, res) => {
 
 app.get("/api/products/:slug", async (req, res) => {
   const rows = await db.select().from(products).where(eq(products.isActive, true));
-  const product = rows.find((row) => row.id === req.params.slug || slugify(row.name) === req.params.slug);
+  const product = rows.find((row) => {
+    const brand = brandFrom(row.name, row.sku);
+    return row.id === req.params.slug || slugify(row.name) === req.params.slug || slugify(`${brand} ${row.name}`) === req.params.slug;
+  });
   if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
   return res.json({ product: productDto(product) });
 });

@@ -4,6 +4,7 @@ import { Image } from "astro:assets";
 import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Star, Tag, X } from "lucide-react";
 import ProductCard from "@/components/ProductCard.astro";
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
+import { fallbackProducts } from "@/lib/fallbackProducts";
 import ecuImage from "../../../public/images/tuneboss-motorcycle-ecu.png";
 import "@/styles/global.css";
 
@@ -15,141 +16,12 @@ export function getStaticPaths() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-  const products = [
-  {
-    id: 1,
-    brand: "Honda",
-    name: "Motorcycle ECU",
-    price: "Rp. 599.000",
-    stock: 14,
-    shipping: "Rp. 25.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description:
-      "TuneBoss Motorcycle ECU dibuat untuk tuning mesin yang lebih presisi, respons gas lebih tajam, dan kontrol performa yang aman untuk harian maupun track day.",
-    tags: ["ECU", "Plug-and-play", "Street & track", "Real-time data"],
-  },
-  {
-    id: 2,
-    brand: "Yamaha",
-    name: "ECU Flash Kit",
-    price: "Rp. 299.000",
-    stock: 20,
+  const products = fallbackProducts.map((product) => ({
+    ...product,
     shipping: "Rp. 20.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Kit flash untuk update map ECU dengan proses yang rapi, cepat, dan cocok untuk kebutuhan bengkel maupun pengguna rumahan.",
-    tags: ["Flash kit", "Fast setup", "USB ready", "Stable map"],
-  },
-  {
-    id: 3,
-    brand: "Kawasaki",
-    name: "Race Tuning Pack",
-    price: "Rp. 449.000",
-    stock: 8,
-    shipping: "Rp. 25.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Paket tuning untuk setup balap dengan fokus pada akselerasi, kontrol limiter, dan data performa yang mudah dipantau.",
-    tags: ["Race", "Track-ready", "Limiter", "Performance"],
-  },
-  {
-    id: 4,
-    brand: "Suzuki",
-    name: "Street Tune Pack",
-    price: "Rp. 349.000",
-    stock: 16,
-    shipping: "Rp. 20.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Setup tuning harian yang menjaga motor tetap nyaman dipakai, lebih responsif, dan aman setelah modifikasi ringan.",
-    tags: ["Street", "Daily", "Smooth response", "Safe tune"],
-  },
-  {
-    id: 5,
-    brand: "Honda",
-    name: "Quickshifter Module",
-    price: "Rp. 249.000",
-    stock: 11,
-    shipping: "Rp. 18.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Modul quickshifter untuk perpindahan gigi lebih cepat dengan feel mekanis yang konsisten.",
-    tags: ["Quickshift", "Sport", "Precision", "Module"],
-  },
-  {
-    id: 6,
-    brand: "Yamaha",
-    name: "Launch Control",
-    price: "Rp. 399.000",
-    stock: 7,
-    shipping: "Rp. 22.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Kontrol start untuk menjaga rpm tetap stabil dan membantu akselerasi awal lebih konsisten.",
-    tags: ["Launch", "RPM hold", "Race start", "Control"],
-  },
-  {
-    id: 7,
-    brand: "Kawasaki",
-    name: "Data Logger",
-    price: "Rp. 199.000",
-    stock: 18,
-    shipping: "Rp. 15.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Pencatat data performa untuk membaca kebiasaan mesin dan membantu proses tuning berikutnya.",
-    tags: ["Logger", "Telemetry", "Data", "Tuning"],
-  },
-  {
-    id: 8,
-    brand: "Suzuki",
-    name: "Wiring Harness",
-    price: "Rp. 149.000",
-    stock: 25,
-    shipping: "Rp. 15.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Harness rapi untuk instalasi modul TuneBoss dengan koneksi yang aman dan mudah dirawat.",
-    tags: ["Harness", "Install", "Cable", "Clean fit"],
-  },
-  {
-    id: 9,
-    brand: "Honda",
-    name: "Fuel Controller",
-    price: "Rp. 329.000",
-    stock: 12,
-    shipping: "Rp. 20.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Kontrol suplai bahan bakar untuk menjaga pembakaran lebih optimal setelah upgrade komponen.",
-    tags: ["Fuel", "Controller", "AFR", "Response"],
-  },
-  {
-    id: 10,
-    brand: "Yamaha",
-    name: "Ignition Module",
-    price: "Rp. 279.000",
-    stock: 13,
-    shipping: "Rp. 18.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Modul pengapian untuk membantu karakter tenaga lebih tajam dan stabil di berbagai putaran mesin.",
-    tags: ["Ignition", "Timing", "Spark", "Stable"],
-  },
-  {
-    id: 11,
-    brand: "Kawasaki",
-    name: "Pit Limiter",
-    price: "Rp. 189.000",
-    stock: 9,
-    shipping: "Rp. 15.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Limiter kecepatan pit yang praktis untuk kebutuhan track day dan paddock setup.",
-    tags: ["Limiter", "Track", "Paddock", "Control"],
-  },
-  {
-    id: 12,
-    brand: "Suzuki",
-    name: "Race Harness",
-    price: "Rp. 229.000",
-    stock: 10,
-    shipping: "Rp. 18.000",
-    image: "/images/tuneboss-motorcycle-ecu.png",
-    description: "Harness balap yang lebih ringkas untuk instalasi cepat dan jalur kabel yang mudah dilacak.",
-    tags: ["Race", "Harness", "Lightweight", "Serviceable"],
-  },
-  ];
+    description: "Produk TuneBoss untuk tuning mesin yang lebih presisi, respons gas lebih tajam, dan kontrol performa yang aman untuk harian maupun track day.",
+    tags: ["TuneBoss", "ECU", "Tuning", "Performance"],
+  }));
   const productList = products.map((product) => ({ ...product, slug: slugify(product.name), apiSlug: slugify(`${product.brand} ${product.name}`), images: (product as { images?: string[] }).images ?? [product.image, product.image, product.image] }));
 
   return productList.flatMap((product) => [product.slug, product.apiSlug].map((slug) => ({
