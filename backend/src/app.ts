@@ -13,6 +13,8 @@ import { env } from "./env.js";
 
 export const app = express();
 
+const allowedOrigins = [env.FRONTEND_ORIGIN, env.ADMIN_ORIGIN].filter(Boolean);
+
 const slugify = (value: string) => value
   .toLowerCase()
   .replace(/&/g, "and")
@@ -269,7 +271,10 @@ async function expirePendingOrders() {
 
 app.use(cors({
   credentials: true,
-  origin: env.FRONTEND_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin not allowed by CORS"));
+  },
 }));
 
 app.use(express.json());
