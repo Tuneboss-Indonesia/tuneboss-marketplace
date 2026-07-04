@@ -4,13 +4,20 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { app } from "./app.js";
-import { hashPassword } from "./auth.js";
-import { closeDb, db } from "./db/client.js";
-import { addresses, orders, products, session, user as users } from "./db/schema.js";
+
+process.env.XENDIT_SECRET_KEY = "test_xendit_key";
+
+const [{ app }, { hashPassword }, { closeDb, db }, schema] = await Promise.all([
+  import("./app.js"),
+  import("./auth.js"),
+  import("./db/client.js"),
+  import("./db/schema.js"),
+]);
+const { addresses, orders, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
+const realFetch = globalThis.fetch;
 
 before(async () => {
   server = app.listen(0);
@@ -71,14 +78,19 @@ async function fixture(stock = 5) {
 }
 
 async function post(path: string, cookie: string, body: unknown) {
+  const response = await postRaw(path, cookie, body);
+  const json = await response.json() as { order?: { id: string }; message?: string };
+  assert.equal(response.ok, true, json.message ?? response.statusText);
+  return json;
+}
+
+async function postRaw(path: string, cookie: string, body: unknown) {
   const response = await fetch(`${baseUrl}${path}`, {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json", Cookie: cookie },
     method: "POST",
   });
-  const json = await response.json() as { order?: { id: string }; message?: string };
-  assert.equal(response.ok, true, json.message ?? response.statusText);
-  return json;
+  return response;
 }
 
 async function stockOf(productId: string) {
@@ -116,6 +128,38 @@ test("duplicate paid webhook does not reduce reserved stock twice", async () => 
     assert.ok(order);
     assert.equal(order.stockReserved, false);
   } finally {
+    await fx.cleanup();
+  }
+});
+
+test("parallel invoice creation claims one request", async () => {
+  const fx = await fixture(5);
+  let xenditCalls = 0;
+
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url === "https://api.xendit.co/v2/invoices") {
+      xenditCalls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return new Response(JSON.stringify({ id: "invoice-test", invoice_url: "https://pay.example.test/invoice-test", status: "PENDING" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+    return realFetch(input, init);
+  };
+
+  try {
+    const created = await post("/api/orders", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 1 }] });
+    const responses = await Promise.all([
+      postRaw("/api/payments/xendit/invoice", fx.cookie, { orderId: created.order?.id }),
+      postRaw("/api/payments/xendit/invoice", fx.cookie, { orderId: created.order?.id }),
+    ]);
+
+    assert.deepEqual(responses.map((response) => response.status).sort(), [200, 409]);
+    assert.equal(xenditCalls, 1);
+  } finally {
+    globalThis.fetch = realFetch;
     await fx.cleanup();
   }
 });
