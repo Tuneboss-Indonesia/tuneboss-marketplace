@@ -230,6 +230,20 @@ async function cancelPendingOrder(order: typeof orders.$inferSelect, note: strin
   return updated;
 }
 
+async function expirePendingOrders() {
+  const rows = await db.select().from(orders).where(and(
+    eq(orders.status, "pending"),
+    sql`${orders.paymentExpiresAt} is not null`,
+    sql`${orders.paymentExpiresAt} <= now()`,
+  ));
+  const expired = [];
+  for (const order of rows) {
+    const cancelled = await cancelPendingOrder(order, `Expired order ${order.id}`);
+    if (cancelled) expired.push({ id: cancelled.id, paymentExpiresAt: cancelled.paymentExpiresAt });
+  }
+  return expired;
+}
+
 app.use(cors({
   credentials: true,
   origin: env.FRONTEND_ORIGIN,
@@ -239,6 +253,14 @@ app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "tuneboss-marketplace-api" });
+});
+
+app.post("/api/jobs/expire-pending", async (req, res) => {
+  if (!env.CRON_SECRET) return res.status(503).json({ message: "CRON_SECRET belum dikonfigurasi." });
+  const token = req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  if (!safeEqual(token, env.CRON_SECRET)) return res.status(401).json({ message: "Invalid cron token." });
+
+  return res.json({ expired: await expirePendingOrders() });
 });
 
 app.post("/api/auth/register", register);
@@ -370,18 +392,7 @@ app.get("/api/admin/summary", async (req, res) => {
 app.post("/api/admin/orders/expire-pending", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
-  const rows = await db.select().from(orders).where(and(
-    eq(orders.status, "pending"),
-    sql`${orders.paymentExpiresAt} is not null`,
-    sql`${orders.paymentExpiresAt} <= now()`,
-  ));
-  const expired = [];
-  for (const order of rows) {
-    const cancelled = await cancelPendingOrder(order, `Expired order ${order.id}`);
-    if (cancelled) expired.push({ id: cancelled.id, paymentExpiresAt: cancelled.paymentExpiresAt });
-  }
-
-  return res.json({ expired });
+  return res.json({ expired: await expirePendingOrders() });
 });
 
 app.get("/api/admin/orders/:id", async (req, res) => {
