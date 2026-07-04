@@ -7,6 +7,8 @@ import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
 import { addresses, orderItems, orders, paymentEvents, products, stockMovements, user as users } from "./db/schema.js";
+import { sendEmail } from "./email.js";
+import { getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -133,6 +135,27 @@ async function recordPaymentEvent(input: {
     providerReference: input.providerReference ?? "",
     status: input.status ?? "",
   }).onConflictDoNothing();
+}
+
+async function sendOrderEmail(order: typeof orders.$inferSelect, subject: string, render: (name: string) => string) {
+  if (!order.customerId) return;
+  const [customer] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, order.customerId)).limit(1);
+  if (!customer?.email) return;
+
+  try {
+    await sendEmail({ html: render(customer.name), subject, to: customer.email });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function paymentDetails(order: typeof orders.$inferSelect) {
+  return {
+    date: new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(order.updatedAt),
+    method: "Xendit",
+    orderId: order.id,
+    total: formatRupiah(order.total),
+  };
 }
 
 async function requireStaff(req: Request, res: Response) {
@@ -443,6 +466,9 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
 
   if (parsed.data.status === "cancelled" && order.status === "pending") {
     const cancelled = await cancelPendingOrder(order, `Admin cancelled order ${order.id}`);
+    if (cancelled) {
+      await sendOrderEmail(cancelled, "Pesanan TuneBoss dibatalkan", (name) => getPaymentCancelEmail(name, paymentDetails(cancelled)));
+    }
     return res.json({ order: await orderDetail(cancelled ?? order) });
   }
 
@@ -913,6 +939,7 @@ app.post("/api/orders/:id/cancel", async (req, res) => {
   if (order.status !== "pending") return res.status(400).json({ message: "Hanya pesanan pending yang dapat dibatalkan." });
 
   const updated = await cancelPendingOrder(order, `Customer cancelled order ${order.id}`);
+  if (updated) await sendOrderEmail(updated, "Pesanan TuneBoss dibatalkan", (name) => getPaymentCancelEmail(name, paymentDetails(updated)));
 
   return res.json({ order: await orderDetail(updated ?? order) });
 });
@@ -1070,11 +1097,14 @@ app.post("/api/webhooks/xendit", async (req, res) => {
         }
       }
     });
+    const [paidOrder] = await db.select().from(orders).where(eq(orders.id, order.id)).limit(1);
+    if (paidOrder?.status === "paid") await sendOrderEmail(paidOrder, "Pembayaran TuneBoss berhasil", (name) => getPaymentSuccessEmail(name, paymentDetails(paidOrder)));
   }
 
   if (["EXPIRED", "FAILED", "VOIDED"].includes(status) && order.status === "pending") {
     await db.update(orders).set({ paymentInvoiceStatus: parsed.data.status, updatedAt: new Date() }).where(eq(orders.id, order.id));
-    await cancelPendingOrder(order, `Payment ${status.toLowerCase()} for order ${order.id}`);
+    const cancelled = await cancelPendingOrder(order, `Payment ${status.toLowerCase()} for order ${order.id}`);
+    if (cancelled) await sendOrderEmail(cancelled, "Pembayaran TuneBoss kedaluwarsa", (name) => getPaymentExpiredEmail(name, paymentDetails(cancelled)));
   }
 
   return res.json({ ok: true });
