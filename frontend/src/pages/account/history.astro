@@ -1,6 +1,5 @@
 ---
 import AccountLayout from "@/components/AccountLayout.astro";
-import OrderHistoryWrapper from "@/components/OrderHistoryList.tsx";
 import "@/styles/global.css";
 
 export const prerender = false;
@@ -15,9 +14,147 @@ export const prerender = false;
       <p data-i18n="account.historyDesc" class="text-sm text-foreground/70 mt-1">Lacak status pesanan Anda dan lihat detail pembelian sebelumnya.</p>
     </div>
 
-    <!-- Orders List -->
-    <div class="space-y-4">
-      <OrderHistoryWrapper client:load />
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:justify-between">
+      <label class="flex-1">
+        <span class="sr-only">Cari pesanan</span>
+        <input id="history-search" class="w-full border border-primary/20 bg-transparent p-3 text-sm text-foreground outline-none transition-colors focus:border-primary" type="search" placeholder="Cari order ID atau produk..." />
+      </label>
+      <label class="sm:w-60">
+        <span class="sr-only">Filter status pesanan</span>
+        <select id="history-status" class="w-full border border-primary/20 bg-transparent p-3 text-sm text-foreground outline-none transition-colors focus:border-primary sm:w-60">
+          <option value="all">Semua Pesanan</option>
+          <option value="pending">Menunggu Pembayaran</option>
+          <option value="paid">Dibayar</option>
+          <option value="fulfilled">Selesai</option>
+          <option value="cancelled">Dibatalkan</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="history-list" class="space-y-4">
+      <div class="border border-primary/20 p-8 text-center text-sm text-foreground/60">Memuat riwayat pesanan...</div>
     </div>
   </div>
 </AccountLayout>
+
+<script>
+  type OrderItem = { id: string; name: string; quantity: number; unitPrice: number };
+  type Order = { id: string; status: string; total: number; createdAt: string; items: OrderItem[] };
+
+  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+  const currency = new Intl.NumberFormat("id-ID", { currency: "IDR", maximumFractionDigits: 0, style: "currency" });
+  const statusMeta: Record<string, { bg: string; label: string; text: string }> = {
+    cancelled: { bg: "rgba(239,68,68,0.1)", label: "Dibatalkan", text: "#b91c1c" },
+    fulfilled: { bg: "rgba(34,197,94,0.1)", label: "Selesai", text: "#15803d" },
+    paid: { bg: "rgba(59,130,246,0.1)", label: "Dibayar", text: "#1d4ed8" },
+    pending: { bg: "rgba(234,179,8,0.1)", label: "Menunggu Pembayaran", text: "#a16207" },
+  };
+  const noteFor: Record<string, string> = {
+    cancelled: "Pesanan dibatalkan",
+    fulfilled: "Pesanan selesai",
+    paid: "Pembayaran diterima, pesanan diproses",
+    pending: "Menunggu pembayaran",
+  };
+  let orders: Order[] = [];
+
+  const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char] || char));
+
+  const renderCard = (order: Order) => {
+    const meta = statusMeta[order.status] || statusMeta.pending;
+    const isCancelled = order.status === "cancelled";
+    const itemRows = order.items.map((item) => `<p class="m-0 text-sm font-medium text-foreground">${item.quantity}x ${escapeHtml(item.name)}</p>`).join("");
+    const pendingActions = order.status === "pending"
+      ? `<button type="button" data-cancel-order="${order.id}" class="cursor-pointer border border-red-500 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-red-500">Batalkan</button><a href="/checkout/${order.id}?status=pending" class="cursor-pointer bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white no-underline" style="color: white !important;">Bayar Sekarang</a>`
+      : "";
+    const reviewAction = order.status === "fulfilled"
+      ? `<button type="button" data-review-order class="cursor-pointer border border-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary">Beri Review</button>`
+      : "";
+
+    return `
+      <div class="border border-primary/20 bg-background p-5 ${isCancelled ? "opacity-60 grayscale" : ""}">
+        <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div class="mb-1 flex items-center gap-2">
+              <span class="font-bold text-foreground">${order.id}</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold uppercase tracking-widest" style="background: ${meta.bg}; color: ${meta.text};">${meta.label}</span>
+            </div>
+            <p class="m-0 text-xs text-foreground/60">${new Date(order.createdAt).toLocaleString("id-ID")}</p>
+          </div>
+          <div class="text-left sm:text-right">
+            <p class="mb-1 text-sm text-foreground/60">Total Amount</p>
+            <p class="m-0 font-bold text-foreground ${isCancelled ? "line-through" : ""}">${currency.format(order.total)}</p>
+          </div>
+        </div>
+        <hr class="mb-4 border-0 border-t border-foreground/10" />
+        <div class="flex flex-col gap-1">
+          ${itemRows}
+          <p class="mt-1 text-xs text-foreground/60">${noteFor[order.status] || escapeHtml(order.status)}</p>
+        </div>
+        <hr class="my-4 border-0 border-t border-foreground/10" />
+        <div class="flex flex-wrap justify-end gap-3">
+          <a href="/account/orders/${order.id}" class="cursor-pointer border border-primary/20 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-foreground no-underline">Detail</a>
+          <button type="button" data-track-order="${order.id}" class="cursor-pointer border border-primary/20 bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-foreground">Lacak Pesanan</button>
+          ${pendingActions}${reviewAction}
+        </div>
+      </div>
+    `;
+  };
+
+  const render = () => {
+    const list = document.getElementById("history-list");
+    const search = (document.getElementById("history-search") as HTMLInputElement | null)?.value.trim().toLowerCase() || "";
+    const status = (document.getElementById("history-status") as HTMLSelectElement | null)?.value || "all";
+    if (!list) return;
+
+    const visible = orders.filter((order) => {
+      const searchable = `${order.id} ${order.status} ${order.items.map((item) => item.name).join(" ")}`.toLowerCase();
+      return (status === "all" || order.status === status) && (!search || searchable.includes(search));
+    });
+
+    list.innerHTML = orders.length === 0
+      ? `<div class="border border-primary/20 p-8 text-center text-sm text-foreground/60">Belum ada riwayat pesanan.</div>`
+      : visible.length === 0
+        ? `<div class="border border-primary/20 p-8 text-center text-sm text-foreground/60">Tidak ada pesanan yang cocok.</div>`
+        : visible.map(renderCard).join("");
+  };
+
+  document.addEventListener("astro:page-load", async () => {
+    const list = document.getElementById("history-list");
+    document.getElementById("history-search")?.addEventListener("input", render);
+    document.getElementById("history-status")?.addEventListener("change", render);
+    list?.addEventListener("click", async (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const track = target?.closest<HTMLElement>("[data-track-order]");
+      const cancel = target?.closest<HTMLElement>("[data-cancel-order]");
+      const review = target?.closest<HTMLElement>("[data-review-order]");
+      if (track) {
+        sessionStorage.setItem("tuneboss-tracking-id", track.dataset.trackOrder || "");
+        window.location.href = "/tracking";
+      }
+      if (review) alert("Review feature coming soon");
+      if (cancel && confirm("Batalkan pesanan ini?")) {
+        const id = cancel.dataset.cancelOrder || "";
+        cancel.setAttribute("disabled", "true");
+        const response = await fetch(`${apiUrl}/orders/${encodeURIComponent(id)}/cancel`, { credentials: "include", method: "POST" });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          alert(body.message || "Gagal membatalkan pesanan.");
+          cancel.removeAttribute("disabled");
+          return;
+        }
+        orders = orders.map((order) => order.id === id ? { ...order, status: "cancelled" } : order);
+        render();
+      }
+    });
+
+    try {
+      const response = await fetch(`${apiUrl}/orders`, { credentials: "include" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || "Gagal memuat riwayat pesanan.");
+      orders = Array.isArray(body.orders) ? body.orders : [];
+      render();
+    } catch {
+      if (list) list.innerHTML = `<div class="border border-primary/20 p-8 text-center text-sm text-red-500">Gagal memuat riwayat pesanan.</div>`;
+    }
+  });
+</script>
