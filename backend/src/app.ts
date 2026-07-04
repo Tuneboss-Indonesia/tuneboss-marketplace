@@ -8,7 +8,7 @@ import { currentUser, hashPassword, login, logout, me, register, verifyPassword 
 import { db } from "./db/client.js";
 import { addresses, orderItems, orders, paymentEvents, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
-import { getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
+import { getOrderDeliveredEmail, getOrderShippedEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -509,6 +509,13 @@ app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
     })
     .where(eq(orders.id, order.id))
     .returning();
+
+  if (updated.shippedAt && !order.shippedAt) {
+    await sendOrderEmail(updated, "Pesanan TuneBoss dikirim", (name) => getOrderShippedEmail(name, { ...paymentDetails(updated), courier: updated.courier || "Kurir" }));
+  }
+  if (updated.deliveredAt && !order.deliveredAt) {
+    await sendOrderEmail(updated, "Pesanan TuneBoss diterima", (name) => getOrderDeliveredEmail(name, paymentDetails(updated)));
+  }
 
   return res.json({ order: await orderDetail(updated) });
 });
