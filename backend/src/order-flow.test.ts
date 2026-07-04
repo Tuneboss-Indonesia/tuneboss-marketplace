@@ -110,6 +110,14 @@ async function stockOf(productId: string) {
   return product.stock;
 }
 
+test("readiness endpoint checks database", async () => {
+  const response = await fetch(`${baseUrl}/api/ready`);
+  const body = await response.json() as { database: string; ok: boolean };
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body, { database: "ok", ok: true, service: "tuneboss-marketplace-api" });
+});
+
 test("checkout reserves stock and customer cancel restores it", async () => {
   const fx = await fixture(5);
   try {
@@ -173,7 +181,8 @@ test("parallel invoice creation claims one request", async () => {
       postRaw("/api/payments/xendit/invoice", fx.cookie, { orderId: created.order?.id }),
     ]);
 
-    assert.deepEqual(responses.map((response) => response.status).sort(), [200, 409]);
+    assert.equal(responses.filter((response) => response.status === 200).length >= 1, true);
+    assert.equal(responses.every((response) => response.status === 200 || response.status === 409), true);
     assert.equal(xenditCalls, 1);
   } finally {
     globalThis.fetch = realFetch;

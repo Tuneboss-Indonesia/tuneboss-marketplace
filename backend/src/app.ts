@@ -278,6 +278,15 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "tuneboss-marketplace-api" });
 });
 
+app.get("/api/ready", async (_req, res) => {
+  try {
+    await db.execute(sql`select 1`);
+    return res.json({ database: "ok", ok: true, service: "tuneboss-marketplace-api" });
+  } catch {
+    return res.status(503).json({ database: "error", ok: false, service: "tuneboss-marketplace-api" });
+  }
+});
+
 app.post("/api/auth/register", register);
 app.post("/api/auth/login", login);
 app.get("/api/auth/me", me);
