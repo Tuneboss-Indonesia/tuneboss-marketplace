@@ -34,7 +34,7 @@ after(async () => {
   await closeDb();
 });
 
-async function fixture(stock = 5) {
+async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
   const id = randomUUID();
   const userId = `test-${id}`;
   const token = `token-${id}`;
@@ -46,6 +46,7 @@ async function fixture(stock = 5) {
     id: userId,
     name: "Test Customer",
     passwordHash: hashPassword("password123"),
+    role,
   });
   await db.insert(session).values({
     expiresAt: new Date(Date.now() + 60_000),
@@ -90,6 +91,15 @@ async function postRaw(path: string, cookie: string, body: unknown) {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json", Cookie: cookie },
     method: "POST",
+  });
+  return response;
+}
+
+async function patchRaw(path: string, cookie: string, body: unknown) {
+  const response = await fetch(`${baseUrl}${path}`, {
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    method: "PATCH",
   });
   return response;
 }
@@ -167,6 +177,57 @@ test("parallel invoice creation claims one request", async () => {
     assert.equal(xenditCalls, 1);
   } finally {
     globalThis.fetch = realFetch;
+    await fx.cleanup();
+  }
+});
+
+test("admin status guard blocks reopening cancelled orders", async () => {
+  const fx = await fixture(5, "admin");
+  try {
+    const created = await post("/api/orders", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 1 }] });
+    await post(`/api/orders/${created.order?.id}/cancel`, fx.cookie, {});
+
+    const response = await patchRaw(`/api/admin/orders/${created.order?.id}/status`, fx.cookie, { status: "paid" });
+    const body = await response.json() as { message: string };
+
+    assert.equal(response.status, 400);
+    assert.match(body.message, /tidak dapat diubah/);
+  } finally {
+    await fx.cleanup();
+  }
+});
+
+test("fulfillment sends shipped and delivered emails once", async () => {
+  const fx = await fixture(5, "admin");
+  const calls: unknown[] = [];
+
+  try {
+    const created = await post("/api/orders", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 1 }] });
+    await post("/api/webhooks/xendit", "", { external_id: created.order?.id, id: `paid-${created.order?.id}`, status: "PAID" });
+
+    process.env.RESEND_API_KEY = "re_test";
+    process.env.EMAIL_FROM = "TuneBoss <noreply@example.com>";
+    globalThis.fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url === "https://api.resend.com/emails") {
+        calls.push(init?.body ? JSON.parse(String(init.body)) : null);
+        return new Response(JSON.stringify({ id: "email-test" }), { status: 200 });
+      }
+      return realFetch(input, init);
+    };
+
+    const shippedAt = new Date().toISOString();
+    assert.equal((await patchRaw(`/api/admin/orders/${created.order?.id}/fulfillment`, fx.cookie, { courier: "JNE", shippedAt, trackingNumber: "TRACK1" })).status, 200);
+    assert.equal((await patchRaw(`/api/admin/orders/${created.order?.id}/fulfillment`, fx.cookie, { trackingNumber: "TRACK2" })).status, 200);
+    assert.equal((await patchRaw(`/api/admin/orders/${created.order?.id}/fulfillment`, fx.cookie, { deliveredAt: new Date().toISOString() })).status, 200);
+
+    assert.equal(calls.length, 2);
+    assert.match(JSON.stringify(calls[0]), /dikirim|Order Shipped/i);
+    assert.match(JSON.stringify(calls[1]), /diterima|Order Delivered/i);
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.EMAIL_FROM;
     await fx.cleanup();
   }
 });
