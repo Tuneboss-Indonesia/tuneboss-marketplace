@@ -64,7 +64,7 @@ import SEO from "@/components/SEO.astro";
     }
 
     try {
-      const response = await fetch(`${apiUrl}/tracking/${encodeURIComponent(orderId)}`);
+      const response = await fetch(`${apiUrl}/orders/${encodeURIComponent(orderId)}`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         const backendStatus = data.order?.status;
@@ -72,7 +72,21 @@ import SEO from "@/components/SEO.astro";
         sessionStorage.setItem(stateKey, rawStatus);
       }
     } catch {
-      // Query/session state remains as fallback while payment webhook catches up.
+      // Session state remains as fallback while auth/payment webhook catches up.
+    }
+
+    if (rawStatus === "pending") {
+      try {
+        const response = await fetch(`${apiUrl}/tracking/${encodeURIComponent(orderId)}`);
+        if (response.ok) {
+          const data = await response.json();
+          const backendStatus = data.order?.status;
+          rawStatus = backendStatus === "paid" || backendStatus === "fulfilled" ? "success" : backendStatus === "cancelled" ? "canceled" : "pending";
+          sessionStorage.setItem(stateKey, rawStatus);
+        }
+      } catch {
+        // Query/session state remains as fallback while payment webhook catches up.
+      }
     }
 
     const status = (["success", "failed", "pending", "canceled"].includes(rawStatus) ? rawStatus : "pending") as "success" | "failed" | "pending" | "canceled";

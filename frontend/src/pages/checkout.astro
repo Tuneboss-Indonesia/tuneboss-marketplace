@@ -370,14 +370,13 @@ import SEO from "@/components/SEO.astro";
         return [];
       }
     };
-    // const saveCart = (items) => {
-    /*  const allItems = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
-    /*  const next = Array.isArray(allItems)
-        ? allItems.map((item) => items.find((entry) => String(entry.id) === String(item.id)) || item)
-        : items; */
-      // localStorage.setItem("tuneboss-cart", JSON.stringify(next));
-      // window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
-    // };
+    const removeOrderedItemsFromCart = (orderedItems: CartItem[]) => {
+      const orderedIds = new Set(orderedItems.map((item) => String(item.id)));
+      const allItems = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
+      const next = Array.isArray(allItems) ? allItems.filter((item) => item.selected === false || !orderedIds.has(String(item.id))) : [];
+      localStorage.setItem("tuneboss-cart", JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("tuneboss-cart-updated"));
+    };
 
     const updateLanguage = () => {
       const current = copy[lang()];
@@ -539,11 +538,12 @@ import SEO from "@/components/SEO.astro";
           throw new Error(data.error || "Gagal membuat tagihan Xendit.");
         }
         
-        if (data.invoice_url) {
-           sessionStorage.setItem("tuneboss-last-order", JSON.stringify({ id: order.id, items: order.items }));
-           sessionStorage.setItem(`tuneboss-order-status-${order.id}`, "pending");
-           window.location.href = data.invoice_url; // Redirect ke Xendit
-        }
+         if (data.invoice_url) {
+            sessionStorage.setItem("tuneboss-last-order", JSON.stringify({ id: order.id, items: order.items }));
+            sessionStorage.setItem(`tuneboss-order-status-${order.id}`, "pending");
+            removeOrderedItemsFromCart(items);
+            window.location.href = data.invoice_url; // Redirect ke Xendit
+         }
       } catch (err: unknown) {
         errorRoot.textContent = (err as Error).message || "Terjadi kesalahan saat membuat tagihan.";
         errorRoot.classList.remove("hidden");
