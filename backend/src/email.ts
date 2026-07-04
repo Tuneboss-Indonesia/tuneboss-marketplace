@@ -1,12 +1,14 @@
 import { env } from "./env.js";
 
 export async function sendEmail(input: { html: string; subject: string; to: string }) {
-  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { skipped: true };
+  const apiKey = process.env.RESEND_API_KEY ?? env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM ?? env.EMAIL_FROM;
+  if (!apiKey || !from) return { skipped: true };
 
   const response = await fetch("https://api.resend.com/emails", {
-    body: JSON.stringify({ from: env.EMAIL_FROM, html: input.html, subject: input.subject, to: input.to }),
+    body: JSON.stringify({ from, html: input.html, subject: input.subject, to: input.to }),
     headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     method: "POST",
