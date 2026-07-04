@@ -66,6 +66,7 @@ import SEO from "@/components/SEO.astro";
                   type="text"
                   autocomplete="off"
                   aria-label="Search product"
+                  data-product-search
                   data-i18n-placeholder="products.searchPlaceholder"
                   placeholder="Search product..."
                   class="w-full rounded-none border border-primary/20 bg-transparent py-4 pl-12 pr-4 text-sm font-medium transition-colors focus:border-primary focus:outline-none"
@@ -76,7 +77,7 @@ import SEO from "@/components/SEO.astro";
             {filters.map(([key, label, options]) => (
               <div class="mb-8">
                 <p data-i18n={key} class="mb-3 block text-sm font-light tracking-wide">{label}</p>
-                <div data-select class="relative">
+                <div data-select data-filter-key={key} class="relative">
                   <button data-select-button class="flex w-full items-center justify-between border border-primary/20 bg-background p-4 text-left text-sm font-medium text-foreground transition-colors hover:border-primary focus:border-primary focus:outline-none" type="button" aria-label={label} aria-expanded="false">
                     <span data-select-value>{options[0]}</span>
                     <ChevronDown size={18} strokeWidth={2} className="text-primary" />
@@ -119,11 +120,19 @@ import SEO from "@/components/SEO.astro";
             <div data-loaded-content>
               <div data-products-grid class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 md:gap-12">
                 {products.map((item, index) => (
-                  <div data-product-card data-page={Math.floor(index / pageSize) + 1}>
+                  <div
+                    data-product-card
+                    data-brand={item.brand}
+                    data-index={index}
+                    data-name={item.name}
+                    data-page={Math.floor(index / pageSize) + 1}
+                    data-price={item.priceValue ?? Number(String(item.price).replace(/[^0-9]/g, ""))}
+                  >
                     <ProductCard item={item} />
                   </div>
                 ))}
               </div>
+              <div data-products-empty class="hidden border border-primary/20 p-10 text-center text-sm text-foreground/60">Produk tidak ditemukan.</div>
               <div data-pagination class="mt-16 flex items-center justify-center gap-3">
                 {Array.from({ length: pageCount }, (_, index) => (
                   <button
@@ -145,25 +154,62 @@ import SEO from "@/components/SEO.astro";
 
 <script>
   document.addEventListener("astro:page-load", () => {
-    const cards = document.querySelectorAll("[data-product-card]");
-    const buttons = document.querySelectorAll("[data-page-button]");
-    const searchInput = document.querySelector("[data-i18n-placeholder='products.searchPlaceholder']");
+    const pageSize = 9;
+    const grid = document.querySelector("[data-products-grid]");
+    const empty = document.querySelector("[data-products-empty]");
+    const pagination = document.querySelector("[data-pagination]");
+    const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-product-card]"));
+    const searchInput = document.querySelector<HTMLInputElement>("[data-product-search]");
+    let filteredCards = [...cards];
+    let currentPage = 1;
 
-    const showPage = (page: string) => {
-      cards.forEach((card) => card.classList.toggle("hidden", card.getAttribute("data-page") !== page));
-      buttons.forEach((button) => {
-        const active = button.getAttribute("data-page-button") === page;
+    const showPage = (page: number) => {
+      currentPage = page;
+      cards.forEach((card) => card.classList.add("hidden"));
+      filteredCards.slice((page - 1) * pageSize, page * pageSize).forEach((card) => card.classList.remove("hidden"));
+      document.querySelectorAll("[data-page-button]").forEach((button) => {
+        const active = button.getAttribute("data-page-button") === String(page);
         button.classList.toggle("bg-primary", active);
         button.classList.toggle("text-background", active);
         button.classList.toggle("border-primary", active);
       });
     };
 
-    const bindPagination = () => {
-      buttons.forEach((button) => button.addEventListener("click", () => showPage(button.getAttribute("data-page-button") || "1")));
+    const renderPagination = () => {
+      if (!pagination) return;
+      const pageCount = Math.ceil(filteredCards.length / pageSize);
+      pagination.innerHTML = Array.from({ length: pageCount }, (_, index) => `<button data-page-button="${index + 1}" class="h-10 min-w-10 border border-primary/20 px-4 text-sm font-bold transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button">${index + 1}</button>`).join("");
+      pagination.classList.toggle("hidden", pageCount <= 1);
     };
 
-    bindPagination();
+    const filterValue = (key: string) => document.querySelector(`[data-filter-key='${key}'] [data-select-value]`)?.textContent?.trim() || "Default";
+
+    const applyFilters = () => {
+      const query = searchInput?.value.trim().toLowerCase() || "";
+      const brand = filterValue("products.brand");
+      const addSort = filterValue("products.year");
+      const priceSort = filterValue("products.price");
+
+      filteredCards = cards.filter((card) => {
+        const matchesBrand = brand === "All Brands" || card.dataset.brand === brand;
+        const matchesQuery = !query || `${card.dataset.name || ""} ${card.dataset.brand || ""}`.toLowerCase().includes(query);
+        return matchesBrand && matchesQuery;
+      });
+
+      filteredCards.sort((left, right) => {
+        if (priceSort === "Lowest to Highest") return Number(left.dataset.price || 0) - Number(right.dataset.price || 0);
+        if (priceSort === "Highest to Lowest") return Number(right.dataset.price || 0) - Number(left.dataset.price || 0);
+        if (addSort === "Oldest to Newest") return Number(right.dataset.index || 0) - Number(left.dataset.index || 0);
+        return Number(left.dataset.index || 0) - Number(right.dataset.index || 0);
+      });
+
+      filteredCards.forEach((card) => grid?.appendChild(card));
+      empty?.classList.toggle("hidden", filteredCards.length > 0);
+      renderPagination();
+      showPage(Math.min(currentPage, Math.max(1, Math.ceil(filteredCards.length / pageSize))));
+    };
+
+    searchInput?.addEventListener("input", () => { currentPage = 1; applyFilters(); });
     document.querySelectorAll("[data-select]").forEach((select) => {
       const trigger = select.querySelector("[data-select-button]");
       const menu = select.querySelector("[data-select-menu]");
@@ -181,8 +227,15 @@ import SEO from "@/components/SEO.astro";
         option.addEventListener("click", () => {
           if (value) value.textContent = option.textContent;
           setOpen(false);
+          currentPage = 1;
+          applyFilters();
         });
       });
+    });
+
+    pagination?.addEventListener("click", (event) => {
+      const button = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-page-button]") : null;
+      if (button) showPage(Number(button.dataset.pageButton || 1));
     });
 
     document.addEventListener("click", (event) => {
@@ -201,9 +254,10 @@ import SEO from "@/components/SEO.astro";
         const value = select.querySelector("[data-select-value]");
         if (value && first) value.textContent = first.textContent;
       });
-      showPage("1");
+      currentPage = 1;
+      applyFilters();
     });
-    showPage("1");
+    applyFilters();
 
     document.querySelectorAll("[data-loadable]").forEach((section) => {
       section.classList.remove("is-loaded");

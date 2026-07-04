@@ -4,47 +4,52 @@ import { Image } from "astro:assets";
 import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Star, Tag, X } from "lucide-react";
 import ProductCard from "@/components/ProductCard.astro";
 import TuneBossChrome from "@/components/TuneBossChrome.astro";
-import { fallbackProducts } from "@/lib/fallbackProducts";
+import { fallbackProducts, type ProductSummary } from "@/lib/fallbackProducts";
 import ecuImage from "../../../public/images/tuneboss-motorcycle-ecu.png";
 import "@/styles/global.css";
 
-export function getStaticPaths() {
-  const slugify = (value: string) =>
-    String(value)
-      .toLowerCase()
-      .replace(/&/g, "and")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+export const prerender = false;
 
-  const products = fallbackProducts.map((product) => ({
-    ...product,
-    shipping: "Rp. 20.000",
-    description: "Produk TuneBoss untuk tuning mesin yang lebih presisi, respons gas lebih tajam, dan kontrol performa yang aman untuk harian maupun track day.",
-    tags: ["TuneBoss", "ECU", "Tuning", "Performance"],
-  }));
-  const productList = products.map((product) => ({ ...product, slug: slugify(product.name), apiSlug: slugify(`${product.brand} ${product.name}`), images: (product as { images?: string[] }).images ?? [product.image, product.image, product.image] }));
+type ProductDetail = ProductSummary & { images?: string[]; shipping?: string; tags?: string[] };
+type ProductReview = { authorName: string; createdAt: string; quote: string; rating: number };
 
-  return productList.flatMap((product) => [product.slug, product.apiSlug].map((slug) => ({
-    params: { slug },
-    props: { product, products: productList },
-  })));
-}
+const slugify = (value: string) => String(value).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+const slug = Astro.params.slug || "";
+const fallbackList: ProductDetail[] = fallbackProducts.map((item) => ({
+  ...item,
+  description: item.description || "Produk TuneBoss untuk tuning mesin yang lebih presisi, respons gas lebih tajam, dan kontrol performa yang aman untuk harian maupun track day.",
+  images: [item.image, item.image, item.image],
+  shipping: "Rp. 20.000",
+  tags: ["TuneBoss", "ECU", "Tuning", "Performance"],
+}));
 
-const { product, products } = Astro.props;
+const products: ProductDetail[] = await fetch(`${apiUrl}/products`)
+  .then((response) => response.ok ? response.json() : Promise.reject())
+  .then((data): ProductDetail[] => Array.isArray(data.products) && data.products.length ? data.products : fallbackList)
+  .catch(() => fallbackList);
+
+const product: ProductDetail = await fetch(`${apiUrl}/products/${encodeURIComponent(slug)}`)
+  .then((response) => response.ok ? response.json() : Promise.reject())
+  .then((data) => data.product)
+  .catch(() => fallbackList.find((item) => slugify(item.name) === slug || slugify(`${item.brand} ${item.name}`) === slug) || fallbackList[0]);
+
+const reviewData = await fetch(`${apiUrl}/products/${encodeURIComponent(slug)}/reviews`)
+  .then((response) => response.ok ? response.json() : Promise.reject())
+  .catch(() => null);
+const reviews: ProductReview[] = Array.isArray(reviewData?.reviews) && reviewData.reviews.length
+  ? reviewData.reviews
+  : [
+    { authorName: "Fajar", createdAt: new Date().toISOString(), rating: 5, quote: "Pemasangan mudah, hasil tuning terasa langsung dari putaran bawah." },
+    { authorName: "Rizky", createdAt: new Date().toISOString(), rating: 5, quote: "Respons gas lebih halus dan motor tetap enak dipakai harian." },
+    { authorName: "Medy", createdAt: new Date().toISOString(), rating: 4, quote: "Data tuning jelas, cocok buat setup bengkel dan track day." },
+  ];
+const averageRating = Number(reviewData?.averageRating || (reviews.reduce((sum: number, review: { rating: number }) => sum + review.rating, 0) / reviews.length) || 0).toFixed(1);
 const relatedProducts = products.filter((item) => item.id !== product.id).slice(0, 4);
 const gallery = Array.isArray(product.images) && product.images.length ? product.images : [product.image];
+const productDescription = product.description || "Produk TuneBoss untuk tuning mesin yang lebih presisi, respons gas lebih tajam, dan kontrol performa yang aman untuk harian maupun track day.";
 const productImageUrl = new URL(product.image, Astro.url).toString();
 const productShareImageUrl = `${productImageUrl}?v=20260629-ecu`;
-const reviews = [
-  { name: "Fajar", timeKey: "detail.reviewDate1", quote: "Pemasangan mudah, hasil tuning terasa langsung dari putaran bawah." },
-  { name: "Rizky", timeKey: "detail.reviewDate2", quote: "Respons gas lebih halus dan motor tetap enak dipakai harian." },
-  { name: "Medy", timeKey: "detail.reviewDate3", quote: "Data tuning jelas, cocok buat setup bengkel dan track day." },
-  { name: "Dimas", timeKey: "detail.reviewDate4", quote: "Instalasi rapi, motor lebih responsif tanpa bikin harian jadi kasar." },
-  { name: "Ari", timeKey: "detail.reviewDate5", quote: "Cocok buat upgrade ringan, setting terasa lebih presisi." },
-  { name: "Bayu", timeKey: "detail.reviewDate6", quote: "Packing aman dan hasil tuning langsung terasa di tarikan tengah." },
-  { name: "Nanda", timeKey: "detail.reviewDate7", quote: "Dipakai touring tetap stabil, data logger juga gampang dibaca." },
-  { name: "Putra", timeKey: "detail.reviewDate8", quote: "Bengkel saya jadi lebih cepat set map untuk beberapa motor." },
-];
 import SEO from "@/components/SEO.astro";
 
 const productSchema = JSON.stringify([
@@ -53,7 +58,7 @@ const productSchema = JSON.stringify([
     "@type": "Product",
     "name": product.name,
     "image": productShareImageUrl,
-    "description": product.description,
+    "description": productDescription,
     "brand": {
       "@type": "Brand",
       "name": product.brand
@@ -68,8 +73,8 @@ const productSchema = JSON.stringify([
     },
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "8"
+      "ratingValue": averageRating,
+      "reviewCount": String(reviews.length)
     }
   },
   {
@@ -86,7 +91,7 @@ const productSchema = JSON.stringify([
 
 <SEO 
   title={`${product.name} | TuneBoss ID`}
-  description={product.description}
+  description={productDescription}
   image={productShareImageUrl}
   type="product"
   schema={productSchema}
@@ -213,7 +218,7 @@ const productSchema = JSON.stringify([
               </button>
             </div>
 
-            <p data-product-description class="max-w-2xl text-base leading-8 text-primary md:text-lg">{product.description}</p>
+            <p data-product-description class="max-w-2xl text-base leading-8 text-primary md:text-lg">{productDescription}</p>
 
             <div class="mt-10 border-t border-primary/10 pt-8">
               <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -263,9 +268,9 @@ const productSchema = JSON.stringify([
 
           <div class="mb-10 grid gap-6 border border-primary/10 bg-background/70 p-6 md:grid-cols-[0.8fr_1.2fr] md:p-8">
             <div class="flex flex-col items-center justify-center text-center">
-              <strong data-review-average class="text-5xl font-black">4.8</strong>
+              <strong data-review-average class="text-5xl font-black">{averageRating}</strong>
               <div class="mt-3 flex gap-1 text-primary" aria-label="Rating 4.8 dari 5">
-                {Array.from({ length: 5 }).map(() => <Star size={20} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />)}
+                {Array.from({ length: Math.max(1, Math.round(Number(averageRating))) }).map(() => <Star size={20} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />)}
               </div>
               <p class="mt-2 text-sm text-primary"><span data-i18n="detail.basedOn">Berdasarkan</span> <span data-review-total>{reviews.length}</span> <span data-i18n="detail.reviews">ulasan</span></p>
             </div>
@@ -291,11 +296,11 @@ const productSchema = JSON.stringify([
           <div data-review-list class="grid gap-6 md:grid-cols-3">
             {reviews.map((review, index) => (
               <figure data-review-item class:list={["border border-primary/10 bg-background/70 p-6 shadow-sm transition-transform duration-300 hover:scale-[1.02]", index >= 6 && "hidden"]}>
-                <div class="mb-5 flex gap-1 text-primary" aria-label="5 stars">
-                  {Array.from({ length: 5 }).map(() => <span class="text-base leading-none">&#9733;</span>)}
+                <div class="mb-5 flex gap-1 text-primary" aria-label={`${review.rating} stars`}>
+                  {Array.from({ length: Math.max(1, Math.min(5, Math.round(review.rating))) }).map(() => <span class="text-base leading-none">&#9733;</span>)}
                 </div>
-                <figcaption class="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-primary">{review.name}</figcaption>
-                <time data-i18n={review.timeKey} class="mb-4 block text-xs font-bold uppercase tracking-[0.16em] text-foreground/50"></time>
+                <figcaption class="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-primary">{review.authorName}</figcaption>
+                <time class="mb-4 block text-xs font-bold uppercase tracking-[0.16em] text-foreground/50">{new Date(review.createdAt).toLocaleDateString("id-ID", { dateStyle: "medium" })}</time>
                 <blockquote class="text-lg font-light leading-relaxed md:text-xl">"{review.quote}"</blockquote>
               </figure>
             ))}
@@ -340,9 +345,6 @@ const productSchema = JSON.stringify([
 </TuneBossChrome>
 
 <script>
-  const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
-  const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char] || char));
-
   const closeReviewSorts = () => {
     document.querySelectorAll("[data-review-sort-button]").forEach((button) => {
       button.setAttribute("aria-expanded", "false");
@@ -358,74 +360,7 @@ const productSchema = JSON.stringify([
     closeReviewSorts();
   });
 
-  const loadApiProduct = async () => {
-    const slug = window.location.pathname.split("/").filter(Boolean).at(-1);
-    if (!slug) return;
-    try {
-      const response = await fetch(`${apiUrl}/products/${encodeURIComponent(slug)}`);
-      const data = await response.json();
-      const item = data.product as { id: string; brand: string; name: string; price: string; stock: number; description: string; image: string } | undefined;
-      if (!response.ok || !item) return;
-
-      document.querySelectorAll("[data-product-brand]").forEach((node) => { node.textContent = item.brand; });
-      document.querySelectorAll("[data-product-name]").forEach((node) => { node.textContent = item.name; });
-      document.querySelectorAll("[data-product-price]").forEach((node) => { node.textContent = item.price; });
-      document.querySelectorAll("[data-product-stock]").forEach((node) => { node.textContent = String(item.stock); });
-      document.querySelectorAll("[data-product-description]").forEach((node) => { node.textContent = item.description; });
-      document.querySelectorAll("[data-add-cart]").forEach((node) => {
-        if (!(node instanceof HTMLElement)) return;
-        node.dataset.productId = item.id;
-        node.dataset.productName = item.name;
-        node.dataset.productPrice = item.price;
-        node.dataset.productImage = item.image;
-        node.dataset.productBrand = item.brand;
-        node.dataset.productMax = String(item.stock || 99);
-      });
-      document.querySelectorAll("[data-cart-qty]").forEach((node) => {
-        if (node instanceof HTMLInputElement) node.dataset.max = String(item.stock || 99);
-      });
-      document.title = `${item.name} | TuneBoss ID`;
-    } catch {
-      // Static product content stays visible when the API is unavailable.
-    }
-  };
-
-  const renderStars = (rating: number) => Array.from({ length: Math.max(1, Math.min(5, Math.round(rating) || 5)) }, () => `<span class="text-base leading-none">&#9733;</span>`).join("");
-
-  const loadApiReviews = async () => {
-    const slug = window.location.pathname.split("/").filter(Boolean).at(-1);
-    if (!slug) return;
-    try {
-      const response = await fetch(`${apiUrl}/products/${encodeURIComponent(slug)}/reviews`);
-      const data = await response.json();
-      const reviews = Array.isArray(data.reviews) ? data.reviews : [];
-      if (!response.ok || reviews.length === 0) return;
-
-      const shown = Math.min(6, reviews.length);
-      document.querySelectorAll("[data-review-average]").forEach((node) => { node.textContent = Number(data.averageRating || 0).toFixed(1); });
-      document.querySelectorAll("[data-review-total]").forEach((node) => { node.textContent = String(data.total || reviews.length); });
-      document.querySelectorAll("[data-review-shown]").forEach((node) => { node.textContent = String(shown); });
-
-      const list = document.querySelector("[data-review-list]");
-      if (list) {
-        list.innerHTML = reviews.map((review: { authorName: string; createdAt: string; quote: string; rating: number }, index: number) => `
-          <figure data-review-item class="border border-primary/10 bg-background/70 p-6 shadow-sm transition-transform duration-300 hover:scale-[1.02] ${index >= 6 ? "hidden" : ""}">
-            <div class="mb-5 flex gap-1 text-primary" aria-label="${review.rating} stars">${renderStars(review.rating)}</div>
-            <figcaption class="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-primary">${escapeHtml(review.authorName)}</figcaption>
-            <time class="mb-4 block text-xs font-bold uppercase tracking-[0.16em] text-foreground/50">${new Date(review.createdAt).toLocaleDateString("id-ID", { dateStyle: "medium" })}</time>
-            <blockquote class="text-lg font-light leading-relaxed md:text-xl">"${escapeHtml(review.quote)}"</blockquote>
-          </figure>
-        `).join("");
-      }
-      document.querySelectorAll("[data-load-more-wrap]").forEach((node) => node.classList.toggle("hidden", reviews.length <= 6));
-    } catch {
-      // Static reviews stay visible when the API is unavailable.
-    }
-  };
-
   const initProductPage = () => {
-    loadApiProduct();
-    loadApiReviews();
     document.querySelectorAll("[data-loadable]").forEach((section) => {
       section.classList.remove("is-loaded");
       window.setTimeout(() => section.classList.add("is-loaded"), Number(section.getAttribute("data-load-delay") || 600));

@@ -1,4 +1,4 @@
-export type ProductSummary = { brand: string; id: number | string; image: string; name: string; price: string; slug?: string; stock: number };
+export type ProductSummary = { brand: string; description?: string; id: number | string; image: string; name: string; price: string; priceValue?: number; slug?: string; stock: number };
 
 export const fallbackProducts: ProductSummary[] = [
   { id: 1, brand: "Honda", name: "Motorcycle ECU", price: "Rp. 599.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 14 },
