@@ -278,14 +278,6 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "tuneboss-marketplace-api" });
 });
 
-app.post("/api/jobs/expire-pending", async (req, res) => {
-  if (!env.CRON_SECRET) return res.status(503).json({ message: "CRON_SECRET belum dikonfigurasi." });
-  const token = req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!safeEqual(token, env.CRON_SECRET)) return res.status(401).json({ message: "Invalid cron token." });
-
-  return res.json({ expired: await expirePendingOrders() });
-});
-
 app.post("/api/auth/register", register);
 app.post("/api/auth/login", login);
 app.get("/api/auth/me", me);
