@@ -6,7 +6,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, orderItems, orders, paymentEvents, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, orderItems, orders, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
 import { getOrderDeliveredEmail, getOrderShippedEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
@@ -40,6 +40,11 @@ function productDto(product: typeof products.$inferSelect) {
     slug: slugify(product.name),
     stock: product.stock,
   };
+}
+
+function productMatchesSlug(product: typeof products.$inferSelect, slug: string) {
+  const brand = brandFrom(product.name, product.sku);
+  return product.id === slug || slugify(product.name) === slug || slugify(`${brand} ${product.name}`) === slug;
 }
 
 const orderSchema = z.object({
@@ -679,12 +684,25 @@ app.get("/api/products", async (_req, res) => {
 
 app.get("/api/products/:slug", async (req, res) => {
   const rows = await db.select().from(products).where(eq(products.isActive, true));
-  const product = rows.find((row) => {
-    const brand = brandFrom(row.name, row.sku);
-    return row.id === req.params.slug || slugify(row.name) === req.params.slug || slugify(`${brand} ${row.name}`) === req.params.slug;
-  });
+  const product = rows.find((row) => productMatchesSlug(row, req.params.slug));
   if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
   return res.json({ product: productDto(product) });
+});
+
+app.get("/api/products/:slug/reviews", async (req, res) => {
+  const rows = await db.select().from(products).where(eq(products.isActive, true));
+  const product = rows.find((row) => productMatchesSlug(row, req.params.slug));
+  if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+
+  const reviews = await db
+    .select({ authorName: productReviews.authorName, createdAt: productReviews.createdAt, id: productReviews.id, quote: productReviews.quote, rating: productReviews.rating })
+    .from(productReviews)
+    .where(eq(productReviews.productId, product.id))
+    .orderBy(desc(productReviews.createdAt));
+
+  const total = reviews.length;
+  const averageRating = total ? reviews.reduce((sum, review) => sum + review.rating, 0) / total : 0;
+  return res.json({ averageRating, reviews, total });
 });
 
 app.get("/api/tracking/:orderId", async (req, res) => {

@@ -241,7 +241,7 @@ const productSchema = JSON.stringify([
               <p class="flex flex-wrap items-center gap-1">
                 <span>1-<span data-review-shown>{Math.min(6, reviews.length)}</span></span>
                 <span data-i18n="detail.reviewFrom">dari</span>
-                <span>{reviews.length}</span>
+                <span data-review-total>{reviews.length}</span>
                 <span data-i18n="detail.reviews">ulasan</span>
               </p>
               <div data-review-sort class="relative min-w-40">
@@ -263,11 +263,11 @@ const productSchema = JSON.stringify([
 
           <div class="mb-10 grid gap-6 border border-primary/10 bg-background/70 p-6 md:grid-cols-[0.8fr_1.2fr] md:p-8">
             <div class="flex flex-col items-center justify-center text-center">
-              <strong class="text-5xl font-black">4.8</strong>
+              <strong data-review-average class="text-5xl font-black">4.8</strong>
               <div class="mt-3 flex gap-1 text-primary" aria-label="Rating 4.8 dari 5">
                 {Array.from({ length: 5 }).map(() => <Star size={20} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />)}
               </div>
-              <p class="mt-2 text-sm text-primary"><span data-i18n="detail.basedOn">Berdasarkan</span> {reviews.length} <span data-i18n="detail.reviews">ulasan</span></p>
+              <p class="mt-2 text-sm text-primary"><span data-i18n="detail.basedOn">Berdasarkan</span> <span data-review-total>{reviews.length}</span> <span data-i18n="detail.reviews">ulasan</span></p>
             </div>
             <div class="space-y-3">
               {[
@@ -301,7 +301,7 @@ const productSchema = JSON.stringify([
             ))}
           </div>
           {reviews.length > 6 && (
-            <div class="mt-8 flex justify-center">
+            <div data-load-more-wrap class="mt-8 flex justify-center">
               <button data-load-more-reviews class="border border-primary/20 px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] transition-colors hover:border-primary hover:bg-primary hover:text-background" type="button">
                 <span data-i18n="detail.loadMore">Muat Lagi</span>
               </button>
@@ -341,6 +341,7 @@ const productSchema = JSON.stringify([
 
 <script>
   const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+  const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char] || char));
 
   const closeReviewSorts = () => {
     document.querySelectorAll("[data-review-sort-button]").forEach((button) => {
@@ -389,8 +390,42 @@ const productSchema = JSON.stringify([
     }
   };
 
+  const renderStars = (rating: number) => Array.from({ length: Math.max(1, Math.min(5, Math.round(rating) || 5)) }, () => `<span class="text-base leading-none">&#9733;</span>`).join("");
+
+  const loadApiReviews = async () => {
+    const slug = window.location.pathname.split("/").filter(Boolean).at(-1);
+    if (!slug) return;
+    try {
+      const response = await fetch(`${apiUrl}/products/${encodeURIComponent(slug)}/reviews`);
+      const data = await response.json();
+      const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+      if (!response.ok || reviews.length === 0) return;
+
+      const shown = Math.min(6, reviews.length);
+      document.querySelectorAll("[data-review-average]").forEach((node) => { node.textContent = Number(data.averageRating || 0).toFixed(1); });
+      document.querySelectorAll("[data-review-total]").forEach((node) => { node.textContent = String(data.total || reviews.length); });
+      document.querySelectorAll("[data-review-shown]").forEach((node) => { node.textContent = String(shown); });
+
+      const list = document.querySelector("[data-review-list]");
+      if (list) {
+        list.innerHTML = reviews.map((review: { authorName: string; createdAt: string; quote: string; rating: number }, index: number) => `
+          <figure data-review-item class="border border-primary/10 bg-background/70 p-6 shadow-sm transition-transform duration-300 hover:scale-[1.02] ${index >= 6 ? "hidden" : ""}">
+            <div class="mb-5 flex gap-1 text-primary" aria-label="${review.rating} stars">${renderStars(review.rating)}</div>
+            <figcaption class="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-primary">${escapeHtml(review.authorName)}</figcaption>
+            <time class="mb-4 block text-xs font-bold uppercase tracking-[0.16em] text-foreground/50">${new Date(review.createdAt).toLocaleDateString("id-ID", { dateStyle: "medium" })}</time>
+            <blockquote class="text-lg font-light leading-relaxed md:text-xl">"${escapeHtml(review.quote)}"</blockquote>
+          </figure>
+        `).join("");
+      }
+      document.querySelectorAll("[data-load-more-wrap]").forEach((node) => node.classList.toggle("hidden", reviews.length <= 6));
+    } catch {
+      // Static reviews stay visible when the API is unavailable.
+    }
+  };
+
   const initProductPage = () => {
     loadApiProduct();
+    loadApiReviews();
     document.querySelectorAll("[data-loadable]").forEach((section) => {
       section.classList.remove("is-loaded");
       window.setTimeout(() => section.classList.add("is-loaded"), Number(section.getAttribute("data-load-delay") || 600));

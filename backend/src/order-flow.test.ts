@@ -13,7 +13,7 @@ const [{ app }, { hashPassword }, { closeDb, db }, schema] = await Promise.all([
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, orders, paymentEvents, products, session, user: users } = schema;
+const { addresses, orders, paymentEvents, productReviews, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -72,6 +72,7 @@ async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
   const cleanup = async () => {
     await db.delete(paymentEvents).where(sql`${paymentEvents.orderId} in (select id from orders where customer_id = ${userId})`);
     await db.delete(orders).where(eq(orders.customerId, userId));
+    await db.delete(productReviews).where(eq(productReviews.productId, productId));
     await db.delete(products).where(eq(products.id, productId));
     await db.delete(users).where(eq(users.id, userId));
   };
@@ -116,6 +117,23 @@ test("readiness endpoint checks database", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(body, { database: "ok", ok: true, service: "tuneboss-marketplace-api" });
+});
+
+test("product reviews are returned by product slug", async () => {
+  const f = await fixture();
+  try {
+    await db.insert(productReviews).values({ authorName: "Reviewer", productId: f.productId, quote: "Respons gas lebih halus setelah dipasang.", rating: 4 });
+
+    const response = await fetch(`${baseUrl}/api/products/test-ecu/reviews`);
+    const body = await response.json() as { averageRating: number; reviews: Array<{ authorName: string; quote: string; rating: number }>; total: number };
+
+    assert.equal(response.status, 200);
+    assert.equal(body.total, 1);
+    assert.equal(body.averageRating, 4);
+    assert.equal(body.reviews[0]?.authorName, "Reviewer");
+  } finally {
+    await f.cleanup();
+  }
 });
 
 test("checkout reserves stock and customer cancel restores it", async () => {
