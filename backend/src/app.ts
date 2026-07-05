@@ -14,6 +14,22 @@ import { env } from "./env.js";
 export const app = express();
 
 const allowedOrigins = [env.FRONTEND_ORIGIN, env.ADMIN_ORIGIN].filter(Boolean);
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimit(name: string, max: number, windowMs: number) {
+  return (req: Request, res: Response, next: () => void) => {
+    const key = `${name}:${req.ip ?? "unknown"}`;
+    const now = Date.now();
+    const current = rateLimits.get(key);
+    if (!current || current.resetAt <= now) {
+      rateLimits.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    if (current.count >= max) return res.status(429).json({ message: "Terlalu banyak percobaan. Coba lagi sebentar." });
+    current.count += 1;
+    return next();
+  };
+}
 
 const slugify = (value: string) => value
   .toLowerCase()
@@ -308,8 +324,8 @@ app.get("/api/ready", async (_req, res) => {
   }
 });
 
-app.post("/api/auth/register", register);
-app.post("/api/auth/login", login);
+app.post("/api/auth/register", rateLimit("auth.register", 10, 15 * 60_000), register);
+app.post("/api/auth/login", rateLimit("auth.login", 20, 15 * 60_000), login);
 app.get("/api/auth/me", me);
 app.post("/api/auth/logout", logout);
 
@@ -443,7 +459,7 @@ app.get("/api/admin/audit-logs", async (req, res) => {
   return res.json({ logs, pagination: pageMeta(Number(total), limit, offset) });
 });
 
-app.post("/api/admin/orders/expire-pending", async (req, res) => {
+app.post("/api/admin/orders/expire-pending", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
 
@@ -482,7 +498,7 @@ app.get("/api/admin/orders/:id/payment-events", async (req, res) => {
   return res.json({ events });
 });
 
-app.patch("/api/admin/orders/:id/status", async (req, res) => {
+app.patch("/api/admin/orders/:id/status", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
 
@@ -522,7 +538,7 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
   return res.json({ order: await orderDetail(updated) });
 });
 
-app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
+app.patch("/api/admin/orders/:id/fulfillment", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
 
@@ -617,7 +633,7 @@ app.get("/api/admin/products/:id", async (req, res) => {
   return res.json({ product: productDto(product) });
 });
 
-app.post("/api/admin/products", async (req, res) => {
+app.post("/api/admin/products", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
 
@@ -644,7 +660,7 @@ app.post("/api/admin/products", async (req, res) => {
   }
 });
 
-app.patch("/api/admin/products/:id", async (req, res) => {
+app.patch("/api/admin/products/:id", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
 
@@ -671,7 +687,7 @@ app.patch("/api/admin/products/:id", async (req, res) => {
   }
 });
 
-app.patch("/api/admin/products/:id/stock", async (req, res) => {
+app.patch("/api/admin/products/:id/stock", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
 
@@ -1059,7 +1075,7 @@ app.post("/api/orders/:id/cancel", async (req, res) => {
   return res.json({ order: await orderDetail(updated ?? order) });
 });
 
-app.post("/api/payments/xendit/invoice", async (req, res) => {
+app.post("/api/payments/xendit/invoice", rateLimit("payment.invoice", 30, 15 * 60_000), async (req, res) => {
   const user = await currentUser(req);
   if (!user) return res.status(401).json({ message: "Silakan login untuk membayar." });
 

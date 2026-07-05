@@ -120,6 +120,15 @@ test("readiness endpoint checks database", async () => {
   assert.deepEqual(body, { database: "ok", ok: true, service: "tuneboss-marketplace-api" });
 });
 
+test("auth login is rate limited", async () => {
+  let last = new Response(null, { status: 500 });
+  for (let i = 0; i < 21; i += 1) {
+    last = await postRaw("/api/auth/login", "", { email: "missing@example.test", password: "password123" });
+  }
+
+  assert.equal(last.status, 429);
+});
+
 test("categories endpoint returns public category slugs", async () => {
   const id = randomUUID();
   try {
