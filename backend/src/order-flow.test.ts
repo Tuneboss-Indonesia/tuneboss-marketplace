@@ -7,13 +7,13 @@ import { and, eq, sql } from "drizzle-orm";
 
 process.env.XENDIT_SECRET_KEY = "test_xendit_key";
 
-const [{ app }, { hashPassword }, { closeDb, db }, schema] = await Promise.all([
+const [{ app }, { hashPassword, verifyPassword }, { closeDb, db }, schema] = await Promise.all([
   import("./app.js"),
   import("./auth.js"),
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, adminAuditLogs, categories, orders, paymentEvents, productReviews, products, session, user: users } = schema;
+const { addresses, adminAuditLogs, categories, orders, passwordResetTokens, paymentEvents, productReviews, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -71,6 +71,7 @@ async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
 
   const cleanup = async () => {
     await db.delete(adminAuditLogs).where(eq(adminAuditLogs.actorId, userId));
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
     await db.delete(paymentEvents).where(sql`${paymentEvents.orderId} in (select id from orders where customer_id = ${userId})`);
     await db.delete(orders).where(eq(orders.customerId, userId));
     await db.delete(productReviews).where(eq(productReviews.productId, productId));
@@ -177,6 +178,42 @@ test("customer can review only fulfilled purchased products once", async () => {
     assert.equal(duplicate.status, 409);
   } finally {
     await f.cleanup();
+  }
+});
+
+test("forgot password emails otp and resets password", async () => {
+  const fx = await fixture();
+  let otp = "";
+
+  process.env.RESEND_API_KEY = "re_test";
+  process.env.EMAIL_FROM = "TuneBoss <noreply@example.com>";
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url === "https://api.resend.com/emails") {
+      const body = init?.body ? JSON.parse(String(init.body)) as { html?: string } : {};
+      otp = body.html?.match(/\b\d{6}\b/)?.[0] ?? "";
+      return new Response(JSON.stringify({ id: "email-test" }), { status: 200 });
+    }
+    return realFetch(input, init);
+  };
+
+  try {
+    const [account] = await db.select({ email: users.email }).from(users).where(eq(users.id, fx.userId));
+    assert.ok(account);
+
+    assert.equal((await postRaw("/api/auth/forgot-password", "", { email: account.email })).status, 200);
+    assert.match(otp, /^\d{6}$/);
+    assert.equal((await postRaw("/api/auth/forgot-password/verify", "", { email: account.email, otp })).status, 200);
+    assert.equal((await postRaw("/api/auth/reset-password", "", { email: account.email, otp, password: "newpass123" })).status, 200);
+
+    const [updated] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, fx.userId));
+    assert.ok(updated);
+    assert.equal(verifyPassword("newpass123", updated.passwordHash), true);
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.EMAIL_FROM;
+    await fx.cleanup();
   }
 });
 

@@ -29,6 +29,15 @@ export const session = pgTable("session", {
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
 });
 
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const addresses = pgTable("addresses", {
   id: uuid("id").primaryKey().defaultRandom(),
   customerId: text("customer_id").notNull().references(() => user.id, { onDelete: "cascade" }),

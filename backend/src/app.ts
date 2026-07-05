@@ -2,13 +2,13 @@ import cors from "cors";
 import express from "express";
 import type { Request, Response } from "express";
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, adminAuditLogs, categories, orderItems, orders, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, adminAuditLogs, categories, orderItems, orders, passwordResetTokens, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
-import { getOrderDeliveredEmail, getOrderShippedEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
+import { getOrderDeliveredEmail, getOrderShippedEmail, getOtpResetPasswordEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -95,6 +95,18 @@ const profileSchema = z.object({
   phone: z.string().trim().optional().default(""),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email().transform((value) => value.toLowerCase()),
+});
+
+const resetOtpSchema = forgotPasswordSchema.extend({
+  otp: z.string().regex(/^\d{6}$/),
+});
+
+const resetPasswordSchema = resetOtpSchema.extend({
+  password: z.string().min(8),
+});
+
 const passwordSchema = z.object({
   currentPassword: z.string().min(8),
   newPassword: z.string().min(8),
@@ -175,6 +187,21 @@ async function sendOrderEmail(order: typeof orders.$inferSelect, subject: string
   } catch (error) {
     console.error(error);
   }
+}
+
+async function findValidResetToken(email: string, otp: string) {
+  const [found] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!found) return null;
+
+  const tokens = await db
+    .select()
+    .from(passwordResetTokens)
+    .where(and(eq(passwordResetTokens.userId, found.id), sql`${passwordResetTokens.expiresAt} > now()`, sql`${passwordResetTokens.usedAt} is null`))
+    .orderBy(desc(passwordResetTokens.createdAt))
+    .limit(5);
+
+  const token = tokens.find((row) => verifyPassword(otp, row.tokenHash));
+  return token ? { token, user: found } : null;
 }
 
 function paymentDetails(order: typeof orders.$inferSelect) {
@@ -328,6 +355,42 @@ app.post("/api/auth/register", rateLimit("auth.register", 10, 15 * 60_000), regi
 app.post("/api/auth/login", rateLimit("auth.login", 20, 15 * 60_000), login);
 app.get("/api/auth/me", me);
 app.post("/api/auth/logout", logout);
+
+app.post("/api/auth/forgot-password", rateLimit("auth.forgot", 5, 15 * 60_000), async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [found] = await db.select().from(users).where(eq(users.email, parsed.data.email)).limit(1);
+  if (found) {
+    const otp = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    await db.insert(passwordResetTokens).values({ expiresAt: new Date(Date.now() + 15 * 60_000), tokenHash: hashPassword(otp), userId: found.id });
+    await sendEmail({ html: getOtpResetPasswordEmail(found.name, otp), subject: "Reset Password TuneBoss", to: found.email });
+  }
+
+  return res.json({ ok: true });
+});
+
+app.post("/api/auth/forgot-password/verify", rateLimit("auth.forgot.verify", 20, 15 * 60_000), async (req, res) => {
+  const parsed = resetOtpSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+  if (!await findValidResetToken(parsed.data.email, parsed.data.otp)) return res.status(400).json({ message: "OTP tidak valid atau sudah kedaluwarsa." });
+  return res.json({ ok: true });
+});
+
+app.post("/api/auth/reset-password", rateLimit("auth.reset", 10, 15 * 60_000), async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const found = await findValidResetToken(parsed.data.email, parsed.data.otp);
+  if (!found) return res.status(400).json({ message: "OTP tidak valid atau sudah kedaluwarsa." });
+
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({ passwordHash: hashPassword(parsed.data.password), updatedAt: new Date() }).where(eq(users.id, found.user.id));
+    await tx.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, found.token.id));
+  });
+
+  return res.json({ ok: true });
+});
 
 app.get("/api/account", async (req, res) => {
   const user = await currentUser(req);

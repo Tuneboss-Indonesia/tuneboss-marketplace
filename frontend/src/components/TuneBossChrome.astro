@@ -1630,8 +1630,10 @@ import AlertDialog from "./AlertDialog.astro";
   const forgotOtpError = document.querySelector('[data-forgot-otp-error]');
   const forgotOtpForm = document.querySelector('#forgot-otp-form');
   const forgotOtpActions = document.querySelector('[data-forgot-otp-actions]');
+  let forgotEmail = "";
+  let forgotOtp = "";
 
-  forgotForm?.addEventListener("submit", (e) => {
+  forgotForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!(forgotForm instanceof HTMLFormElement)) return;
     const emailInput = forgotForm.elements.namedItem("email");
@@ -1649,16 +1651,30 @@ import AlertDialog from "./AlertDialog.astro";
 
     const result = emailSchema.safeParse({ email: emailStr });
 
-    if (result.success) {
-      if (forgotEmailDisplay) forgotEmailDisplay.textContent = emailStr;
-      forgotStep1?.classList.add("hidden");
-      forgotStep2?.classList.remove("hidden");
-      (forgotOtps[0] as HTMLInputElement | undefined)?.focus();
-    } else {
+    if (!result.success) {
       if (err) {
         err.textContent = result.error.issues?.[0]?.message || "Format tidak valid";
         err.classList.remove("hidden");
       }
+      return;
+    }
+
+    const submit = forgotForm.querySelector('button[type="submit"]');
+    if (submit instanceof HTMLButtonElement) submit.disabled = true;
+    try {
+      forgotEmail = emailStr.trim().toLowerCase();
+      await apiRequest("/auth/forgot-password", { email: forgotEmail });
+      if (forgotEmailDisplay) forgotEmailDisplay.textContent = forgotEmail;
+      forgotStep1?.classList.add("hidden");
+      forgotStep2?.classList.remove("hidden");
+      (forgotOtps[0] as HTMLInputElement | undefined)?.focus();
+    } catch (error) {
+      if (err) {
+        err.textContent = error instanceof Error ? error.message : "Gagal mengirim OTP";
+        err.classList.remove("hidden");
+      }
+    } finally {
+      if (submit instanceof HTMLButtonElement) submit.disabled = false;
     }
   }, { signal });
 
@@ -1672,7 +1688,7 @@ import AlertDialog from "./AlertDialog.astro";
     }, { signal });
   });
 
-  forgotOtpForm?.addEventListener("submit", (e) => {
+  forgotOtpForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const code = forgotOtps.map(i => i instanceof HTMLInputElement ? i.value : "").join("");
     const otpSchema = z.object({
@@ -1691,16 +1707,24 @@ import AlertDialog from "./AlertDialog.astro";
       return;
     }
 
-    // Simulasi verifikasi OTP (misal sukses)
-    if (forgotOtpError) forgotOtpError.classList.add("hidden");
-    forgotOtpActions?.classList.add("hidden");
-    forgotNewPasswordForm?.classList.remove("hidden");
-    forgotOtps.forEach(i => {
-      if (i instanceof HTMLInputElement) {
-        i.readOnly = true;
-        i.classList.add("opacity-50", "pointer-events-none", "border-green-500", "border-2");
+    try {
+      await apiRequest("/auth/forgot-password/verify", { email: forgotEmail, otp: code });
+      forgotOtp = code;
+      if (forgotOtpError) forgotOtpError.classList.add("hidden");
+      forgotOtpActions?.classList.add("hidden");
+      forgotNewPasswordForm?.classList.remove("hidden");
+      forgotOtps.forEach(i => {
+        if (i instanceof HTMLInputElement) {
+          i.readOnly = true;
+          i.classList.add("opacity-50", "pointer-events-none", "border-green-500", "border-2");
+        }
+      });
+    } catch (error) {
+      if (forgotOtpError) {
+        forgotOtpError.textContent = error instanceof Error ? error.message : (root.lang === "en" ? "Invalid code" : "Kode tidak valid");
+        forgotOtpError.classList.remove("hidden");
       }
-    });
+    }
   }, { signal });
 
   forgotNewPasswordForm?.addEventListener("submit", (e) => {
@@ -1719,7 +1743,7 @@ import AlertDialog from "./AlertDialog.astro";
     });
 
     const resetSchema = z.object({
-      password: z.string().min(6, { message: root.lang === "en" ? "Password must be at least 6 characters" : "Password minimal 6 karakter" }),
+      password: z.string().min(8, { message: root.lang === "en" ? "Password must be at least 8 characters" : "Password minimal 8 karakter" }),
       confirmPassword: z.string().min(1, { message: root.lang === "en" ? "Confirm password is required" : "Konfirmasi password wajib diisi" }),
     }).refine((data) => data.password === data.confirmPassword, {
       message: root.lang === "en" ? "Passwords do not match" : "Password tidak sama",
@@ -1747,27 +1771,37 @@ import AlertDialog from "./AlertDialog.astro";
       return; // Stop if invalid
     }
 
-    if (forgotDialog instanceof HTMLDialogElement) forgotDialog.close();
-    
-    // reset form
-    if (forgotForm instanceof HTMLFormElement) forgotForm.reset();
-    if (forgotNewPasswordForm instanceof HTMLFormElement) forgotNewPasswordForm.reset();
-    forgotStep1?.classList.remove("hidden");
-    forgotStep2?.classList.add("hidden");
-    forgotNewPasswordForm?.classList.add("hidden");
-    forgotOtpActions?.classList.remove("hidden");
-    forgotOtps.forEach(i => {
-      if (i instanceof HTMLInputElement) {
-        i.value = "";
-        i.readOnly = false;
-        i.classList.remove("opacity-50", "pointer-events-none", "border-green-500", "border-2");
-      }
-    });
-
-    const title = root.lang === "en" ? "Password Reset" : "Kata Sandi Direset";
-    const msg = root.lang === "en" ? "Your password has been changed successfully." : "Kata sandi Anda berhasil diubah.";
-    showToast(title, msg);
-    openAuthDialog("login");
+    apiRequest("/auth/reset-password", { email: forgotEmail, otp: forgotOtp, password: passwordStr })
+      .then(() => {
+        if (forgotDialog instanceof HTMLDialogElement) forgotDialog.close();
+        if (forgotForm instanceof HTMLFormElement) forgotForm.reset();
+        if (forgotNewPasswordForm instanceof HTMLFormElement) forgotNewPasswordForm.reset();
+        forgotStep1?.classList.remove("hidden");
+        forgotStep2?.classList.add("hidden");
+        forgotNewPasswordForm?.classList.add("hidden");
+        forgotOtpActions?.classList.remove("hidden");
+        forgotOtps.forEach(i => {
+          if (i instanceof HTMLInputElement) {
+            i.value = "";
+            i.readOnly = false;
+            i.classList.remove("opacity-50", "pointer-events-none", "border-green-500", "border-2");
+          }
+        });
+        forgotEmail = "";
+        forgotOtp = "";
+        showToast(root.lang === "en" ? "Password Reset" : "Kata Sandi Direset", root.lang === "en" ? "Your password has been changed successfully." : "Kata sandi Anda berhasil diubah.");
+        openAuthDialog("login");
+      })
+      .catch((error) => {
+        const errorSpan = forgotNewPasswordForm.querySelector(".auth-error");
+        if (errorSpan) {
+          errorSpan.textContent = error instanceof Error ? error.message : "Gagal reset password";
+          errorSpan.classList.remove("hidden");
+        }
+      })
+      .finally(() => {
+        if (forgotSubmitBtn) forgotSubmitBtn.textContent = root.lang === "en" ? "Reset password" : "Reset kata sandi";
+      });
   }, { signal });
 
   const handleForgotCancel = () => {
