@@ -75,6 +75,16 @@ export const stockMovements = pgTable("stock_movements", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const adminAuditLogs = pgTable("admin_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  targetId: text("target_id").notNull().default(""),
+  targetType: text("target_type").notNull(),
+  payload: jsonb("payload").notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   customerId: text("customer_id").references(() => user.id, { onDelete: "set null" }),

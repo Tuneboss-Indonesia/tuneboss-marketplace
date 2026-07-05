@@ -92,6 +92,13 @@
       "when": 1783015200000,
       "tag": "0012_add_review_customer",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783018800000,
+      "tag": "0013_add_admin_audit_logs",
+      "breakpoints": true
     }
   ]
 }

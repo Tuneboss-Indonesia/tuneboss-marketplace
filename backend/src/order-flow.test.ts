@@ -13,7 +13,7 @@ const [{ app }, { hashPassword }, { closeDb, db }, schema] = await Promise.all([
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, categories, orders, paymentEvents, productReviews, products, session, user: users } = schema;
+const { addresses, adminAuditLogs, categories, orders, paymentEvents, productReviews, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -70,6 +70,7 @@ async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
   });
 
   const cleanup = async () => {
+    await db.delete(adminAuditLogs).where(eq(adminAuditLogs.actorId, userId));
     await db.delete(paymentEvents).where(sql`${paymentEvents.orderId} in (select id from orders where customer_id = ${userId})`);
     await db.delete(orders).where(eq(orders.customerId, userId));
     await db.delete(productReviews).where(eq(productReviews.productId, productId));
@@ -77,7 +78,7 @@ async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
     await db.delete(users).where(eq(users.id, userId));
   };
 
-  return { addressId, cleanup, cookie: `tuneboss_session=${token}`, productId };
+  return { addressId, cleanup, cookie: `tuneboss_session=${token}`, productId, userId };
 }
 
 async function post(path: string, cookie: string, body: unknown) {
@@ -253,6 +254,25 @@ test("admin status guard blocks reopening cancelled orders", async () => {
 
     assert.equal(response.status, 400);
     assert.match(body.message, /tidak dapat diubah/);
+  } finally {
+    await fx.cleanup();
+  }
+});
+
+test("admin product stock updates are audited", async () => {
+  const fx = await fixture(5, "admin");
+  try {
+    const response = await patchRaw(`/api/admin/products/${fx.productId}/stock`, fx.cookie, { note: "Audit test", stock: 7 });
+    assert.equal(response.status, 200);
+
+    const [log] = await db
+      .select()
+      .from(adminAuditLogs)
+      .where(and(eq(adminAuditLogs.actorId, fx.userId), eq(adminAuditLogs.targetId, fx.productId), eq(adminAuditLogs.action, "products.stock_update")))
+      .limit(1);
+
+    assert.ok(log);
+    assert.equal(log.targetType, "product");
   } finally {
     await fx.cleanup();
   }

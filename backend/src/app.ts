@@ -6,7 +6,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, categories, orderItems, orders, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, adminAuditLogs, categories, orderItems, orders, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
 import { getOrderDeliveredEmail, getOrderShippedEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
@@ -181,6 +181,12 @@ async function requireStaff(req: Request, res: Response) {
     return null;
   }
   return user;
+}
+
+type StaffUser = NonNullable<Awaited<ReturnType<typeof currentUser>>>;
+
+async function auditAdmin(actor: StaffUser, action: string, targetType: string, targetId: string, payload: unknown = {}) {
+  await db.insert(adminAuditLogs).values({ action, actorId: actor.id, payload, targetId, targetType });
 }
 
 function paginationFrom(req: Request) {
@@ -428,10 +434,22 @@ app.get("/api/admin/summary", async (req, res) => {
   });
 });
 
-app.post("/api/admin/orders/expire-pending", async (req, res) => {
+app.get("/api/admin/audit-logs", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
-  return res.json({ expired: await expirePendingOrders() });
+  const { limit, offset } = paginationFrom(req);
+  const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(adminAuditLogs);
+  const logs = await db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(limit).offset(offset);
+  return res.json({ logs, pagination: pageMeta(Number(total), limit, offset) });
+});
+
+app.post("/api/admin/orders/expire-pending", async (req, res) => {
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
+
+  const expired = await expirePendingOrders();
+  await auditAdmin(staff, "orders.expire_pending", "orders", "pending", { expired });
+  return res.json({ expired });
 });
 
 app.get("/api/admin/orders/:id", async (req, res) => {
@@ -465,7 +483,8 @@ app.get("/api/admin/orders/:id/payment-events", async (req, res) => {
 });
 
 app.patch("/api/admin/orders/:id/status", async (req, res) => {
-  if (!await requireStaff(req, res)) return;
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
 
   const id = z.string().uuid().safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
@@ -484,6 +503,7 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
     const cancelled = await cancelPendingOrder(order, `Admin cancelled order ${order.id}`);
     if (cancelled) {
       await sendOrderEmail(cancelled, "Pesanan TuneBoss dibatalkan", (name) => getPaymentCancelEmail(name, paymentDetails(cancelled)));
+      await auditAdmin(staff, "orders.status_update", "order", order.id, { from: order.status, to: parsed.data.status });
     }
     return res.json({ order: await orderDetail(cancelled ?? order) });
   }
@@ -498,11 +518,13 @@ app.patch("/api/admin/orders/:id/status", async (req, res) => {
     .where(eq(orders.id, id.data))
     .returning();
 
+  await auditAdmin(staff, "orders.status_update", "order", order.id, { from: order.status, to: parsed.data.status });
   return res.json({ order: await orderDetail(updated) });
 });
 
 app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
-  if (!await requireStaff(req, res)) return;
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
 
   const id = z.string().uuid().safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ message: "ID pesanan tidak valid." });
@@ -541,6 +563,7 @@ app.patch("/api/admin/orders/:id/fulfillment", async (req, res) => {
     await sendOrderEmail(updated, "Pesanan TuneBoss diterima", (name) => getOrderDeliveredEmail(name, paymentDetails(updated)));
   }
 
+  await auditAdmin(staff, "orders.fulfillment_update", "order", order.id, parsed.data);
   return res.json({ order: await orderDetail(updated) });
 });
 
@@ -595,7 +618,8 @@ app.get("/api/admin/products/:id", async (req, res) => {
 });
 
 app.post("/api/admin/products", async (req, res) => {
-  if (!await requireStaff(req, res)) return;
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
 
   const parsed = adminProductSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
@@ -613,6 +637,7 @@ app.post("/api/admin/products", async (req, res) => {
       await db.insert(stockMovements).values({ note: "Initial stock", productId: id, quantity: parsed.data.stock, type: "in" });
     }
 
+    await auditAdmin(staff, "products.create", "product", product.id, { sku: product.sku, stock: product.stock });
     return res.status(201).json({ product: productDto(product) });
   } catch {
     return res.status(409).json({ message: "SKU sudah digunakan." });
@@ -620,7 +645,8 @@ app.post("/api/admin/products", async (req, res) => {
 });
 
 app.patch("/api/admin/products/:id", async (req, res) => {
-  if (!await requireStaff(req, res)) return;
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
 
   const id = z.string().uuid().safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
@@ -638,6 +664,7 @@ app.patch("/api/admin/products/:id", async (req, res) => {
   try {
     const [product] = await db.update(products).set(values).where(eq(products.id, id.data)).returning();
     if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+    await auditAdmin(staff, "products.update", "product", product.id, parsed.data);
     return res.json({ product: productDto(product) });
   } catch {
     return res.status(409).json({ message: "SKU sudah digunakan." });
@@ -645,7 +672,8 @@ app.patch("/api/admin/products/:id", async (req, res) => {
 });
 
 app.patch("/api/admin/products/:id/stock", async (req, res) => {
-  if (!await requireStaff(req, res)) return;
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
 
   const id = z.string().uuid().safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
@@ -674,6 +702,7 @@ app.patch("/api/admin/products/:id/stock", async (req, res) => {
     return [updated];
   });
 
+  await auditAdmin(staff, "products.stock_update", "product", product.id, { from: current.stock, note: parsed.data.note, to: parsed.data.stock });
   return res.json({ product: productDto(product) });
 });
 
