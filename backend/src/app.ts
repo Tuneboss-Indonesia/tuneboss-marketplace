@@ -1084,6 +1084,7 @@ app.delete("/api/addresses/:id", async (req, res) => {
 app.post("/api/orders", async (req, res) => {
   const user = await currentUser(req);
   if (!user) return res.status(401).json({ message: "Silakan login untuk checkout." });
+  if (!user.emailVerified) return res.status(403).json({ message: "Verifikasi email terlebih dahulu sebelum checkout." });
 
   const parsed = orderSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });

@@ -4,6 +4,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "./db/client.js";
 import { session, user } from "./db/schema.js";
+import { env } from "./env.js";
 
 const cookieName = "tuneboss_session";
 const sessionMs = 1000 * 60 * 60 * 24 * 30;
@@ -43,7 +44,7 @@ export async function currentUser(req: Request) {
   if (!token) return null;
 
   const [row] = await db
-    .select({ email: user.email, id: user.id, name: user.name, phone: user.phone, role: user.role })
+    .select({ email: user.email, emailVerified: user.emailVerified, id: user.id, name: user.name, phone: user.phone, role: user.role })
     .from(session)
     .innerJoin(user, eq(session.userId, user.id))
     .where(and(eq(session.token, token), gt(session.expiresAt, new Date())))
@@ -53,11 +54,12 @@ export async function currentUser(req: Request) {
 }
 
 function setSessionCookie(res: Response, token: string) {
+  const secure = process.env.NODE_ENV === "production" || !env.FRONTEND_ORIGIN.startsWith("http://localhost");
   res.cookie(cookieName, token, {
     httpOnly: true,
     maxAge: sessionMs,
-    sameSite: "lax",
-    secure: false,
+    sameSite: secure ? "none" : "lax",
+    secure,
   });
 }
 
@@ -85,7 +87,7 @@ export async function register(req: Request, res: Response) {
       email: parsed.data.email,
       name: parsed.data.name,
       passwordHash: hashPassword(parsed.data.password),
-    }).returning({ email: user.email, id: user.id, name: user.name, phone: user.phone, role: user.role });
+    }).returning({ email: user.email, emailVerified: user.emailVerified, id: user.id, name: user.name, phone: user.phone, role: user.role });
 
     await createSession(res, id, req);
     return res.status(201).json({ user: created });
@@ -104,7 +106,7 @@ export async function login(req: Request, res: Response) {
   }
 
   await createSession(res, found.id, req);
-  return res.json({ user: { email: found.email, id: found.id, name: found.name, phone: found.phone, role: found.role } });
+  return res.json({ user: { email: found.email, emailVerified: found.emailVerified, id: found.id, name: found.name, phone: found.phone, role: found.role } });
 }
 
 export async function me(req: Request, res: Response) {

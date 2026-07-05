@@ -43,6 +43,7 @@ async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
 
   await db.insert(users).values({
     email: `${id}@example.test`,
+    emailVerified: true,
     id: userId,
     name: "Test Customer",
     passwordHash: hashPassword("password123"),
@@ -235,6 +236,7 @@ test("email verification emails otp and marks account verified", async () => {
   };
 
   try {
+    await db.update(users).set({ emailVerified: false }).where(eq(users.id, fx.userId));
     const [account] = await db.select({ email: users.email }).from(users).where(eq(users.id, fx.userId));
     assert.ok(account);
 
@@ -248,6 +250,21 @@ test("email verification emails otp and marks account verified", async () => {
     globalThis.fetch = realFetch;
     delete process.env.RESEND_API_KEY;
     delete process.env.EMAIL_FROM;
+    await fx.cleanup();
+  }
+});
+
+test("checkout requires verified email", async () => {
+  const fx = await fixture();
+  try {
+    await db.update(users).set({ emailVerified: false }).where(eq(users.id, fx.userId));
+
+    const response = await postRaw("/api/orders", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 1 }] });
+    const body = await response.json() as { message: string };
+
+    assert.equal(response.status, 403);
+    assert.match(body.message, /Verifikasi email/);
+  } finally {
     await fx.cleanup();
   }
 });
