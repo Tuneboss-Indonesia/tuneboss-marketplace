@@ -115,6 +115,11 @@ const adminStockSchema = z.object({
   stock: z.coerce.number().int().min(0),
 });
 
+const productReviewSchema = z.object({
+  quote: z.string().trim().min(10).max(500),
+  rating: z.coerce.number().int().min(1).max(5),
+});
+
 const xenditWebhookSchema = z.object({
   external_id: z.string().uuid(),
   status: z.string(),
@@ -703,6 +708,43 @@ app.get("/api/products/:slug/reviews", async (req, res) => {
   const total = reviews.length;
   const averageRating = total ? reviews.reduce((sum, review) => sum + review.rating, 0) / total : 0;
   return res.json({ averageRating, reviews, total });
+});
+
+app.post("/api/products/:slug/reviews", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk memberi review." });
+
+  const parsed = productReviewSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const rows = await db.select().from(products).where(eq(products.isActive, true));
+  const product = rows.find((row) => productMatchesSlug(row, req.params.slug));
+  if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+
+  const [purchase] = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .where(and(eq(orders.customerId, user.id), eq(orders.status, "fulfilled"), eq(orderItems.productId, product.id)))
+    .limit(1);
+  if (!purchase) return res.status(403).json({ message: "Review hanya tersedia untuk produk yang sudah selesai dibeli." });
+
+  const [existing] = await db
+    .select({ id: productReviews.id })
+    .from(productReviews)
+    .where(and(eq(productReviews.productId, product.id), eq(productReviews.customerId, user.id)))
+    .limit(1);
+  if (existing) return res.status(409).json({ message: "Anda sudah memberi review untuk produk ini." });
+
+  const [review] = await db.insert(productReviews).values({
+    authorName: user.name,
+    customerId: user.id,
+    productId: product.id,
+    quote: parsed.data.quote,
+    rating: parsed.data.rating,
+  }).returning({ authorName: productReviews.authorName, createdAt: productReviews.createdAt, id: productReviews.id, quote: productReviews.quote, rating: productReviews.rating });
+
+  return res.status(201).json({ review });
 });
 
 app.get("/api/tracking/:orderId", async (req, res) => {

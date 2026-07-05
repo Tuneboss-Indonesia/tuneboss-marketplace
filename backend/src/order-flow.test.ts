@@ -136,6 +136,25 @@ test("product reviews are returned by product slug", async () => {
   }
 });
 
+test("customer can review only fulfilled purchased products once", async () => {
+  const f = await fixture();
+  try {
+    const blocked = await postRaw(`/api/products/${f.productId}/reviews`, f.cookie, { quote: "Belum selesai tapi ingin review.", rating: 5 });
+    assert.equal(blocked.status, 403);
+
+    const created = await post("/api/orders", f.cookie, { addressId: f.addressId, items: [{ id: f.productId, quantity: 1 }] });
+    await db.update(orders).set({ status: "fulfilled" }).where(eq(orders.id, created.order?.id ?? ""));
+
+    const accepted = await postRaw(`/api/products/${f.productId}/reviews`, f.cookie, { quote: "Produk sudah dipakai dan hasilnya terasa enak.", rating: 5 });
+    assert.equal(accepted.status, 201);
+
+    const duplicate = await postRaw(`/api/products/${f.productId}/reviews`, f.cookie, { quote: "Review kedua harus ditolak.", rating: 4 });
+    assert.equal(duplicate.status, 409);
+  } finally {
+    await f.cleanup();
+  }
+});
+
 test("checkout reserves stock and customer cancel restores it", async () => {
   const fx = await fixture(5);
   try {

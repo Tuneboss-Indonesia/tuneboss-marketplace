@@ -62,12 +62,14 @@ export const prerender = false;
   const renderCard = (order: Order) => {
     const meta = statusMeta[order.status] || statusMeta.pending;
     const isCancelled = order.status === "cancelled";
-    const itemRows = order.items.map((item) => `<p class="m-0 text-sm font-medium text-foreground">${item.quantity}x ${escapeHtml(item.name)}</p>`).join("");
+    const itemRows = order.items.map((item) => `
+      <p class="m-0 flex flex-wrap items-center gap-3 text-sm font-medium text-foreground">
+        <span>${item.quantity}x ${escapeHtml(item.name)}</span>
+        ${order.status === "fulfilled" ? `<button type="button" data-review-product="${item.id}" data-review-product-name="${escapeHtml(item.name)}" class="border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">Beri Review</button>` : ""}
+      </p>
+    `).join("");
     const pendingActions = order.status === "pending"
       ? `<button type="button" data-cancel-order="${order.id}" class="cursor-pointer border border-red-500 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-red-500">Batalkan</button><a href="/checkout/${order.id}?status=pending" class="cursor-pointer bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white no-underline" style="color: white !important;">Bayar Sekarang</a>`
-      : "";
-    const reviewAction = order.status === "fulfilled"
-      ? `<button type="button" data-review-order class="cursor-pointer border border-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary">Beri Review</button>`
       : "";
 
     return `
@@ -94,7 +96,7 @@ export const prerender = false;
         <div class="flex flex-wrap justify-end gap-3">
           <a href="/account/orders/${order.id}" class="cursor-pointer border border-primary/20 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-foreground no-underline">Detail</a>
           <button type="button" data-track-order="${order.id}" class="cursor-pointer border border-primary/20 bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-foreground">Lacak Pesanan</button>
-          ${pendingActions}${reviewAction}
+          ${pendingActions}
         </div>
       </div>
     `;
@@ -126,12 +128,30 @@ export const prerender = false;
       const target = event.target instanceof Element ? event.target : null;
       const track = target?.closest<HTMLElement>("[data-track-order]");
       const cancel = target?.closest<HTMLElement>("[data-cancel-order]");
-      const review = target?.closest<HTMLElement>("[data-review-order]");
+      const review = target?.closest<HTMLElement>("[data-review-product]");
       if (track) {
         sessionStorage.setItem("tuneboss-tracking-id", track.dataset.trackOrder || "");
         window.location.href = "/tracking";
       }
-      if (review) alert("Review feature coming soon");
+      if (review) {
+        const productId = review.dataset.reviewProduct || "";
+        const productName = review.dataset.reviewProductName || "produk ini";
+        const rating = Number(prompt(`Rating untuk ${productName} (1-5)`, "5") || "0");
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) return alert("Rating harus 1 sampai 5.");
+        const quote = prompt(`Tulis review untuk ${productName}`)?.trim() || "";
+        if (quote.length < 10) return alert("Review minimal 10 karakter.");
+        review.setAttribute("disabled", "true");
+        const response = await fetch(`${apiUrl}/products/${encodeURIComponent(productId)}/reviews`, {
+          body: JSON.stringify({ quote, rating }),
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const body = await response.json().catch(() => ({}));
+        review.removeAttribute("disabled");
+        if (!response.ok) return alert(body.message || "Gagal mengirim review.");
+        alert("Review berhasil dikirim.");
+      }
       if (cancel && confirm("Batalkan pesanan ini?")) {
         const id = cancel.dataset.cancelOrder || "";
         cancel.setAttribute("disabled", "true");

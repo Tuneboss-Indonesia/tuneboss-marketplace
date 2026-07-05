@@ -97,11 +97,14 @@ export const orders = pgTable("orders", {
 export const productReviews = pgTable("product_reviews", {
   id: uuid("id").primaryKey().defaultRandom(),
   productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  customerId: text("customer_id").references(() => user.id, { onDelete: "set null" }),
   authorName: text("author_name").notNull(),
   rating: integer("rating").notNull().default(5),
   quote: text("quote").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("product_reviews_customer_unique").on(table.productId, table.customerId).where(sql`${table.customerId} is not null`),
+]);
 
 export const orderItems = pgTable("order_items", {
   id: uuid("id").primaryKey().defaultRandom(),
