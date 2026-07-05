@@ -6,7 +6,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, orderItems, orders, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, categories, orderItems, orders, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
 import { getOrderDeliveredEmail, getOrderShippedEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
@@ -685,6 +685,16 @@ app.get("/api/products", async (_req, res) => {
     .orderBy(desc(products.createdAt));
 
   res.json({ products: rows.map(productDto) });
+});
+
+app.get("/api/categories", async (_req, res) => {
+  const rows = await db.select().from(categories).orderBy(categories.name);
+  res.json({ categories: rows.map((category) => ({
+    description: category.description,
+    id: category.id,
+    name: category.name,
+    slug: slugify(category.name),
+  })) });
 });
 
 app.get("/api/products/:slug", async (req, res) => {

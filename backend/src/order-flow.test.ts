@@ -13,7 +13,7 @@ const [{ app }, { hashPassword }, { closeDb, db }, schema] = await Promise.all([
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, orders, paymentEvents, productReviews, products, session, user: users } = schema;
+const { addresses, categories, orders, paymentEvents, productReviews, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -117,6 +117,21 @@ test("readiness endpoint checks database", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(body, { database: "ok", ok: true, service: "tuneboss-marketplace-api" });
+});
+
+test("categories endpoint returns public category slugs", async () => {
+  const id = randomUUID();
+  try {
+    await db.insert(categories).values({ description: "Kategori ECU racing", id, name: `ECU Racing ${id.slice(0, 8)}` });
+
+    const response = await fetch(`${baseUrl}/api/categories`);
+    const body = await response.json() as { categories: Array<{ id: string; slug: string }> };
+
+    assert.equal(response.status, 200);
+    assert.ok(body.categories.some((category) => category.id === id && category.slug.startsWith("ecu-racing-")));
+  } finally {
+    await db.delete(categories).where(eq(categories.id, id));
+  }
 });
 
 test("product reviews are returned by product slug", async () => {
