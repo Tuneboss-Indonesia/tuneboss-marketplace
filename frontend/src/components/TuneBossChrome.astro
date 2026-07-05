@@ -1585,16 +1585,24 @@ import AlertDialog from "./AlertDialog.astro";
       if (input.value) (otpInputs[index + 1] as HTMLInputElement | undefined)?.focus();
     }, { signal });
   });
-  document.querySelector("[data-otp-submit]")?.addEventListener("click", () => {
+  document.querySelector("[data-otp-submit]")?.addEventListener("click", async () => {
     const code = otpInputs.map(input => input instanceof HTMLInputElement ? input.value : "").join("");
     if (code.length !== 6) {
       if (otpError) otpError.classList.remove("hidden");
       return;
     }
-    markOtpVerified(pendingOtpEmail);
-    localStorage.removeItem("tuneboss-pending-otp");
-    if (otpDialog instanceof HTMLDialogElement) otpDialog.close();
-    pendingOtpComplete?.();
+    try {
+      await apiRequest("/auth/email-verification/verify", { email: pendingOtpEmail, otp: code });
+      markOtpVerified(pendingOtpEmail);
+      localStorage.removeItem("tuneboss-pending-otp");
+      if (otpDialog instanceof HTMLDialogElement) otpDialog.close();
+      pendingOtpComplete?.();
+    } catch (error) {
+      if (otpError) {
+        otpError.textContent = error instanceof Error ? error.message : (root.lang === "en" ? "Invalid code" : "Kode tidak valid");
+        otpError.classList.remove("hidden");
+      }
+    }
   }, { signal });
   document.querySelector("[data-otp-close]")?.addEventListener("click", () => {
     if (otpDialog instanceof HTMLDialogElement) otpDialog.close();
@@ -1604,8 +1612,8 @@ import AlertDialog from "./AlertDialog.astro";
   document.querySelector("[data-otp-resend]")?.addEventListener("click", () => {
     const resendBtn = document.querySelector("[data-otp-resend]");
     if (resendBtn instanceof HTMLButtonElement && !resendBtn.disabled) {
+      apiRequest("/auth/email-verification/request", { email: pendingOtpEmail }).catch(() => undefined);
       startOtpTimer();
-      // Optional: Add a toast/notification here if needed
     }
   });
 
@@ -1931,7 +1939,12 @@ import AlertDialog from "./AlertDialog.astro";
           ? { email, name: formData.name, password: formData.password }
           : { email, password: formData.password });
         form.closest("dialog")?.close();
-        completeAuth(mode);
+        if (mode === "register") {
+          await apiRequest("/auth/email-verification/request", { email });
+          openOtpDialog(email, () => completeAuth(mode));
+        } else {
+          completeAuth(mode);
+        }
       } catch (error) {
         const errorEl = form.querySelector("[data-auth-form-error]");
         if (errorEl instanceof HTMLElement) {

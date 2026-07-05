@@ -13,7 +13,7 @@ const [{ app }, { hashPassword, verifyPassword }, { closeDb, db }, schema] = awa
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, adminAuditLogs, categories, orders, passwordResetTokens, paymentEvents, productReviews, products, session, user: users } = schema;
+const { addresses, adminAuditLogs, categories, emailVerificationTokens, orders, passwordResetTokens, paymentEvents, productReviews, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -71,6 +71,7 @@ async function fixture(stock = 5, role: "admin" | "customer" = "customer") {
 
   const cleanup = async () => {
     await db.delete(adminAuditLogs).where(eq(adminAuditLogs.actorId, userId));
+    await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, userId));
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
     await db.delete(paymentEvents).where(sql`${paymentEvents.orderId} in (select id from orders where customer_id = ${userId})`);
     await db.delete(orders).where(eq(orders.customerId, userId));
@@ -209,6 +210,40 @@ test("forgot password emails otp and resets password", async () => {
     const [updated] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, fx.userId));
     assert.ok(updated);
     assert.equal(verifyPassword("newpass123", updated.passwordHash), true);
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.EMAIL_FROM;
+    await fx.cleanup();
+  }
+});
+
+test("email verification emails otp and marks account verified", async () => {
+  const fx = await fixture();
+  let otp = "";
+
+  process.env.RESEND_API_KEY = "re_test";
+  process.env.EMAIL_FROM = "TuneBoss <noreply@example.com>";
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url === "https://api.resend.com/emails") {
+      const body = init?.body ? JSON.parse(String(init.body)) as { html?: string } : {};
+      otp = body.html?.match(/\b\d{6}\b/)?.[0] ?? "";
+      return new Response(JSON.stringify({ id: "email-test" }), { status: 200 });
+    }
+    return realFetch(input, init);
+  };
+
+  try {
+    const [account] = await db.select({ email: users.email }).from(users).where(eq(users.id, fx.userId));
+    assert.ok(account);
+
+    assert.equal((await postRaw("/api/auth/email-verification/request", "", { email: account.email })).status, 200);
+    assert.match(otp, /^\d{6}$/);
+    assert.equal((await postRaw("/api/auth/email-verification/verify", "", { email: account.email, otp })).status, 200);
+
+    const [verified] = await db.select({ emailVerified: users.emailVerified }).from(users).where(eq(users.id, fx.userId));
+    assert.equal(verified?.emailVerified, true);
   } finally {
     globalThis.fetch = realFetch;
     delete process.env.RESEND_API_KEY;

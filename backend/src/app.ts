@@ -6,9 +6,9 @@ import { randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, adminAuditLogs, categories, orderItems, orders, passwordResetTokens, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, adminAuditLogs, categories, emailVerificationTokens, orderItems, orders, passwordResetTokens, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
-import { getOrderDeliveredEmail, getOrderShippedEmail, getOtpResetPasswordEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
+import { getOrderDeliveredEmail, getOrderShippedEmail, getOtpResetPasswordEmail, getOtpVerificationEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
 
 export const app = express();
@@ -107,6 +107,8 @@ const resetPasswordSchema = resetOtpSchema.extend({
   password: z.string().min(8),
 });
 
+const verifyEmailSchema = resetOtpSchema;
+
 const passwordSchema = z.object({
   currentPassword: z.string().min(8),
   newPassword: z.string().min(8),
@@ -202,6 +204,29 @@ async function findValidResetToken(email: string, otp: string) {
 
   const token = tokens.find((row) => verifyPassword(otp, row.tokenHash));
   return token ? { token, user: found } : null;
+}
+
+async function findValidEmailVerificationToken(email: string, otp: string) {
+  const [found] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!found) return null;
+
+  const tokens = await db
+    .select()
+    .from(emailVerificationTokens)
+    .where(and(eq(emailVerificationTokens.userId, found.id), sql`${emailVerificationTokens.expiresAt} > now()`, sql`${emailVerificationTokens.usedAt} is null`))
+    .orderBy(desc(emailVerificationTokens.createdAt))
+    .limit(5);
+
+  const token = tokens.find((row) => verifyPassword(otp, row.tokenHash));
+  return token ? { token, user: found } : null;
+}
+
+async function sendEmailVerificationOtp(email: string) {
+  const [found] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!found || found.emailVerified) return;
+  const otp = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  await db.insert(emailVerificationTokens).values({ expiresAt: new Date(Date.now() + 15 * 60_000), tokenHash: hashPassword(otp), userId: found.id });
+  await sendEmail({ html: getOtpVerificationEmail(found.name, otp), subject: "Verifikasi Email TuneBoss", to: found.email });
 }
 
 function paymentDetails(order: typeof orders.$inferSelect) {
@@ -387,6 +412,28 @@ app.post("/api/auth/reset-password", rateLimit("auth.reset", 10, 15 * 60_000), a
   await db.transaction(async (tx) => {
     await tx.update(users).set({ passwordHash: hashPassword(parsed.data.password), updatedAt: new Date() }).where(eq(users.id, found.user.id));
     await tx.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, found.token.id));
+  });
+
+  return res.json({ ok: true });
+});
+
+app.post("/api/auth/email-verification/request", rateLimit("auth.email.verify.request", 5, 15 * 60_000), async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+  await sendEmailVerificationOtp(parsed.data.email);
+  return res.json({ ok: true });
+});
+
+app.post("/api/auth/email-verification/verify", rateLimit("auth.email.verify", 20, 15 * 60_000), async (req, res) => {
+  const parsed = verifyEmailSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const found = await findValidEmailVerificationToken(parsed.data.email, parsed.data.otp);
+  if (!found) return res.status(400).json({ message: "OTP tidak valid atau sudah kedaluwarsa." });
+
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, found.user.id));
+    await tx.update(emailVerificationTokens).set({ usedAt: new Date() }).where(eq(emailVerificationTokens.id, found.token.id));
   });
 
   return res.json({ ok: true });
