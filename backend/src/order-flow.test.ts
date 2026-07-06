@@ -269,6 +269,26 @@ test("checkout requires verified email", async () => {
   }
 });
 
+test("shipping quote and order total include backend shipping cost", async () => {
+  const fx = await fixture(5);
+  try {
+    const quoteResponse = await postRaw("/api/shipping/quote", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 1 }] });
+    const quoteBody = await quoteResponse.json() as { quote: { cost: number; method: string; subtotal: number; total: number } };
+
+    assert.equal(quoteResponse.status, 200);
+    assert.deepEqual(quoteBody.quote, { cost: 25000, method: "REGULAR", subtotal: 100000, total: 125000, label: "Regular" });
+
+    const orderResponse = await postRaw("/api/orders", fx.cookie, { addressId: fx.addressId, items: [{ id: fx.productId, quantity: 1 }], shippingMethod: "REGULAR" });
+    const orderBody = await orderResponse.json() as { order: { shippingCost: number; total: number } };
+
+    assert.equal(orderResponse.status, 201);
+    assert.equal(orderBody.order.shippingCost, 25000);
+    assert.equal(orderBody.order.total, 125000);
+  } finally {
+    await fx.cleanup();
+  }
+});
+
 test("checkout reserves stock and customer cancel restores it", async () => {
   const fx = await fixture(5);
   try {

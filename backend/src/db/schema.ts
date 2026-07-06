@@ -114,6 +114,8 @@ export const orders = pgTable("orders", {
   paymentInvoiceStatus: text("payment_invoice_status").notNull().default(""),
   paymentInvoiceUrl: text("payment_invoice_url").notNull().default(""),
   shippedAt: timestamp("shipped_at"),
+  shippingCost: numeric("shipping_cost", { precision: 12, scale: 2 }).notNull().default("0"),
+  shippingMethod: text("shipping_method").notNull().default("REGULAR"),
   status: orderStatus("status").notNull().default("pending"),
   stockReserved: boolean("stock_reserved").notNull().default(false),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),

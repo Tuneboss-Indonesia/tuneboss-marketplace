@@ -113,6 +113,13 @@
       "when": 1783026000000,
       "tag": "0015_add_email_verification_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1783029600000,
+      "tag": "0016_add_order_shipping_totals",
+      "breakpoints": true
     }
   ]
 }

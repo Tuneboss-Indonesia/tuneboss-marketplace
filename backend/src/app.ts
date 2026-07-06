@@ -38,6 +38,9 @@ const slugify = (value: string) => value
   .replace(/^-|-$/g, "");
 
 const formatRupiah = (value: string) => `Rp. ${new Intl.NumberFormat("id-ID").format(Number(value))}`;
+const shippingOptions = {
+  REGULAR: { freeThreshold: 2_000_000, label: "Regular", price: 25_000 },
+};
 
 const brandFrom = (name: string, sku: string) => ["Honda", "Yamaha", "Kawasaki", "Suzuki"]
   .find((brand) => `${sku} ${name}`.toLowerCase().includes(brand.toLowerCase())) ?? "TuneBoss";
@@ -63,13 +66,21 @@ function productMatchesSlug(product: typeof products.$inferSelect, slug: string)
   return product.id === slug || slugify(product.name) === slug || slugify(`${brand} ${product.name}`) === slug;
 }
 
+function shippingQuote(subtotal: number, method: keyof typeof shippingOptions = "REGULAR") {
+  const option = shippingOptions[method];
+  return { cost: subtotal >= option.freeThreshold ? 0 : option.price, label: option.label, method };
+}
+
 const orderSchema = z.object({
   addressId: z.string().uuid(),
   items: z.array(z.object({
     id: z.string().min(1),
     quantity: z.coerce.number().int().positive(),
   })).min(1),
+  shippingMethod: z.enum(["REGULAR"]).optional().default("REGULAR"),
 });
+
+const shippingQuoteSchema = orderSchema.pick({ addressId: true, items: true, shippingMethod: true });
 
 const invoiceSchema = z.object({
   orderId: z.string().uuid(),
@@ -309,12 +320,38 @@ async function orderDetail(order: typeof orders.$inferSelect) {
     paymentInvoiceStatus: order.paymentInvoiceStatus,
     paymentInvoiceUrl: order.paymentInvoiceUrl,
     shippedAt: order.shippedAt,
+    shippingCost: Number(order.shippingCost),
+    shippingMethod: order.shippingMethod,
     status: order.status,
     stockReserved: order.stockReserved,
     total: Number(order.total),
     trackingNumber: order.trackingNumber,
     updatedAt: order.updatedAt,
   };
+}
+
+async function pricedCart(items: Array<{ id: string; quantity: number }>) {
+  const requested = new Map<string, number>();
+  for (const item of items) requested.set(item.id, (requested.get(item.id) ?? 0) + item.quantity);
+
+  const rows = [] as (typeof products.$inferSelect)[];
+  for (const id of requested.keys()) {
+    const [product] = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    if (product) rows.push(product);
+  }
+
+  if (rows.length !== requested.size) return { error: "Sebagian produk tidak ditemukan." } as const;
+  const inactive = rows.find((product) => !product.isActive);
+  if (inactive) return { error: `${inactive.name} tidak tersedia.` } as const;
+  const insufficient = rows.find((product) => (requested.get(product.id) ?? 0) > product.stock);
+  if (insufficient) return { error: `Stok ${insufficient.name} tidak cukup.` } as const;
+
+  const pricedItems = rows.map((product) => {
+    const quantity = requested.get(product.id) ?? 0;
+    const unitPrice = Number(product.price);
+    return { product, quantity, total: unitPrice * quantity, unitPrice };
+  });
+  return { items: pricedItems, subtotal: pricedItems.reduce((sum, item) => sum + item.total, 0) } as const;
 }
 
 async function cancelPendingOrder(order: typeof orders.$inferSelect, note: string) {
@@ -1081,6 +1118,23 @@ app.delete("/api/addresses/:id", async (req, res) => {
   return res.status(204).send();
 });
 
+app.post("/api/shipping/quote", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk menghitung ongkir." });
+
+  const parsed = shippingQuoteSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const [address] = await db.select().from(addresses).where(and(eq(addresses.id, parsed.data.addressId), eq(addresses.customerId, user.id))).limit(1);
+  if (!address) return res.status(400).json({ message: "Pilih alamat pengiriman yang valid." });
+
+  const priced = await pricedCart(parsed.data.items);
+  if ("error" in priced) return res.status(400).json({ message: priced.error });
+
+  const quote = shippingQuote(priced.subtotal, parsed.data.shippingMethod);
+  return res.json({ quote: { ...quote, subtotal: priced.subtotal, total: priced.subtotal + quote.cost } });
+});
+
 app.post("/api/orders", async (req, res) => {
   const user = await currentUser(req);
   if (!user) return res.status(401).json({ message: "Silakan login untuk checkout." });
@@ -1096,35 +1150,16 @@ app.post("/api/orders", async (req, res) => {
     .limit(1);
   if (!address) return res.status(400).json({ message: "Pilih alamat pengiriman yang valid." });
 
-  const requested = new Map<string, number>();
-  for (const item of parsed.data.items) {
-    requested.set(item.id, (requested.get(item.id) ?? 0) + item.quantity);
-  }
-
-  const rows = [] as (typeof products.$inferSelect)[];
-  for (const id of requested.keys()) {
-    const [product] = await db.select().from(products).where(eq(products.id, id)).limit(1);
-    if (product) rows.push(product);
-  }
-
-  if (rows.length !== requested.size) return res.status(400).json({ message: "Sebagian produk tidak ditemukan." });
-  const inactive = rows.find((product) => !product.isActive);
-  if (inactive) return res.status(400).json({ message: `${inactive.name} tidak tersedia.` });
-
-  const insufficient = rows.find((product) => (requested.get(product.id) ?? 0) > product.stock);
-  if (insufficient) return res.status(400).json({ message: `Stok ${insufficient.name} tidak cukup.` });
-
-  const items = rows.map((product) => {
-    const quantity = requested.get(product.id) ?? 0;
-    const unitPrice = Number(product.price);
-    return { product, quantity, total: unitPrice * quantity, unitPrice };
-  });
-  const total = items.reduce((sum, item) => sum + item.total, 0).toFixed(2);
+  const priced = await pricedCart(parsed.data.items);
+  if ("error" in priced) return res.status(400).json({ message: priced.error });
+  const { items, subtotal } = priced;
+  const quote = shippingQuote(subtotal, parsed.data.shippingMethod);
+  const total = (subtotal + quote.cost).toFixed(2);
 
   const orderId = randomUUID();
   try {
     await db.transaction(async (tx) => {
-      await tx.insert(orders).values({ addressId: address.id, customerId: user.id, id: orderId, status: "pending", stockReserved: true, total });
+      await tx.insert(orders).values({ addressId: address.id, customerId: user.id, id: orderId, shippingCost: quote.cost.toFixed(2), shippingMethod: quote.method, status: "pending", stockReserved: true, total });
       await tx.insert(orderItems).values(items.map((item) => ({
         orderId,
         productId: item.product.id,
@@ -1152,6 +1187,8 @@ app.post("/api/orders", async (req, res) => {
     order: {
       addressId: address.id,
       id: orderId,
+      shippingCost: quote.cost,
+      shippingMethod: quote.method,
       status: "pending",
       total: Number(total),
       items: items.map((item) => ({

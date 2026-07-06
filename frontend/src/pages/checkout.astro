@@ -362,6 +362,7 @@ import SEO from "@/components/SEO.astro";
     const lang = () => document.documentElement.lang === "en" ? "en" : "id";
     let addresses: Address[] = [];
     let selectedAddressId = "";
+    let shippingCost = 0;
     const readCart = () => {
       try {
         const cart = JSON.parse(localStorage.getItem("tuneboss-cart") || "[]");
@@ -393,6 +394,28 @@ import SEO from "@/components/SEO.astro";
 
     const addressText = (address: Address) => [address.addressLine, address.city, address.province, address.postalCode].filter(Boolean).join(", ");
 
+    const refreshShippingQuote = async () => {
+      const items: CartItem[] = readCart();
+      if (!selectedAddressId || items.length === 0) {
+        shippingCost = 0;
+        render(true);
+        return;
+      }
+      try {
+        const response = await fetch(`${apiUrl}/shipping/quote`, {
+          body: JSON.stringify({ addressId: selectedAddressId, items: items.map((item) => ({ id: String(item.id), quantity: Number(item.quantity || 1) })), shippingMethod: "REGULAR" }),
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const data = await response.json().catch(() => ({}));
+        shippingCost = response.ok ? Number(data.quote?.cost || 0) : 0;
+      } catch {
+        shippingCost = 0;
+      }
+      render(true);
+    };
+
     const selectAddress = (address: Address) => {
       selectedAddressId = address.id;
       const sumName = document.querySelector("[data-summary-address-name]");
@@ -411,6 +434,7 @@ import SEO from "@/components/SEO.astro";
       addressEmpty?.classList.add("hidden");
       addressSummary?.classList.remove("hidden");
       addressSummary?.classList.add("flex");
+      void refreshShippingQuote();
     };
 
     const renderAddressOptions = () => {
@@ -461,7 +485,6 @@ import SEO from "@/components/SEO.astro";
       setText("[data-checkout-items], [data-summary-items]", String(itemCount));
       setText("[data-summary-subtotal]", formatRupiah(subtotal));
       
-      const shippingCost = 0; // Ongkir sudah statis 0 di checkout web
       const finalTotal = subtotal + shippingCost;
       
       if (summaryShipping) summaryShipping.textContent = formatRupiah(shippingCost);
@@ -518,6 +541,7 @@ import SEO from "@/components/SEO.astro";
           body: JSON.stringify({
             addressId: selectedAddressId,
             items: items.map((item) => ({ id: String(item.id), quantity: Number(item.quantity || 1) })),
+            shippingMethod: "REGULAR",
           }),
         });
         const orderData = await orderRes.json().catch(() => ({}));
