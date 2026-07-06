@@ -71,6 +71,13 @@ function shippingQuote(subtotal: number, method: keyof typeof shippingOptions = 
   return { cost: subtotal >= option.freeThreshold ? 0 : option.price, label: option.label, method };
 }
 
+function analyticsRange(timeframe: "thisMonth" | "thisYear" | "lastYear") {
+  const now = new Date();
+  if (timeframe === "thisYear") return { from: new Date(now.getFullYear(), 0, 1), to: new Date(now.getFullYear() + 1, 0, 1) };
+  if (timeframe === "lastYear") return { from: new Date(now.getFullYear() - 1, 0, 1), to: new Date(now.getFullYear(), 0, 1) };
+  return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+}
+
 const orderSchema = z.object({
   addressId: z.string().uuid(),
   items: z.array(z.object({
@@ -127,6 +134,10 @@ const passwordSchema = z.object({
 
 const adminOrderStatusSchema = z.object({
   status: z.enum(["draft", "pending", "paid", "cancelled", "fulfilled"]),
+});
+
+const adminAnalyticsSchema = z.object({
+  timeframe: z.enum(["thisMonth", "thisYear", "lastYear"]).optional().default("thisMonth"),
 });
 
 const adminFulfillmentSchema = z.object({
@@ -631,6 +642,68 @@ app.get("/api/admin/summary", async (req, res) => {
       ...customerTotals,
       ...productTotals,
       revenue: Number(orderTotals.revenue),
+    },
+  });
+});
+
+app.get("/api/admin/analytics", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const parsed = adminAnalyticsSchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const { from, to } = analyticsRange(parsed.data.timeframe);
+  const completed = sql`${orders.status} in ('paid', 'fulfilled')`;
+  const inRange = sql`${orders.createdAt} >= ${from} and ${orders.createdAt} < ${to}`;
+  const where = sql`${completed} and ${inRange}`;
+
+  const [summary] = await db.select({
+    customers: sql<number>`count(distinct ${orders.customerId})`,
+    orders: sql<number>`count(*)`,
+    revenue: sql<string>`coalesce(sum(${orders.total}), 0)`,
+  }).from(orders).where(where);
+  const [orderTotals] = await db.select({ orders: sql<number>`count(*)` }).from(orders).where(inRange);
+
+  const revenue = await db
+    .select({
+      name: sql<string>`to_char(date_trunc('day', ${orders.createdAt}), 'DD Mon')`,
+      total: sql<string>`coalesce(sum(${orders.total}), 0)`,
+    })
+    .from(orders)
+    .where(where)
+    .groupBy(sql`date_trunc('day', ${orders.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${orders.createdAt})`);
+
+  const topProducts = await db
+    .select({ name: products.name, sales: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(products, eq(orderItems.productId, products.id))
+    .where(where)
+    .groupBy(products.id, products.name)
+    .orderBy(desc(sql`coalesce(sum(${orderItems.quantity}), 0)`))
+    .limit(5);
+
+  const categoryRows = await db
+    .select({ name: sql<string>`coalesce(${categories.name}, 'Tanpa Kategori')`, value: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(products, eq(orderItems.productId, products.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id))
+    .where(where)
+    .groupBy(sql`coalesce(${categories.name}, 'Tanpa Kategori')`)
+    .orderBy(desc(sql`coalesce(sum(${orderItems.quantity}), 0)`))
+    .limit(4);
+
+  return res.json({
+    analytics: {
+      categories: categoryRows.map((row, index) => ({ ...row, color: `var(--chart-${index + 1})`, value: Number(row.value) })),
+      conversion: Number(orderTotals.orders) ? (Number(summary.orders) / Number(orderTotals.orders)) * 100 : 0,
+      customers: Number(summary.customers),
+      orders: Number(orderTotals.orders),
+      revenue: revenue.map((row) => ({ name: row.name, total: Number(row.total) })),
+      totalRevenue: Number(summary.revenue),
+      topProducts: topProducts.map((row) => ({ name: row.name, sales: Number(row.sales) })),
     },
   });
 });
