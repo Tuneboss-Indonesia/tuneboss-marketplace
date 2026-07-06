@@ -111,6 +111,12 @@ export const adminAuditLogs = pgTable("admin_audit_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const storeContent = pgTable("store_content", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull().default({}),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   customerId: text("customer_id").references(() => user.id, { onDelete: "set null" }),

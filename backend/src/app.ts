@@ -8,7 +8,7 @@ import path from "node:path";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, adminAuditLogs, categories, emailVerificationTokens, orderItems, orders, passwordResetTokens, paymentEvents, productImages, productReviews, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, adminAuditLogs, categories, emailVerificationTokens, orderItems, orders, passwordResetTokens, paymentEvents, productImages, productReviews, products, stockMovements, storeContent, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
 import { getOrderDeliveredEmail, getOrderShippedEmail, getOtpResetPasswordEmail, getOtpVerificationEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
@@ -120,6 +120,28 @@ function analyticsRange(timeframe: "thisMonth" | "thisYear" | "lastYear") {
   return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
 }
 
+const defaultStoreContent = { homeHero: "", productsHero: "", selectedTestimonials: [] as string[] };
+const savedStoreContentSchema = z.object({
+  homeHero: z.string().default(""),
+  productsHero: z.string().default(""),
+  selectedTestimonials: z.array(z.string()).default([]),
+});
+
+async function getStoreContent() {
+  const [row] = await db.select({ value: storeContent.value }).from(storeContent).where(eq(storeContent.key, "main")).limit(1);
+  return savedStoreContentSchema.parse({ ...defaultStoreContent, ...(row?.value ?? {}) });
+}
+
+async function contentReviews(selectedIds?: string[]) {
+  const selected = new Set(selectedIds ?? []);
+  const reviews = await db
+    .select({ comment: productReviews.quote, id: productReviews.id, name: productReviews.authorName, product: products.name, rating: productReviews.rating })
+    .from(productReviews)
+    .innerJoin(products, eq(productReviews.productId, products.id))
+    .orderBy(desc(productReviews.createdAt));
+  return reviews.map((review) => ({ ...review, selected: selected.has(review.id) }));
+}
+
 const orderSchema = z.object({
   addressId: z.string().uuid(),
   items: z.array(z.object({
@@ -180,6 +202,12 @@ const adminOrderStatusSchema = z.object({
 
 const adminAnalyticsSchema = z.object({
   timeframe: z.enum(["thisMonth", "thisYear", "lastYear"]).optional().default("thisMonth"),
+});
+
+const storeContentSchema = z.object({
+  homeHero: z.string().url(),
+  productsHero: z.string().url(),
+  selectedTestimonials: z.array(z.string().uuid()).default([]),
 });
 
 const adminFulfillmentSchema = z.object({
@@ -491,6 +519,32 @@ app.post("/api/admin/uploads", rateLimit("admin.upload", 60, 60_000), express.ra
 
   const baseUrl = env.UPLOAD_BASE_URL ?? `${req.protocol}://${req.get("host")}`;
   return res.status(201).json({ url: `${baseUrl.replace(/\/$/, "")}/uploads/${filename}` });
+});
+
+app.get("/api/content", async (_req, res) => {
+  const content = await getStoreContent();
+  const reviews = (await contentReviews(content.selectedTestimonials)).filter((review) => review.selected);
+  return res.json({ content: { ...content, testimonials: reviews } });
+});
+
+app.get("/api/admin/content", async (_req, res) => {
+  if (!await requireStaff(_req, res)) return;
+
+  const content = await getStoreContent();
+  return res.json({ content, reviews: await contentReviews(content.selectedTestimonials) });
+});
+
+app.patch("/api/admin/content", rateLimit("admin.write", 120, 60_000), async (req, res) => {
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
+
+  const parsed = storeContentSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  await db.insert(storeContent).values({ key: "main", value: parsed.data })
+    .onConflictDoUpdate({ target: storeContent.key, set: { updatedAt: new Date(), value: parsed.data } });
+  await auditAdmin(staff, "content.update", "content", "main", parsed.data);
+  return res.json({ content: parsed.data, reviews: await contentReviews(parsed.data.selectedTestimonials) });
 });
 
 app.get("/api/health", (_req, res) => {
