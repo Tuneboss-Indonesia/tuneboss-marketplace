@@ -14,6 +14,11 @@ const products = await fetch(`${apiUrl}/products`)
   .then((response) => response.ok ? response.json() : Promise.reject())
   .then((data): ProductSummary[] => Array.isArray(data.products) && data.products.length ? data.products : fallbackProducts)
   .catch(() => fallbackProducts);
+const contentData = await fetch(`${apiUrl}/content`)
+  .then((response) => response.ok ? response.json() : Promise.reject())
+  .catch(() => null);
+const productsHeroMedia = typeof contentData?.content?.productsHero === "string" ? contentData.content.productsHero : "";
+const productsHeroIsVideo = /\.(mp4|webm)(\?|$)/i.test(productsHeroMedia);
 
 const pageSize = 9;
 const pageCount = Math.ceil(products.length / pageSize);
@@ -37,8 +42,8 @@ import SEO from "@/components/SEO.astro";
   <main class="min-h-screen w-full bg-background pb-32">
     <div class="mb-16">
       <PageHero
-        imageUrl="/tuneboss-logo.png"
-        videoUrl="/videos/motorcycle-ecu-tuneboss.mp4"
+        imageUrl={productsHeroMedia && !productsHeroIsVideo ? productsHeroMedia : "/tuneboss-logo.png"}
+        videoUrl={productsHeroMedia && productsHeroIsVideo ? productsHeroMedia : "/videos/motorcycle-ecu-tuneboss.mp4"}
         pretext="The Collection"
         title="Product"
         subtitleHighlight="Overview"

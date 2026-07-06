@@ -33,9 +33,7 @@ const imageSrc = imageUrl === "/images/tuneboss-motorcycle-ecu.png" ? ecuImage :
   ) : imageSrc ? (
     <Image src={imageSrc} alt="" loading="eager" class:list={["h-full w-full", imageClass]} aria-hidden="true" />
   ) : (
-    <>
-      <Image src={imageUrl} alt="" loading="eager" decoding="async" inferSize={true} class:list={["h-full w-full", imageClass]} aria-hidden="true" />
-    </>
+    <Image src={imageUrl} alt="" loading="eager" decoding="async" inferSize={true} class:list={["h-full w-full", imageClass]} aria-hidden="true" />
   )}
 
   {titleLayout === "bottom" ? (
