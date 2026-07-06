@@ -579,13 +579,30 @@ app.get("/api/admin/customers", async (req, res) => {
 
   const where = and(...filters);
   const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(users).where(where);
-  const customers = await db
-    .select({ createdAt: users.createdAt, email: users.email, id: users.id, name: users.name, phone: users.phone, updatedAt: users.updatedAt })
+  const rows = await db
+    .select({
+      createdAt: users.createdAt,
+      email: users.email,
+      emailVerified: users.emailVerified,
+      id: users.id,
+      name: users.name,
+      phone: users.phone,
+      totalOrders: sql<number>`count(${orders.id})`,
+      totalSpent: sql<string>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid', 'fulfilled')), 0)`,
+      updatedAt: users.updatedAt,
+    })
     .from(users)
+    .leftJoin(orders, eq(orders.customerId, users.id))
     .where(where)
+    .groupBy(users.id, users.name, users.email, users.emailVerified, users.phone, users.createdAt, users.updatedAt)
     .orderBy(desc(users.createdAt))
     .limit(limit)
     .offset(offset);
+  const customers = rows.map((customer) => ({
+    ...customer,
+    totalOrders: Number(customer.totalOrders),
+    totalSpent: Number(customer.totalSpent),
+  }));
 
   return res.json({ customers, pagination: pageMeta(Number(total), limit, offset) });
 });
