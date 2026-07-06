@@ -94,6 +94,7 @@ function productDto(product: typeof products.$inferSelect) {
     id: product.id,
     image: product.imageUrl ?? "/images/tuneboss-motorcycle-ecu.png",
     imageUrl: product.imageUrl,
+    isActive: product.isActive,
     name: product.name,
     price: formatRupiah(product.price),
     priceValue: Number(product.price),
