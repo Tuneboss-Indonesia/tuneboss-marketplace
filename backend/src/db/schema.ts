@@ -84,6 +84,14 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const productImages = pgTable("product_images", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  imageUrl: text("image_url").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const stockMovements = pgTable("stock_movements", {
   id: uuid("id").primaryKey().defaultRandom(),
   productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),

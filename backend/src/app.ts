@@ -6,7 +6,7 @@ import { randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
-import { addresses, adminAuditLogs, categories, emailVerificationTokens, orderItems, orders, passwordResetTokens, paymentEvents, productReviews, products, stockMovements, user as users } from "./db/schema.js";
+import { addresses, adminAuditLogs, categories, emailVerificationTokens, orderItems, orders, passwordResetTokens, paymentEvents, productImages, productReviews, products, stockMovements, user as users } from "./db/schema.js";
 import { sendEmail } from "./email.js";
 import { getOrderDeliveredEmail, getOrderShippedEmail, getOtpResetPasswordEmail, getOtpVerificationEmail, getPaymentCancelEmail, getPaymentExpiredEmail, getPaymentSuccessEmail } from "./emails/index.js";
 import { env } from "./env.js";
@@ -140,6 +140,7 @@ const adminProductSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
   description: z.string().trim().optional().default(""),
   imageUrl: z.string().trim().url().nullable().optional(),
+  images: z.array(z.string().trim().url()).max(8).optional(),
   isActive: z.boolean().optional().default(true),
   name: z.string().trim().min(2),
   price: z.coerce.number().positive(),
@@ -328,6 +329,26 @@ async function orderDetail(order: typeof orders.$inferSelect) {
     trackingNumber: order.trackingNumber,
     updatedAt: order.updatedAt,
   };
+}
+
+async function productDetailDto(product: typeof products.$inferSelect) {
+  const images = await db
+    .select({ imageUrl: productImages.imageUrl })
+    .from(productImages)
+    .where(eq(productImages.productId, product.id))
+    .orderBy(productImages.sortOrder, productImages.createdAt);
+  const fallback = product.imageUrl ?? "/images/tuneboss-motorcycle-ecu.png";
+  return { ...productDto(product), images: images.length ? images.map((image) => image.imageUrl) : [fallback] };
+}
+
+async function replaceProductImages(productId: string, images: string[] | undefined) {
+  if (!images) return;
+  await db.transaction(async (tx) => {
+    await tx.delete(productImages).where(eq(productImages.productId, productId));
+    if (images.length) {
+      await tx.insert(productImages).values(images.map((imageUrl, sortOrder) => ({ imageUrl, productId, sortOrder })));
+    }
+  });
 }
 
 async function pricedCart(items: Array<{ id: string; quantity: number }>) {
@@ -777,7 +798,7 @@ app.get("/api/admin/products/:id", async (req, res) => {
   const [product] = await db.select().from(products).where(eq(products.id, id.data)).limit(1);
   if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
 
-  return res.json({ product: productDto(product) });
+  return res.json({ product: await productDetailDto(product) });
 });
 
 app.post("/api/admin/products", rateLimit("admin.write", 120, 60_000), async (req, res) => {
@@ -790,18 +811,24 @@ app.post("/api/admin/products", rateLimit("admin.write", 120, 60_000), async (re
   const id = randomUUID();
   try {
     const [product] = await db.insert(products).values({
-      ...parsed.data,
+      categoryId: parsed.data.categoryId,
+      description: parsed.data.description,
       id,
       imageUrl: parsed.data.imageUrl ?? null,
+      isActive: parsed.data.isActive,
+      name: parsed.data.name,
       price: parsed.data.price.toFixed(2),
+      sku: parsed.data.sku,
+      stock: parsed.data.stock,
     }).returning();
+    await replaceProductImages(product.id, parsed.data.images);
 
     if (parsed.data.stock > 0) {
       await db.insert(stockMovements).values({ note: "Initial stock", productId: id, quantity: parsed.data.stock, type: "in" });
     }
 
     await auditAdmin(staff, "products.create", "product", product.id, { sku: product.sku, stock: product.stock });
-    return res.status(201).json({ product: productDto(product) });
+    return res.status(201).json({ product: await productDetailDto(product) });
   } catch {
     return res.status(409).json({ message: "SKU sudah digunakan." });
   }
@@ -818,17 +845,23 @@ app.patch("/api/admin/products/:id", rateLimit("admin.write", 120, 60_000), asyn
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
   const values = {
-    ...parsed.data,
+    categoryId: parsed.data.categoryId,
+    description: parsed.data.description,
     imageUrl: parsed.data.imageUrl === undefined ? undefined : parsed.data.imageUrl,
+    isActive: parsed.data.isActive,
+    name: parsed.data.name,
     price: parsed.data.price === undefined ? undefined : parsed.data.price.toFixed(2),
+    sku: parsed.data.sku,
+    stock: parsed.data.stock,
     updatedAt: new Date(),
   };
 
   try {
     const [product] = await db.update(products).set(values).where(eq(products.id, id.data)).returning();
     if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+    await replaceProductImages(product.id, parsed.data.images);
     await auditAdmin(staff, "products.update", "product", product.id, parsed.data);
-    return res.json({ product: productDto(product) });
+    return res.json({ product: await productDetailDto(product) });
   } catch {
     return res.status(409).json({ message: "SKU sudah digunakan." });
   }
@@ -893,7 +926,7 @@ app.get("/api/products/:slug", async (req, res) => {
   const rows = await db.select().from(products).where(eq(products.isActive, true));
   const product = rows.find((row) => productMatchesSlug(row, req.params.slug));
   if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
-  return res.json({ product: productDto(product) });
+  return res.json({ product: await productDetailDto(product) });
 });
 
 app.get("/api/products/:slug/reviews", async (req, res) => {

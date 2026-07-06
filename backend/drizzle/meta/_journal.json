@@ -120,6 +120,13 @@
       "when": 1783029600000,
       "tag": "0016_add_order_shipping_totals",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1783033200000,
+      "tag": "0017_add_product_images",
+      "breakpoints": true
     }
   ]
 }

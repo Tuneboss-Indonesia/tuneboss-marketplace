@@ -7,7 +7,8 @@ import { session, user } from "./db/schema.js";
 import { env } from "./env.js";
 
 const cookieName = "tuneboss_session";
-const sessionMs = 1000 * 60 * 60 * 24 * 30;
+const customerSessionMs = 1000 * 60 * 60 * 24 * 30;
+const staffSessionMs = 1000 * 60 * 60 * 12;
 
 const credentialsSchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase()),
@@ -53,27 +54,27 @@ export async function currentUser(req: Request) {
   return row ?? null;
 }
 
-function setSessionCookie(res: Response, token: string) {
+function setSessionCookie(res: Response, token: string, maxAge: number) {
   const secure = process.env.NODE_ENV === "production" || !env.FRONTEND_ORIGIN.startsWith("http://localhost");
   res.cookie(cookieName, token, {
     httpOnly: true,
-    maxAge: sessionMs,
+    maxAge,
     sameSite: secure ? "none" : "lax",
     secure,
   });
 }
 
-async function createSession(res: Response, userId: string, req: Request) {
+async function createSession(res: Response, userId: string, req: Request, maxAge = customerSessionMs) {
   const token = randomBytes(32).toString("hex");
   await db.insert(session).values({
     id: randomUUID(),
-    expiresAt: new Date(Date.now() + sessionMs),
+    expiresAt: new Date(Date.now() + maxAge),
     ipAddress: req.ip,
     token,
     userAgent: req.headers["user-agent"] ?? null,
     userId,
   });
-  setSessionCookie(res, token);
+  setSessionCookie(res, token, maxAge);
 }
 
 export async function register(req: Request, res: Response) {
@@ -105,7 +106,7 @@ export async function login(req: Request, res: Response) {
     return res.status(401).json({ message: "Email atau password salah." });
   }
 
-  await createSession(res, found.id, req);
+  await createSession(res, found.id, req, found.role === "admin" || found.role === "staff" ? staffSessionMs : customerSessionMs);
   return res.json({ user: { email: found.email, emailVerified: found.emailVerified, id: found.id, name: found.name, phone: found.phone, role: found.role } });
 }
 

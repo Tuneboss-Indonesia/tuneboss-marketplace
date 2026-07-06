@@ -13,7 +13,7 @@ const [{ app }, { hashPassword, verifyPassword }, { closeDb, db }, schema] = awa
   import("./db/client.js"),
   import("./db/schema.js"),
 ]);
-const { addresses, adminAuditLogs, categories, emailVerificationTokens, orders, passwordResetTokens, paymentEvents, productReviews, products, session, user: users } = schema;
+const { addresses, adminAuditLogs, categories, emailVerificationTokens, orders, passwordResetTokens, paymentEvents, productImages, productReviews, products, session, user: users } = schema;
 
 let server: Server;
 let baseUrl = "";
@@ -123,10 +123,10 @@ test("readiness endpoint checks database", async () => {
   assert.deepEqual(body, { database: "ok", ok: true, service: "tuneboss-marketplace-api" });
 });
 
-test("auth login is rate limited", async () => {
+test("auth register is rate limited", async () => {
   let last = new Response(null, { status: 500 });
-  for (let i = 0; i < 21; i += 1) {
-    last = await postRaw("/api/auth/login", "", { email: "missing@example.test", password: "password123" });
+  for (let i = 0; i < 11; i += 1) {
+    last = await postRaw("/api/auth/register", "", { email: "bad", password: "short" });
   }
 
   assert.equal(last.status, 429);
@@ -144,6 +144,42 @@ test("categories endpoint returns public category slugs", async () => {
     assert.ok(body.categories.some((category) => category.id === id && category.slug.startsWith("ecu-racing-")));
   } finally {
     await db.delete(categories).where(eq(categories.id, id));
+  }
+});
+
+test("admin product images appear on public product detail", async () => {
+  const fx = await fixture(5, "admin");
+  try {
+    const images = ["https://example.com/one.png", "https://example.com/two.png"];
+    const updated = await patchRaw(`/api/admin/products/${fx.productId}`, fx.cookie, { images });
+    assert.equal(updated.status, 200);
+
+    const response = await fetch(`${baseUrl}/api/products/${fx.productId}`);
+    const body = await response.json() as { product: { images: string[] } };
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(body.product.images, images);
+  } finally {
+    await db.delete(productImages).where(eq(productImages.productId, fx.productId));
+    await fx.cleanup();
+  }
+});
+
+test("admin login uses shorter session expiry", async () => {
+  const fx = await fixture(5, "admin");
+  try {
+    const [account] = await db.select({ email: users.email }).from(users).where(eq(users.id, fx.userId));
+    assert.ok(account);
+
+    const response = await postRaw("/api/auth/login", "", { email: account.email, password: "password123" });
+    assert.equal(response.status, 200);
+
+    const rows = await db.select({ expiresAt: session.expiresAt }).from(session).where(eq(session.userId, fx.userId));
+    const longestMs = Math.max(...rows.map((row) => row.expiresAt.getTime() - Date.now()));
+    assert.ok(longestMs > 11 * 60 * 60 * 1000);
+    assert.ok(longestMs < 13 * 60 * 60 * 1000);
+  } finally {
+    await fx.cleanup();
   }
 });
 
