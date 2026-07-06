@@ -879,6 +879,24 @@ app.get("/api/admin/products/low-stock", async (req, res) => {
   return res.json({ products: rows.map(productDto), threshold, pagination: pageMeta(Number(total), limit, offset) });
 });
 
+app.get("/api/admin/products/:id/reviews", async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
+
+  const [product] = await db.select({ id: products.id }).from(products).where(eq(products.id, id.data)).limit(1);
+  if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+
+  const reviews = await db
+    .select({ authorName: productReviews.authorName, createdAt: productReviews.createdAt, id: productReviews.id, quote: productReviews.quote, rating: productReviews.rating })
+    .from(productReviews)
+    .where(eq(productReviews.productId, product.id))
+    .orderBy(desc(productReviews.createdAt));
+
+  return res.json({ reviews });
+});
+
 app.get("/api/admin/products/:id", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
