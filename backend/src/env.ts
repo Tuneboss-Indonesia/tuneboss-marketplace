@@ -8,6 +8,8 @@ export const env = z.object({
   PORT: z.coerce.number().int().positive().default(8000),
   EMAIL_FROM: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  UPLOAD_BASE_URL: z.string().url().optional(),
+  UPLOAD_DIR: z.string().default("uploads"),
   XENDIT_SECRET_KEY: z.string().optional(),
   XENDIT_WEBHOOK_TOKEN: z.string().optional(),
 }).parse(process.env);

@@ -3,6 +3,8 @@ import express from "express";
 import type { Request, Response } from "express";
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import { randomInt, randomUUID, timingSafeEqual } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { z } from "zod";
 import { currentUser, hashPassword, login, logout, me, register, verifyPassword } from "./auth.js";
 import { db } from "./db/client.js";
@@ -15,6 +17,14 @@ export const app = express();
 
 const allowedOrigins = [env.FRONTEND_ORIGIN, env.ADMIN_ORIGIN].filter(Boolean);
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
+const uploadDir = path.resolve(env.UPLOAD_DIR);
+const uploadTypes = new Map([
+  ["image/jpeg", { ext: ".jpg", max: 5 * 1024 * 1024 }],
+  ["image/png", { ext: ".png", max: 5 * 1024 * 1024 }],
+  ["image/webp", { ext: ".webp", max: 5 * 1024 * 1024 }],
+  ["video/mp4", { ext: ".mp4", max: 50 * 1024 * 1024 }],
+  ["video/webm", { ext: ".webm", max: 50 * 1024 * 1024 }],
+]);
 
 function rateLimit(name: string, max: number, windowMs: number) {
   return (req: Request, res: Response, next: () => void) => {
@@ -29,6 +39,38 @@ function rateLimit(name: string, max: number, windowMs: number) {
     current.count += 1;
     return next();
   };
+}
+
+function parseMultipartFile(req: Request) {
+  const contentType = req.headers["content-type"] ?? "";
+  const boundary = /boundary=([^;]+)/.exec(contentType)?.[1];
+  const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  if (!boundary || !body.length) return null;
+
+  const marker = Buffer.from(`--${boundary}`);
+  let start = body.indexOf(marker);
+  while (start !== -1) {
+    const partStart = start + marker.length;
+    const next = body.indexOf(marker, partStart);
+    if (next === -1) break;
+
+    const part = body.subarray(partStart, next);
+    const headerEnd = part.indexOf(Buffer.from("\r\n\r\n"));
+    if (headerEnd !== -1) {
+      const headers = part.subarray(0, headerEnd).toString("latin1");
+      const filename = /filename="([^"]+)"/.exec(headers)?.[1];
+      const mime = /content-type:\s*([^\r\n]+)/i.exec(headers)?.[1]?.trim().toLowerCase();
+      if (filename && mime) {
+        let data = part.subarray(headerEnd + 4);
+        if (data.at(-2) === 13 && data.at(-1) === 10) data = data.subarray(0, -2);
+        return { data, mime };
+      }
+    }
+
+    start = next;
+  }
+
+  return null;
 }
 
 const slugify = (value: string) => value
@@ -430,7 +472,26 @@ app.use(cors({
   },
 }));
 
+app.use("/uploads", express.static(uploadDir));
 app.use(express.json());
+
+app.post("/api/admin/uploads", rateLimit("admin.upload", 60, 60_000), express.raw({ limit: "50mb", type: "multipart/form-data" }), async (req, res) => {
+  if (!await requireStaff(req, res)) return;
+
+  const file = parseMultipartFile(req);
+  if (!file) return res.status(400).json({ message: "File upload tidak valid." });
+
+  const allowed = uploadTypes.get(file.mime);
+  if (!allowed) return res.status(400).json({ message: "Tipe file tidak didukung." });
+  if (file.data.length > allowed.max) return res.status(400).json({ message: "Ukuran file terlalu besar." });
+
+  await mkdir(uploadDir, { recursive: true });
+  const filename = `${randomUUID()}${allowed.ext}`;
+  await writeFile(path.join(uploadDir, filename), file.data);
+
+  const baseUrl = env.UPLOAD_BASE_URL ?? `${req.protocol}://${req.get("host")}`;
+  return res.status(201).json({ url: `${baseUrl.replace(/\/$/, "")}/uploads/${filename}` });
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "tuneboss-marketplace-api" });
