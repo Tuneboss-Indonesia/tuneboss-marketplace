@@ -192,6 +192,9 @@ const resetPasswordSchema = resetOtpSchema.extend({
 
 const verifyEmailSchema = resetOtpSchema;
 
+const emailChangeSchema = forgotPasswordSchema;
+const verifyEmailChangeSchema = verifyEmailSchema;
+
 const passwordSchema = z.object({
   currentPassword: z.string().min(8),
   newPassword: z.string().min(8),
@@ -321,6 +324,17 @@ async function sendEmailVerificationOtp(email: string) {
   const otp = String(randomInt(0, 1_000_000)).padStart(6, "0");
   await db.insert(emailVerificationTokens).values({ expiresAt: new Date(Date.now() + 15 * 60_000), tokenHash: hashPassword(otp), userId: found.id });
   await sendEmail({ html: getOtpVerificationEmail(found.name, otp), subject: "Verifikasi Email TuneBoss", to: found.email });
+}
+
+async function findValidEmailChangeToken(userId: string, email: string, otp: string) {
+  const tokens = await db
+    .select()
+    .from(emailVerificationTokens)
+    .where(and(eq(emailVerificationTokens.userId, userId), eq(emailVerificationTokens.email, email), sql`${emailVerificationTokens.expiresAt} > now()`, sql`${emailVerificationTokens.usedAt} is null`))
+    .orderBy(desc(emailVerificationTokens.createdAt))
+    .limit(5);
+
+  return tokens.find((row) => verifyPassword(otp, row.tokenHash)) ?? null;
 }
 
 function paymentDetails(order: typeof orders.$inferSelect) {
@@ -641,7 +655,45 @@ app.patch("/api/account", async (req, res) => {
     .update(users)
     .set({ name: parsed.data.name, phone: parsed.data.phone, updatedAt: new Date() })
     .where(eq(users.id, user.id))
-    .returning({ email: users.email, id: users.id, name: users.name, phone: users.phone, role: users.role });
+    .returning({ email: users.email, emailVerified: users.emailVerified, id: users.id, name: users.name, phone: users.phone, role: users.role });
+
+  return res.json({ user: updated });
+});
+
+app.post("/api/account/email-change/request", rateLimit("account.email.request", 5, 15 * 60_000), async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk mengubah email." });
+
+  const parsed = emailChangeSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+  if (parsed.data.email === user.email) return res.json({ ok: true });
+
+  const [taken] = await db.select({ id: users.id }).from(users).where(eq(users.email, parsed.data.email)).limit(1);
+  if (taken) return res.status(409).json({ message: "Email sudah digunakan." });
+
+  const otp = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  await db.insert(emailVerificationTokens).values({ email: parsed.data.email, expiresAt: new Date(Date.now() + 15 * 60_000), tokenHash: hashPassword(otp), userId: user.id });
+  await sendEmail({ html: getOtpVerificationEmail(user.name, otp), subject: "Verifikasi Email Baru TuneBoss", to: parsed.data.email });
+  return res.json({ ok: true });
+});
+
+app.post("/api/account/email-change/verify", rateLimit("account.email.verify", 20, 15 * 60_000), async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ message: "Silakan login untuk mengubah email." });
+
+  const parsed = verifyEmailChangeSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+  const token = await findValidEmailChangeToken(user.id, parsed.data.email, parsed.data.otp);
+  if (!token) return res.status(400).json({ message: "OTP tidak valid atau sudah kedaluwarsa." });
+
+  const [taken] = await db.select({ id: users.id }).from(users).where(eq(users.email, parsed.data.email)).limit(1);
+  if (taken && taken.id !== user.id) return res.status(409).json({ message: "Email sudah digunakan." });
+
+  const [updated] = await db.transaction(async (tx) => {
+    const changed = await tx.update(users).set({ email: parsed.data.email, emailVerified: true, updatedAt: new Date() }).where(eq(users.id, user.id)).returning({ email: users.email, emailVerified: users.emailVerified, id: users.id, name: users.name, phone: users.phone, role: users.role });
+    await tx.update(emailVerificationTokens).set({ usedAt: new Date() }).where(eq(emailVerificationTokens.id, token.id));
+    return changed;
+  });
 
   return res.json({ user: updated });
 });

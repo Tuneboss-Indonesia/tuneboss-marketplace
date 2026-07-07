@@ -290,6 +290,40 @@ test("email verification emails otp and marks account verified", async () => {
   }
 });
 
+test("account email change verifies otp before updating email", async () => {
+  const fx = await fixture();
+  let otp = "";
+  const nextEmail = `new-${randomUUID()}@example.test`;
+
+  process.env.RESEND_API_KEY = "re_test";
+  process.env.EMAIL_FROM = "TuneBoss <noreply@example.com>";
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url === "https://api.resend.com/emails") {
+      const body = init?.body ? JSON.parse(String(init.body)) as { html?: string; to?: string } : {};
+      if (body.to === nextEmail) otp = body.html?.match(/\b\d{6}\b/)?.[0] ?? "";
+      return new Response(JSON.stringify({ id: "email-test" }), { status: 200 });
+    }
+    return realFetch(input, init);
+  };
+
+  try {
+    assert.equal((await postRaw("/api/account/email-change/request", fx.cookie, { email: nextEmail })).status, 200);
+    assert.match(otp, /^\d{6}$/);
+
+    const response = await postRaw("/api/account/email-change/verify", fx.cookie, { email: nextEmail, otp });
+    assert.equal(response.status, 200);
+
+    const [updated] = await db.select({ email: users.email, emailVerified: users.emailVerified }).from(users).where(eq(users.id, fx.userId));
+    assert.deepEqual(updated, { email: nextEmail, emailVerified: true });
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.EMAIL_FROM;
+    await fx.cleanup();
+  }
+});
+
 test("checkout requires verified email", async () => {
   const fx = await fixture();
   try {
