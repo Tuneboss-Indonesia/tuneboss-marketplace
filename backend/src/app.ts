@@ -1091,6 +1091,25 @@ app.patch("/api/admin/products/:id", rateLimit("admin.write", 120, 60_000), asyn
   }
 });
 
+app.delete("/api/admin/products/:id", rateLimit("admin.write", 120, 60_000), async (req, res) => {
+  const staff = await requireStaff(req, res);
+  if (!staff) return;
+
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(400).json({ message: "ID produk tidak valid." });
+
+  const [product] = await db.select({ id: products.id, sku: products.sku }).from(products).where(eq(products.id, id.data)).limit(1);
+  if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+
+  try {
+    await db.delete(products).where(eq(products.id, product.id));
+    await auditAdmin(staff, "products.delete", "product", product.id, { sku: product.sku });
+    return res.json({ ok: true });
+  } catch {
+    return res.status(409).json({ message: "Produk sudah dipakai di pesanan. Nonaktifkan produk agar histori tetap aman." });
+  }
+});
+
 app.patch("/api/admin/products/:id/stock", rateLimit("admin.write", 120, 60_000), async (req, res) => {
   const staff = await requireStaff(req, res);
   if (!staff) return;
