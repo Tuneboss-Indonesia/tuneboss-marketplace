@@ -1,4 +1,4 @@
-# TuneBoss Frontend
+# TuneBoss Frontend 
 
 Astro frontend for TuneBoss Marketplace.
 
