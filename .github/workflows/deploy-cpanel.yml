@@ -1,0 +1,87 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Typecheck backend
+        working-directory: backend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Prepare deploy bundle
+        shell: bash
+        run: |
+          rm -rf deploy
+          mkdir -p deploy/frontend deploy/backend
+          cp -R frontend/dist/. deploy/frontend/
+          cp -R frontend/public deploy/frontend/public
+          cp frontend/package.json deploy/frontend/package.json
+          cp -R backend/dist/. deploy/backend/
+          cp backend/package.json deploy/backend/package.json
+          cp backend/.env.example deploy/backend/.env.example
+
+      - name: Start ssh agent
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.CPANEL_SSH_KEY }}
+
+      - name: Add cPanel host key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.CPANEL_SSH_PORT || 22 }}" "${{ secrets.CPANEL_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy frontend to subdomain
+        shell: bash
+        run: |
+          rsync -az --delete \
+            --exclude='.env' \
+            "${{ github.workspace }}/deploy/frontend/" \
+            "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_FRONTEND_DIR }}/"
+
+      - name: Deploy backend to subdomain
+        shell: bash
+        run: |
+          rsync -az --delete \
+            --exclude='.env' \
+            --exclude='node_modules/' \
+            "${{ github.workspace }}/deploy/backend/" \
+            "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_BACKEND_DIR }}/"
