@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node dist/src/db/migrate.js",
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {

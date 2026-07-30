@@ -104,8 +104,8 @@ jobs:
 
           export PATH="/opt/alt/alt-nodejs22/root/usr/bin:$PATH"
           (cd "$frontend" && npm ci --omit=dev)
-          (cd "$backend" && npm ci && npm run db:migrate)
+          (cd "$backend" && npm ci --omit=dev && npm run db:migrate)
 
-          cloudlinux-selector restart --interpreter=nodejs --app-root=apps/tuneboss-marketplace/frontend
-          cloudlinux-selector restart --interpreter=nodejs --app-root=apps/tuneboss-marketplace/backend
+          cloudlinux-selector restart --json --interpreter=nodejs --app-root=apps/tuneboss-marketplace/frontend
+          cloudlinux-selector restart --json --interpreter=nodejs --app-root=apps/tuneboss-marketplace/backend
           REMOTE
