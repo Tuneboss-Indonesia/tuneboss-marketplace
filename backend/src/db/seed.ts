@@ -1,7 +1,6 @@
-import postgres from "postgres";
-import { env } from "../env.js";
-
-const sql = postgres(env.DATABASE_URL, { prepare: false });
+import { eq } from "drizzle-orm";
+import { db, closeDb } from "./client.js";
+import { categories, products as productTable } from "./schema.js";
 
 const products = [
   ["Honda", "TB-HONDA-ECU", "Honda Motorcycle ECU", "TuneBoss Motorcycle ECU dibuat untuk tuning mesin Honda yang lebih presisi, respons gas lebih tajam, dan kontrol performa yang aman untuk harian maupun track day.", "599000", 14],
@@ -15,32 +14,30 @@ const products = [
 ] as const;
 
 try {
-  await sql.begin(async (tx) => {
-    for (const [name] of products) {
-      await tx`
-        insert into categories (name, description)
-        values (${name}, ${`${name} TuneBoss products`})
-        on conflict (name) do nothing
-      `;
-    }
-
+  await db.transaction(async (tx) => {
     for (const [category, sku, name, description, price, stock] of products) {
-      await tx`
-        insert into products (category_id, sku, name, description, image_url, price, stock, is_active)
-        values ((select id from categories where name = ${category}), ${sku}, ${name}, ${description}, ${"/images/tuneboss-motorcycle-ecu.png"}, ${price}, ${stock}, true)
-        on conflict (sku) do update set
-          category_id = excluded.category_id,
-          name = excluded.name,
-          description = excluded.description,
-          image_url = excluded.image_url,
-          price = excluded.price,
-          stock = excluded.stock,
-          is_active = excluded.is_active,
-          updated_at = now()
-      `;
+      let [savedCategory] = await tx.select().from(categories).where(eq(categories.name, category)).limit(1);
+      if (!savedCategory) {
+        await tx.insert(categories).values({ description: `${category} TuneBoss products`, name: category });
+        [savedCategory] = await tx.select().from(categories).where(eq(categories.name, category)).limit(1);
+      }
+
+      const [savedProduct] = await tx.select().from(productTable).where(eq(productTable.sku, sku)).limit(1);
+      const values = {
+        categoryId: savedCategory.id,
+        description,
+        imageUrl: "/images/tuneboss-motorcycle-ecu.png",
+        isActive: true,
+        name,
+        price,
+        stock,
+        updatedAt: new Date(),
+      };
+      if (savedProduct) await tx.update(productTable).set(values).where(eq(productTable.id, savedProduct.id));
+      else await tx.insert(productTable).values({ ...values, sku });
     }
   });
   console.log(`Seeded ${products.length} products.`);
 } finally {
-  await sql.end();
+  await closeDb();
 }

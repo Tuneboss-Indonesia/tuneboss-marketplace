@@ -7,6 +7,7 @@ on:
 
 env:
   NODE_VERSION: 22
+  PUBLIC_API_URL: https://api-marketplace.tuneboss-landing.dasrams.biz.id/api
 
 jobs:
   build-and-deploy:
@@ -14,74 +15,97 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci
-
-      - name: Typecheck frontend
-        working-directory: frontend
-        run: npm run typecheck
-
-      - name: Typecheck backend
-        working-directory: backend
-        run: npm run typecheck
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
       - name: Build frontend
         working-directory: frontend
-        run: npm run build
+        run: npm ci && npm run typecheck && npm run build
 
       - name: Build backend
         working-directory: backend
-        run: npm run build
+        run: npm ci && npm run typecheck && npm run build
 
-      - name: Prepare deploy bundle
+      - name: Package applications
         shell: bash
         run: |
-          rm -rf deploy
-          mkdir -p deploy/frontend deploy/backend
-          cp -R frontend/dist/. deploy/frontend/
-          cp -R frontend/public deploy/frontend/public
-          cp frontend/package.json deploy/frontend/package.json
-          cp -R backend/dist/. deploy/backend/
-          cp backend/package.json deploy/backend/package.json
-          cp backend/.env.example deploy/backend/.env.example
+          tar -C frontend -czf frontend.tar.gz dist app.js package.json package-lock.json
+          tar -C backend -czf backend.tar.gz dist drizzle app.js drizzle.config.ts package.json package-lock.json
 
-      - name: Start ssh agent
-        uses: webfactory/ssh-agent@v0.9.1
-        with:
-          ssh-private-key: ${{ secrets.CPANEL_SSH_KEY }}
+      - name: Start SSH agent
+        shell: bash
+        env:
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          printf '%s\n' "$CPANEL_SSH_KEY" | ssh-add -
 
       - name: Add cPanel host key
         shell: bash
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          ssh-keyscan -p "${{ secrets.CPANEL_SSH_PORT || 22 }}" "${{ secrets.CPANEL_SSH_HOST }}" >> ~/.ssh/known_hosts
+          for attempt in 1 2 3; do
+            ssh-keyscan -T 10 -p "$CPANEL_PORT" "$CPANEL_HOST" >> ~/.ssh/known_hosts && exit 0
+            sleep $((attempt * 2))
+          done
+          exit 1
 
-      - name: Deploy frontend to subdomain
+      - name: Deploy applications
         shell: bash
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+          CPANEL_USER: ${{ secrets.CPANEL_SSH_USER }}
         run: |
-          rsync -az --delete \
-            --exclude='.env' \
-            "${{ github.workspace }}/deploy/frontend/" \
-            "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_FRONTEND_DIR }}/"
+          set -euo pipefail
+          remote_frontend="/home/$CPANEL_USER/.marketplace-${GITHUB_SHA}-frontend.tar.gz"
+          remote_backend="/home/$CPANEL_USER/.marketplace-${GITHUB_SHA}-backend.tar.gz"
 
-      - name: Deploy backend to subdomain
-        shell: bash
-        run: |
-          rsync -az --delete \
-            --exclude='.env' \
-            --exclude='node_modules/' \
-            "${{ github.workspace }}/deploy/backend/" \
-            "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_BACKEND_DIR }}/"
+          ssh -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" "cat > '$remote_frontend'" < frontend.tar.gz
+          ssh -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" "cat > '$remote_backend'" < backend.tar.gz
+
+          ssh -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" \
+            "bash -s -- '$remote_frontend' '$remote_backend' '$GITHUB_SHA'" <<'REMOTE'
+          set -euo pipefail
+
+          frontend="/home/$(whoami)/apps/tuneboss-marketplace/frontend"
+          backend="/home/$(whoami)/apps/tuneboss-marketplace/backend"
+          front_archive=$1
+          back_archive=$2
+          stage="/home/$(whoami)/.marketplace-stage-$3"
+
+          trap 'rm -rf -- "$stage"; rm -f -- "$front_archive" "$back_archive"' EXIT
+          rm -rf -- "$stage"
+          mkdir -p "$stage/frontend" "$stage/backend" "$frontend" "$backend"
+          tar -xzf "$front_archive" -C "$stage/frontend"
+          tar -xzf "$back_archive" -C "$stage/backend"
+          test -f "$stage/frontend/app.js"
+          test -f "$stage/backend/app.js"
+          test -f "$backend/.env"
+
+          find "$frontend" -mindepth 1 -maxdepth 1 ! -name node_modules -exec rm -rf -- {} +
+          find "$backend" -mindepth 1 -maxdepth 1 ! -name .env ! -name node_modules ! -name uploads -exec rm -rf -- {} +
+          cp -a "$stage/frontend/." "$frontend/"
+          cp -a "$stage/backend/." "$backend/"
+
+          export PATH="/opt/alt/alt-nodejs22/root/usr/bin:$PATH"
+          (cd "$frontend" && npm ci --omit=dev)
+          (cd "$backend" && npm ci && npm run db:migrate)
+
+          cloudlinux-selector restart --interpreter=nodejs --app-root=apps/tuneboss-marketplace/frontend
+          cloudlinux-selector restart --interpreter=nodejs --app-root=apps/tuneboss-marketplace/backend
+          REMOTE

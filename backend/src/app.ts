@@ -271,9 +271,9 @@ async function recordPaymentEvent(input: {
     externalId: input.externalId ?? "",
     orderId: input.orderId ?? null,
     payload: input.payload,
-    providerReference: input.providerReference ?? "",
+    providerReference: input.providerReference || null,
     status: input.status ?? "",
-  }).onConflictDoNothing();
+  }).onDuplicateKeyUpdate({ set: { id: sql`id` } });
 }
 
 async function sendOrderEmail(order: typeof orders.$inferSelect, subject: string, render: (name: string) => string) {
@@ -474,12 +474,12 @@ async function pricedCart(items: Array<{ id: string; quantity: number }>) {
 async function cancelPendingOrder(order: typeof orders.$inferSelect, note: string) {
   const items = order.stockReserved ? await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)) : [];
   const [updated] = await db.transaction(async (tx) => {
-    const [cancelled] = await tx
+    const [result] = await tx
       .update(orders)
       .set({ status: "cancelled", stockReserved: false, updatedAt: new Date() })
-      .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
-      .returning();
-    if (!cancelled) return [];
+      .where(and(eq(orders.id, order.id), eq(orders.status, "pending")));
+    if (!result.affectedRows) return [];
+    const [cancelled] = await tx.select().from(orders).where(eq(orders.id, order.id)).limit(1);
 
     for (const item of items) {
       await tx.update(products)
@@ -557,7 +557,7 @@ app.patch("/api/admin/content", rateLimit("admin.write", 120, 60_000), async (re
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
   await db.insert(storeContent).values({ key: "main", value: parsed.data })
-    .onConflictDoUpdate({ target: storeContent.key, set: { updatedAt: new Date(), value: parsed.data } });
+    .onDuplicateKeyUpdate({ set: { updatedAt: new Date(), value: parsed.data } });
   await auditAdmin(staff, "content.update", "content", "main", parsed.data);
   return res.json({ content: parsed.data, reviews: await contentReviews(parsed.data.selectedTestimonials) });
 });
@@ -651,11 +651,18 @@ app.patch("/api/account", async (req, res) => {
   const parsed = profileSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const [updated] = await db
+  await db
     .update(users)
     .set({ name: parsed.data.name, phone: parsed.data.phone, updatedAt: new Date() })
-    .where(eq(users.id, user.id))
-    .returning({ email: users.email, emailVerified: users.emailVerified, id: users.id, name: users.name, phone: users.phone, role: users.role });
+    .where(eq(users.id, user.id));
+  const [updated] = await db.select({
+    email: users.email,
+    emailVerified: users.emailVerified,
+    id: users.id,
+    name: users.name,
+    phone: users.phone,
+    role: users.role,
+  }).from(users).where(eq(users.id, user.id)).limit(1);
 
   return res.json({ user: updated });
 });
@@ -690,9 +697,16 @@ app.post("/api/account/email-change/verify", rateLimit("account.email.verify", 2
   if (taken && taken.id !== user.id) return res.status(409).json({ message: "Email sudah digunakan." });
 
   const [updated] = await db.transaction(async (tx) => {
-    const changed = await tx.update(users).set({ email: parsed.data.email, emailVerified: true, updatedAt: new Date() }).where(eq(users.id, user.id)).returning({ email: users.email, emailVerified: users.emailVerified, id: users.id, name: users.name, phone: users.phone, role: users.role });
+    await tx.update(users).set({ email: parsed.data.email, emailVerified: true, updatedAt: new Date() }).where(eq(users.id, user.id));
     await tx.update(emailVerificationTokens).set({ usedAt: new Date() }).where(eq(emailVerificationTokens.id, token.id));
-    return changed;
+    return tx.select({
+      email: users.email,
+      emailVerified: users.emailVerified,
+      id: users.id,
+      name: users.name,
+      phone: users.phone,
+      role: users.role,
+    }).from(users).where(eq(users.id, user.id)).limit(1);
   });
 
   return res.json({ user: updated });
@@ -729,10 +743,10 @@ app.get("/api/admin/orders", async (req, res) => {
   if (status.success) filters.push(eq(orders.status, status.data));
   if (q) {
     const like = `%${q}%`;
-    filters.push(sql`(${orders.id}::text ilike ${like} or exists (
-      select 1 from "user" customer
+    filters.push(sql`(${orders.id} like ${like} or exists (
+      select 1 from \`user\` customer
       where customer.id = ${orders.customerId}
-      and (customer.email ilike ${like} or customer.name ilike ${like})
+      and (customer.email like ${like} or customer.name like ${like})
     ))`);
   }
 
@@ -753,7 +767,7 @@ app.get("/api/admin/customers", async (req, res) => {
   const filters: SQL[] = [eq(users.role, "customer")];
   if (q) {
     const like = `%${q}%`;
-    filters.push(sql`(${users.email} ilike ${like} or ${users.name} ilike ${like} or ${users.phone} ilike ${like})`);
+    filters.push(sql`(${users.email} like ${like} or ${users.name} like ${like} or ${users.phone} like ${like})`);
   }
 
   const where = and(...filters);
@@ -767,7 +781,7 @@ app.get("/api/admin/customers", async (req, res) => {
       name: users.name,
       phone: users.phone,
       totalOrders: sql<number>`count(${orders.id})`,
-      totalSpent: sql<string>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid', 'fulfilled')), 0)`,
+      totalSpent: sql<string>`coalesce(sum(case when ${orders.status} in ('paid', 'fulfilled') then ${orders.total} else 0 end), 0)`,
       updatedAt: users.updatedAt,
     })
     .from(users)
@@ -790,17 +804,17 @@ app.get("/api/admin/summary", async (req, res) => {
   if (!await requireStaff(req, res)) return;
 
   const [orderTotals] = await db.select({
-    cancelledOrders: sql<number>`count(*) filter (where ${orders.status} = 'cancelled')`,
-    fulfilledOrders: sql<number>`count(*) filter (where ${orders.status} = 'fulfilled')`,
-    paidOrders: sql<number>`count(*) filter (where ${orders.status} = 'paid')`,
-    pendingOrders: sql<number>`count(*) filter (where ${orders.status} = 'pending')`,
-    revenue: sql<string>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid', 'fulfilled')), 0)`,
+    cancelledOrders: sql<number>`sum(case when ${orders.status} = 'cancelled' then 1 else 0 end)`,
+    fulfilledOrders: sql<number>`sum(case when ${orders.status} = 'fulfilled' then 1 else 0 end)`,
+    paidOrders: sql<number>`sum(case when ${orders.status} = 'paid' then 1 else 0 end)`,
+    pendingOrders: sql<number>`sum(case when ${orders.status} = 'pending' then 1 else 0 end)`,
+    revenue: sql<string>`coalesce(sum(case when ${orders.status} in ('paid', 'fulfilled') then ${orders.total} else 0 end), 0)`,
     totalOrders: sql<number>`count(*)`,
   }).from(orders);
   const [customerTotals] = await db.select({ totalCustomers: sql<number>`count(*)` }).from(users).where(eq(users.role, "customer"));
   const [productTotals] = await db.select({
-    activeProducts: sql<number>`count(*) filter (where ${products.isActive} = true)`,
-    lowStockProducts: sql<number>`count(*) filter (where ${products.isActive} = true and ${products.stock} <= 5)`,
+    activeProducts: sql<number>`sum(case when ${products.isActive} = true then 1 else 0 end)`,
+    lowStockProducts: sql<number>`sum(case when ${products.isActive} = true and ${products.stock} <= 5 then 1 else 0 end)`,
     totalProducts: sql<number>`count(*)`,
   }).from(products);
 
@@ -834,13 +848,13 @@ app.get("/api/admin/analytics", async (req, res) => {
 
   const revenue = await db
     .select({
-      name: sql<string>`to_char(date_trunc('day', ${orders.createdAt}), 'DD Mon')`,
+      name: sql<string>`date_format(${orders.createdAt}, '%d %b')`,
       total: sql<string>`coalesce(sum(${orders.total}), 0)`,
     })
     .from(orders)
     .where(where)
-    .groupBy(sql`date_trunc('day', ${orders.createdAt})`)
-    .orderBy(sql`date_trunc('day', ${orders.createdAt})`);
+    .groupBy(sql`date(${orders.createdAt})`)
+    .orderBy(sql`date(${orders.createdAt})`);
 
   const topProducts = await db
     .select({ name: products.name, sales: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
@@ -950,15 +964,15 @@ app.patch("/api/admin/orders/:id/status", rateLimit("admin.write", 120, 60_000),
     return res.json({ order: await orderDetail(cancelled ?? order) });
   }
 
-  const [updated] = await db
+  await db
     .update(orders)
     .set({
       status: parsed.data.status,
       stockReserved: ["paid", "fulfilled"].includes(parsed.data.status) ? false : undefined,
       updatedAt: new Date(),
     })
-    .where(eq(orders.id, id.data))
-    .returning();
+    .where(eq(orders.id, id.data));
+  const [updated] = await db.select().from(orders).where(eq(orders.id, id.data)).limit(1);
 
   await auditAdmin(staff, "orders.status_update", "order", order.id, { from: order.status, to: parsed.data.status });
   return res.json({ order: await orderDetail(updated) });
@@ -985,7 +999,7 @@ app.patch("/api/admin/orders/:id/fulfillment", rateLimit("admin.write", 120, 60_
     ? deliveredAt
     : parsed.data.shippedAt;
 
-  const [updated] = await db
+  await db
     .update(orders)
     .set({
       courier: parsed.data.courier,
@@ -995,8 +1009,8 @@ app.patch("/api/admin/orders/:id/fulfillment", rateLimit("admin.write", 120, 60_
       trackingNumber: parsed.data.trackingNumber,
       updatedAt: new Date(),
     })
-    .where(eq(orders.id, order.id))
-    .returning();
+    .where(eq(orders.id, order.id));
+  const [updated] = await db.select().from(orders).where(eq(orders.id, order.id)).limit(1);
 
   if (updated.shippedAt && !order.shippedAt) {
     await sendOrderEmail(updated, "Pesanan TuneBoss dikirim", (name) => getOrderShippedEmail(name, { ...paymentDetails(updated), courier: updated.courier || "Kurir" }));
@@ -1020,7 +1034,7 @@ app.get("/api/admin/products", async (req, res) => {
   if (active !== undefined) filters.push(eq(products.isActive, active));
   if (q) {
     const like = `%${q}%`;
-    filters.push(sql`(${products.name} ilike ${like} or ${products.sku} ilike ${like})`);
+    filters.push(sql`(${products.name} like ${like} or ${products.sku} like ${like})`);
   }
 
   const where = filters.length ? and(...filters) : undefined;
@@ -1086,7 +1100,7 @@ app.post("/api/admin/products", rateLimit("admin.write", 120, 60_000), async (re
 
   const id = randomUUID();
   try {
-    const [product] = await db.insert(products).values({
+    await db.insert(products).values({
       categoryId: parsed.data.categoryId,
       description: parsed.data.description,
       id,
@@ -1096,7 +1110,8 @@ app.post("/api/admin/products", rateLimit("admin.write", 120, 60_000), async (re
       price: parsed.data.price.toFixed(2),
       sku: parsed.data.sku,
       stock: parsed.data.stock,
-    }).returning();
+    });
+    const [product] = await db.select().from(products).where(eq(products.id, id)).limit(1);
     await replaceProductImages(product.id, parsed.data.images);
 
     if (parsed.data.stock > 0) {
@@ -1133,8 +1148,9 @@ app.patch("/api/admin/products/:id", rateLimit("admin.write", 120, 60_000), asyn
   };
 
   try {
-    const [product] = await db.update(products).set(values).where(eq(products.id, id.data)).returning();
-    if (!product) return res.status(404).json({ message: "Produk tidak ditemukan." });
+    const [result] = await db.update(products).set(values).where(eq(products.id, id.data));
+    if (!result.affectedRows) return res.status(404).json({ message: "Produk tidak ditemukan." });
+    const [product] = await db.select().from(products).where(eq(products.id, id.data)).limit(1);
     await replaceProductImages(product.id, parsed.data.images);
     await auditAdmin(staff, "products.update", "product", product.id, parsed.data);
     return res.json({ product: await productDetailDto(product) });
@@ -1177,11 +1193,11 @@ app.patch("/api/admin/products/:id/stock", rateLimit("admin.write", 120, 60_000)
 
   const delta = parsed.data.stock - current.stock;
   const [product] = await db.transaction(async (tx) => {
-    const [updated] = await tx
+    await tx
       .update(products)
       .set({ stock: parsed.data.stock, updatedAt: new Date() })
-      .where(eq(products.id, id.data))
-      .returning();
+      .where(eq(products.id, id.data));
+    const [updated] = await tx.select().from(products).where(eq(products.id, id.data)).limit(1);
     if (delta !== 0) {
       await tx.insert(stockMovements).values({
         note: parsed.data.note,
@@ -1266,13 +1282,22 @@ app.post("/api/products/:slug/reviews", async (req, res) => {
     .limit(1);
   if (existing) return res.status(409).json({ message: "Anda sudah memberi review untuk produk ini." });
 
-  const [review] = await db.insert(productReviews).values({
+  const reviewId = randomUUID();
+  await db.insert(productReviews).values({
     authorName: user.name,
     customerId: user.id,
+    id: reviewId,
     productId: product.id,
     quote: parsed.data.quote,
     rating: parsed.data.rating,
-  }).returning({ authorName: productReviews.authorName, createdAt: productReviews.createdAt, id: productReviews.id, quote: productReviews.quote, rating: productReviews.rating });
+  });
+  const [review] = await db.select({
+    authorName: productReviews.authorName,
+    createdAt: productReviews.createdAt,
+    id: productReviews.id,
+    quote: productReviews.quote,
+    rating: productReviews.rating,
+  }).from(productReviews).where(eq(productReviews.id, reviewId)).limit(1);
 
   return res.status(201).json({ review });
 });
@@ -1498,9 +1523,8 @@ app.post("/api/orders", async (req, res) => {
       for (const item of items) {
         const [reserved] = await tx.update(products)
           .set({ stock: sql`${products.stock} - ${item.quantity}`, updatedAt: new Date() })
-          .where(and(eq(products.id, item.product.id), sql`${products.stock} >= ${item.quantity}`))
-          .returning({ id: products.id });
-        if (!reserved) throw new Error("INSUFFICIENT_STOCK");
+          .where(and(eq(products.id, item.product.id), sql`${products.stock} >= ${item.quantity}`));
+        if (!reserved.affectedRows) throw new Error("INSUFFICIENT_STOCK");
         await tx.insert(stockMovements).values({ note: `Reserved for order ${orderId}`, productId: item.product.id, quantity: item.quantity, type: "out" });
       }
     });
@@ -1588,10 +1612,9 @@ app.post("/api/payments/xendit/invoice", rateLimit("payment.invoice", 30, 15 * 6
       eq(orders.id, order.id),
       eq(orders.status, "pending"),
       sql`(${orders.paymentInvoiceUrl} = '' or ${orders.paymentExpiresAt} <= now() or ${orders.paymentExpiresAt} is null)`,
-      sql`(${orders.paymentInvoiceStatus} != 'CREATING' or ${orders.updatedAt} <= now() - interval '2 minutes')`,
-    ))
-    .returning({ id: orders.id });
-  if (!claimed) return res.status(409).json({ message: "Invoice sedang dibuat. Coba lagi sebentar." });
+      sql`(${orders.paymentInvoiceStatus} != 'CREATING' or ${orders.updatedAt} <= now() - interval 2 minute)`,
+    ));
+  if (!claimed.affectedRows) return res.status(409).json({ message: "Invoice sedang dibuat. Coba lagi sebentar." });
 
   const rows = await db
     .select({
@@ -1686,9 +1709,8 @@ app.post("/api/webhooks/xendit", async (req, res) => {
       const [paid] = await tx
         .update(orders)
         .set({ paymentInvoiceStatus: parsed.data.status, status: "paid", stockReserved: false, updatedAt: new Date() })
-        .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
-        .returning({ id: orders.id });
-      if (!paid) return;
+        .where(and(eq(orders.id, order.id), eq(orders.status, "pending")));
+      if (!paid.affectedRows) return;
 
       for (const item of items) {
         if (!order.stockReserved) {
