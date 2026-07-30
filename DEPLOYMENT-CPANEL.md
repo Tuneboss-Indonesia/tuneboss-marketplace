@@ -1,49 +1,50 @@
-# Deploy ke cPanel via SSH/rsync
+# Deploy marketplace ke cPanel
 
-Panduan ini untuk repo `tuneboss-marketplace`.
+Deployment produksi berjalan otomatis dari branch `main` repository organisasi.
 
-## Struktur Repo
+## Endpoint sementara
 
-- `frontend/` = Astro frontend
-- `backend/` = Express API
+- Frontend: `https://marketplace.tuneboss-landing.dasrams.biz.id`
+- API: `https://api-marketplace.tuneboss-landing.dasrams.biz.id`
 
-## Target Deploy
+## GitHub Actions secrets
 
-- frontend hasil build Astro ke subdomain utama atau subdomain khusus
-- backend hasil build Express ke subdomain API/backend
-
-## Secret GitHub
-
-Tambahkan secret ini:
+Secrets disimpan di repository organisasi:
 
 - `CPANEL_SSH_HOST`
 - `CPANEL_SSH_USER`
 - `CPANEL_SSH_KEY`
-- `CPANEL_SSH_PORT` optional
-- `CPANEL_FRONTEND_DIR`
-- `CPANEL_BACKEND_DIR`
+- `CPANEL_SSH_PORT`
 
-## Contoh Path
+`CPANEL_SSH_KEY` berisi private key SSH. Password cPanel, database, dan JWT tidak
+disimpan di GitHub.
 
-```text
-CPANEL_FRONTEND_DIR=/home/cpaneluser/frontend.domain.com
-CPANEL_BACKEND_DIR=/home/cpaneluser/backend.domain.com
-```
+## Server
 
-## Alur Workflow
+- Frontend: `/home/tunm2447/apps/tuneboss-marketplace/frontend`
+- Backend: `/home/tunm2447/apps/tuneboss-marketplace/backend`
+- Database: MariaDB `tunm2447_marketplace`
+- Runtime: CloudLinux Node.js 22
 
-Saat push ke `main`, workflow akan:
+Backend membaca konfigurasi produksi dari file `.env` di server. Workflow tidak
+menimpa file tersebut atau folder unggahan.
 
-1. install dependency frontend dan backend
-2. jalankan typecheck
-3. build frontend dan backend
-4. sync hasil build ke server via SSH/rsync
+## Alur deployment
 
-Frontend yang dikirim adalah folder `dist/` dari Astro. Backend yang dikirim adalah hasil build TypeScript Express.
+1. Buat perubahan di fork.
+2. Buat pull request ke repository organisasi.
+3. Setelah PR di-merge ke `main`, GitHub Actions menjalankan lint, typecheck, dan build.
+4. Workflow mengunggah artefak, menjalankan migrasi database, lalu me-restart dua aplikasi Node.
 
-## Catatan Penting
+## DNS dan SSL
 
-- `.env` tidak ikut dikirim
-- backend tetap perlu `.env` produksi di server
-- frontend Astro yang dikirim adalah hasil `dist/`
-- pastikan server cPanel mendukung Node.js untuk backend
+Subdomain `tuneboss-landing.dasrams.biz.id` harus didelegasikan ke nameserver
+cPanel berikut:
+
+- `ns1.rumahweb.com`
+- `ns2.rumahweb.com`
+- `ns3.rumahweb.net`
+- `ns4.rumahweb.net`
+
+Setelah DNS sehat, jalankan AutoSSL di cPanel. Jangan aktifkan Force HTTPS sebelum
+sertifikat valid terpasang.

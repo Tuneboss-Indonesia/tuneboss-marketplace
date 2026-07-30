@@ -83,12 +83,20 @@ export async function register(req: Request, res: Response) {
 
   try {
     const id = randomUUID();
-    const [created] = await db.insert(user).values({
+    await db.insert(user).values({
       id,
       email: parsed.data.email,
       name: parsed.data.name,
       passwordHash: hashPassword(parsed.data.password),
-    }).returning({ email: user.email, emailVerified: user.emailVerified, id: user.id, name: user.name, phone: user.phone, role: user.role });
+    });
+    const [created] = await db.select({
+      email: user.email,
+      emailVerified: user.emailVerified,
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+      role: user.role,
+    }).from(user).where(eq(user.id, id)).limit(1);
 
     await createSession(res, id, req);
     return res.status(201).json({ user: created });
