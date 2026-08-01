@@ -54,8 +54,8 @@ export async function currentUser(req: Request) {
   return row ?? null;
 }
 
-function setSessionCookie(res: Response, token: string, maxAge: number) {
-  const secure = process.env.NODE_ENV === "production" || !env.FRONTEND_ORIGIN.startsWith("http://localhost");
+function setSessionCookie(req: Request, res: Response, token: string, maxAge: number) {
+  const secure = req.secure || req.get("x-forwarded-proto") === "https";
   res.cookie(cookieName, token, {
     httpOnly: true,
     maxAge,
@@ -74,7 +74,7 @@ async function createSession(res: Response, userId: string, req: Request, maxAge
     userAgent: req.headers["user-agent"] ?? null,
     userId,
   });
-  setSessionCookie(res, token, maxAge);
+  setSessionCookie(req, res, token, maxAge);
 }
 
 export async function register(req: Request, res: Response) {
