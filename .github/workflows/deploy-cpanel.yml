@@ -37,7 +37,7 @@ jobs:
       - name: Package applications
         shell: bash
         run: |
-          tar -C frontend -czf frontend.tar.gz dist app.js package.json package-lock.json
+          tar -C frontend -czf frontend.tar.gz dist public app.js package.json package-lock.json
           tar -C backend -czf backend.tar.gz dist drizzle app.js drizzle.config.ts package.json package-lock.json
 
       - name: Start SSH agent
