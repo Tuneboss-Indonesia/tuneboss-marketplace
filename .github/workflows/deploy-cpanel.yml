@@ -84,8 +84,8 @@ jobs:
             "bash -s -- '$remote_frontend' '$remote_backend' '$GITHUB_SHA'" <<'REMOTE'
           set -euo pipefail
 
-          frontend="/home/$(whoami)/apps/tuneboss-marketplace/frontend"
-          backend="/home/$(whoami)/apps/tuneboss-marketplace/backend"
+          frontend="/home/$(whoami)/public_html/apps/tuneboss-marketplace/frontend"
+          backend="/home/$(whoami)/public_html/apps/tuneboss-marketplace/backend"
           user="$(whoami)"
           front_archive=$1
           back_archive=$2
@@ -109,12 +109,12 @@ jobs:
           (cd "$frontend" && npm ci --omit=dev)
           (cd "$backend" && npm ci --omit=dev && npm run db:migrate)
 
-          cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production \
-            || cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production --version 22
+          cloudlinux-selector set --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production \
+            || cloudlinux-selector create --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production --version 22
 
-          cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production \
-            || cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production --version 22
+          cloudlinux-selector set --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production \
+            || cloudlinux-selector create --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production --version 22
 
-          cloudlinux-selector restart --json --interpreter=nodejs --app-root=apps/tuneboss-marketplace/frontend
-          cloudlinux-selector restart --json --interpreter=nodejs --app-root=apps/tuneboss-marketplace/backend
+          cloudlinux-selector restart --json --interpreter=nodejs --app-root=public_html/apps/tuneboss-marketplace/frontend
+          cloudlinux-selector restart --json --interpreter=nodejs --app-root=public_html/apps/tuneboss-marketplace/backend
           REMOTE
