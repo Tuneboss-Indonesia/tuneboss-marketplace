@@ -108,13 +108,15 @@ jobs:
           (cd "$frontend" && npm ci --omit=dev)
           (cd "$backend" && npm ci --omit=dev && npm run db:migrate)
 
-          if ! cloudlinux-selector get --json --interpreter nodejs --domain marketplace.tuneboss-landing.dasrams.biz.id | grep -q 'apps/tuneboss-marketplace/frontend'; then
+          frontend_apps="$(cloudlinux-selector get --json --interpreter nodejs --domain marketplace.tuneboss-landing.dasrams.biz.id 2>/dev/null || true)"
+          if ! printf '%s' "$frontend_apps" | grep -q 'apps/tuneboss-marketplace/frontend'; then
             cloudlinux-selector create --json --interpreter nodejs --domain marketplace.tuneboss-landing.dasrams.biz.id --app-root apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production
           else
             cloudlinux-selector set --json --interpreter nodejs --domain marketplace.tuneboss-landing.dasrams.biz.id --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production
           fi
 
-          if ! cloudlinux-selector get --json --interpreter nodejs --domain api-marketplace.tuneboss-landing.dasrams.biz.id | grep -q 'apps/tuneboss-marketplace/backend'; then
+          backend_apps="$(cloudlinux-selector get --json --interpreter nodejs --domain api-marketplace.tuneboss-landing.dasrams.biz.id 2>/dev/null || true)"
+          if ! printf '%s' "$backend_apps" | grep -q 'apps/tuneboss-marketplace/backend'; then
             cloudlinux-selector create --json --interpreter nodejs --domain api-marketplace.tuneboss-landing.dasrams.biz.id --app-root apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production
           else
             cloudlinux-selector set --json --interpreter nodejs --domain api-marketplace.tuneboss-landing.dasrams.biz.id --app-root apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production
