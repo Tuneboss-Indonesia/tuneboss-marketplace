@@ -84,9 +84,10 @@ jobs:
             "bash -s -- '$remote_frontend' '$remote_backend' '$GITHUB_SHA'" <<'REMOTE'
           set -euo pipefail
 
-          frontend="/home/$(whoami)/public_html/apps/tuneboss-marketplace/frontend"
-          backend="/home/$(whoami)/public_html/apps/tuneboss-marketplace/backend"
-          old_backend="/home/$(whoami)/apps/tuneboss-marketplace/backend"
+          frontend="/home/$(whoami)/apps/tuneboss-marketplace/frontend"
+          backend="/home/$(whoami)/apps/tuneboss-marketplace/backend"
+          public_frontend="/home/$(whoami)/public_html/apps/tuneboss-marketplace/frontend"
+          public_backend="/home/$(whoami)/public_html/apps/tuneboss-marketplace/backend"
           user="$(whoami)"
           front_archive=$1
           back_archive=$2
@@ -100,8 +101,15 @@ jobs:
           test -f "$stage/frontend/app.js"
           test -f "$stage/backend/app.js"
 
-          if [ ! -f "$backend/.env" ] && [ -f "$old_backend/.env" ]; then
-            cp -a "$old_backend/.env" "$backend/.env"
+          if [ ! -f "$backend/.env" ] && [ -f "$public_backend/.env" ]; then
+            cp -a "$public_backend/.env" "$backend/.env"
+          fi
+
+          if [ -d "$public_frontend" ]; then
+            find "$public_frontend" -mindepth 1 -maxdepth 1 ! -name .htaccess -exec rm -rf -- {} +
+          fi
+          if [ -d "$public_backend" ]; then
+            find "$public_backend" -mindepth 1 -maxdepth 1 ! -name .htaccess -exec rm -rf -- {} +
           fi
 
           find "$frontend" -mindepth 1 -maxdepth 1 ! -name node_modules -exec rm -rf -- {} +
@@ -117,22 +125,18 @@ jobs:
             (cd "$backend" && npm ci --omit=dev)
           fi
 
-          cloudlinux-selector set --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
-            || cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
-            || cloudlinux-selector create --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
+          cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
+            || cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
             || true
 
-          cloudlinux-selector set --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
-            || cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
-            || cloudlinux-selector create --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
+          cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
+            || cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
             || true
 
-          cloudlinux-selector restart --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/frontend 2>/dev/null \
-            || cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend 2>/dev/null \
+          cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend 2>/dev/null \
             || true
 
-          cloudlinux-selector restart --json --interpreter nodejs --app-root public_html/apps/tuneboss-marketplace/backend 2>/dev/null \
-            || cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend 2>/dev/null \
+          cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend 2>/dev/null \
             || true
 
           mkdir -p "$frontend/tmp" && touch "$frontend/tmp/restart.txt"
