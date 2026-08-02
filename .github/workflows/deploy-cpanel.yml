@@ -75,10 +75,12 @@ jobs:
           remote_frontend="/home/$CPANEL_USER/.marketplace-${GITHUB_SHA}-frontend.tar.gz"
           remote_backend="/home/$CPANEL_USER/.marketplace-${GITHUB_SHA}-backend.tar.gz"
 
-          ssh -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" "cat > '$remote_frontend'" < frontend.tar.gz
-          ssh -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" "cat > '$remote_backend'" < backend.tar.gz
+          ssh_opts=(-o ServerAliveInterval=30 -o ServerAliveCountMax=10 -p "$CPANEL_PORT")
 
-          ssh -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" \
+          ssh "${ssh_opts[@]}" "$CPANEL_USER@$CPANEL_HOST" "cat > '$remote_frontend'" < frontend.tar.gz
+          ssh "${ssh_opts[@]}" "$CPANEL_USER@$CPANEL_HOST" "cat > '$remote_backend'" < backend.tar.gz
+
+          ssh "${ssh_opts[@]}" "$CPANEL_USER@$CPANEL_HOST" \
             "bash -s -- '$remote_frontend' '$remote_backend' '$GITHUB_SHA'" <<'REMOTE'
           set -euo pipefail
 
