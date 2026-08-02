@@ -109,6 +109,8 @@ jobs:
           (cd "$frontend" && npm ci --omit=dev)
           (cd "$backend" && npm ci --omit=dev && npm run db:migrate)
 
+          cloudlinux-selector set --json --interpreter nodejs --default-version 22
+
           cloudlinux-selector set --json --interpreter nodejs --user "$user" --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production \
             || cloudlinux-selector create --json --interpreter nodejs --user "$user" --app-root apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production
 
