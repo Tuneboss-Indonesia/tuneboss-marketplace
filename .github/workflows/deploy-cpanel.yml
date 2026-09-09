@@ -105,6 +105,7 @@ jobs:
             cp -a "$public_backend/.env" "$backend/.env"
           fi
 
+          mkdir -p "$public_frontend" "$public_backend"
           if [ -d "$public_frontend" ]; then
             find "$public_frontend" -mindepth 1 -maxdepth 1 ! -name .htaccess -exec rm -rf -- {} +
           fi
@@ -118,11 +119,11 @@ jobs:
           cp -a "$stage/backend/." "$backend/"
 
           export PATH="/opt/alt/alt-nodejs22/root/usr/bin:$PATH"
-          (cd "$frontend" && npm ci --omit=dev)
+          (cd "$frontend" && npm ci --omit=dev --ignore-scripts)
           if [ -f "$backend/.env" ]; then
-            (cd "$backend" && npm ci --omit=dev && npm run db:migrate)
+            (cd "$backend" && npm ci --omit=dev --ignore-scripts && npm run db:migrate)
           else
-            (cd "$backend" && npm ci --omit=dev)
+            (cd "$backend" && npm ci --omit=dev --ignore-scripts)
           fi
 
           cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
