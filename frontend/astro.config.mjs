@@ -5,7 +5,7 @@ import { defineConfig, envField } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 
 export default defineConfig({
-  site: "https://marketplace.tuneboss-landing.dasrams.biz.id",
+  site: "https://marketplace.tuneboss.id",
   output: "server",
   env: {
     schema: {
