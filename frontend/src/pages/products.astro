@@ -10,13 +10,12 @@ import "@/styles/global.css";
 export const prerender = false;
 
 const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
-const products = await fetch(`${apiUrl}/products`)
-  .then((response) => response.ok ? response.json() : Promise.reject())
-  .then((data): ProductSummary[] => Array.isArray(data.products) && data.products.length ? data.products : fallbackProducts)
-  .catch(() => fallbackProducts);
-const contentData = await fetch(`${apiUrl}/content`)
-  .then((response) => response.ok ? response.json() : Promise.reject())
-  .catch(() => null);
+const fetchJson = (path: string) => fetch(`${apiUrl}${path}`, { signal: AbortSignal.timeout(8000) }).then((response) => response.ok ? response.json() : Promise.reject());
+const [{ products: remoteProducts } = {}, contentData] = await Promise.all([
+  fetchJson("/products").catch(() => ({ products: [] })),
+  fetchJson("/content").catch(() => null),
+]);
+const products: ProductSummary[] = Array.isArray(remoteProducts) ? remoteProducts : fallbackProducts;
 const productsHeroMedia = typeof contentData?.content?.productsHero === "string" ? contentData.content.productsHero : "";
 const productsHeroIsVideo = /\.(mp4|webm)(\?|$)/i.test(productsHeroMedia);
 

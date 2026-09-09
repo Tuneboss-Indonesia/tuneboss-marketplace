@@ -23,7 +23,7 @@ export function getOrderShippedEmail(name: string, details: PaymentDetails & { c
     <p class="text text-center">We will notify you again once your order has been delivered.</p>
     
     <div class="text-center mt-6">
-      <a href="https://tuneboss.co.id/tracking" class="btn">Track Order</a>
+      <a href="https://tuneboss.id/tracking" class="btn">Track Order</a>
     </div>
   `;
   

@@ -26,7 +26,7 @@ const {
 } = Astro.props;
 
 // Construct full image URL for OG/Twitter
-const siteOrigin = "https://dev.fe-marketplace.panjiihsanudinfajri.my.id";
+const siteOrigin = "https://marketplace.tuneboss.id";
 const site = Astro.site ? new URL(Astro.site) : new URL(siteOrigin);
 const imageUrl = new URL(image, site).toString();
 const pageUrl = canonicalUrl.startsWith("http") ? canonicalUrl : new URL(canonicalUrl, site).toString();

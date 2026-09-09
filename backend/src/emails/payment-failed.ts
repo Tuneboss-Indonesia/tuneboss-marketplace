@@ -27,7 +27,7 @@ export function getPaymentFailedEmail(name: string, details: PaymentDetails): st
     <p class="text">Please ensure you have sufficient balance/limit and the entered information is correct. You can try to make the payment again by returning to your cart.</p>
     
     <div class="text-center mt-6">
-      <a href="https://tuneboss.co.id/cart" class="btn">Return to Cart</a>
+      <a href="https://tuneboss.id/cart" class="btn">Return to Cart</a>
     </div>
   `;
   

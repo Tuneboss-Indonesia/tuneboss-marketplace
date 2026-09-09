@@ -23,7 +23,7 @@ export function getOrderDeliveredEmail(name: string, details: PaymentDetails): s
     <p class="text text-center">Please take a moment to leave a review and let us know what you think about our product.</p>
     
     <div class="text-center mt-6">
-      <a href="https://tuneboss.co.id/account/history" class="btn">Leave a Review</a>
+      <a href="https://tuneboss.id/account/history" class="btn">Leave a Review</a>
     </div>
   `;
   

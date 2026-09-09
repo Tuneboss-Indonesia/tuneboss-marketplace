@@ -7,34 +7,17 @@ import TestimonialsCarousel from "@/components/TestimonialsCarousel.astro";
 import SEO from "@/components/SEO.astro";
 import "@/styles/global.css";
 
-const products = [
-  { id: 1, brand: "Honda", name: "Motorcycle ECU", price: "Rp. 599.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 14 },
-  { id: 2, brand: "Yamaha", name: "ECU Flash Kit", price: "Rp. 299.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 20 },
-  { id: 3, brand: "Kawasaki", name: "Race Tuning Pack", price: "Rp. 449.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 8 },
-  { id: 4, brand: "Suzuki", name: "Street Tune Pack", price: "Rp. 349.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 16 },
-  { id: 5, brand: "Honda", name: "Quickshifter Module", price: "Rp. 249.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 11 },
-  { id: 6, brand: "Yamaha", name: "Launch Control", price: "Rp. 399.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 7 },
-  { id: 7, brand: "Kawasaki", name: "Data Logger", price: "Rp. 199.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 18 },
-  { id: 8, brand: "Suzuki", name: "Wiring Harness", price: "Rp. 149.000", image: "/images/tuneboss-motorcycle-ecu.png", stock: 25 },
-];
-
-const testimonials = [
-  { name: "Rafi", quote: "Tarikan motor lebih responsif, setting terasa rapi, dan instalasinya cepat." },
-  { name: "Dimas", quote: "ECU TuneBoss bikin mapping harian tetap enak tapi siap dipakai gas lebih serius." },
-  { name: "Andra", quote: "Data real-time membantu banget buat baca karakter mesin setelah upgrade." },
-  { name: "Bagas", quote: "Produk solid, tampilan premium, dan aftersales-nya jelas." },
-  { name: "Yoga", quote: "Respons throttle lebih halus, enak dipakai harian dan tetap galak saat dibutuhkan." },
-  { name: "Fajar", quote: "Pemasangan mudah, hasil tuning terasa langsung dari putaran bawah." },
-];
 const apiUrl = (import.meta.env.PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
-const contentData = await fetch(`${apiUrl}/content`)
-  .then((response) => response.ok ? response.json() : Promise.reject())
-  .catch(() => null);
+const fetchJson = (path: string) => fetch(`${apiUrl}${path}`, { signal: AbortSignal.timeout(8000) }).then((response) => response.ok ? response.json() : Promise.reject());
+const [{ products = [] } = {}, contentData] = await Promise.all([
+  fetchJson("/products").catch(() => ({ products: [] })),
+  fetchJson("/content").catch(() => null),
+]);
 const storeContent = contentData?.content || {};
 const homeHeroMedia = typeof storeContent.homeHero === "string" ? storeContent.homeHero : "";
-const homeTestimonials = Array.isArray(storeContent.testimonials) && storeContent.testimonials.length
+const homeTestimonials = Array.isArray(storeContent.testimonials)
   ? storeContent.testimonials.map((review: { name: string; comment: string }) => ({ name: review.name, quote: review.comment }))
-  : testimonials;
+  : [];
 const homeHeroIsVideo = /\.(mp4|webm)(\?|$)/i.test(homeHeroMedia);
 const organizationSchema = JSON.stringify([
   {
@@ -42,9 +25,9 @@ const organizationSchema = JSON.stringify([
     "@type": "Organization",
     "name": "TuneBoss ID",
     "alternateName": "TuneBoss Indonesia",
-    "url": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id",
-    "logo": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/tuneboss-logo.png",
-    "image": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/images/og-image.png",
+    "url": "https://marketplace.tuneboss.id",
+    "logo": "https://marketplace.tuneboss.id/tuneboss-logo.png",
+    "image": "https://marketplace.tuneboss.id/images/og-image.png",
     "description": "Distributor resmi produk ECU TuneBoss di Indonesia. Menyediakan ECU racing, flash kit, quickshifter, data logger, dan aksesori tuning performa motor Honda, Yamaha, Kawasaki, Suzuki.",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -63,10 +46,10 @@ const organizationSchema = JSON.stringify([
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "TuneBoss ID",
-    "url": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id",
+    "url": "https://marketplace.tuneboss.id",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://dev.fe-marketplace.panjiihsanudinfajri.my.id/products?q={search_term_string}",
+      "target": "https://marketplace.tuneboss.id/products?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   }
