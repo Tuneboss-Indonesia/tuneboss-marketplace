@@ -126,21 +126,21 @@ jobs:
             (cd "$backend" && npm ci --omit=dev --ignore-scripts)
           fi
           if [ -f "$backend/.env" ]; then
-            (cd "$backend" && npm run db:migrate || true)
+            (cd "$backend" && timeout 45s npm run db:migrate || true)
           fi
 
-          cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
-            || cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
+          timeout 20s cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
+            || timeout 20s cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
             || true
 
-          cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
-            || cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
+          timeout 20s cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
+            || timeout 20s cloudlinux-selector create --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend --app-uri / --startup-file app.js --app-mode production --version 22 2>/dev/null \
             || true
 
-          cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend 2>/dev/null \
+          timeout 20s cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend 2>/dev/null \
             || true
 
-          cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend 2>/dev/null \
+          timeout 20s cloudlinux-selector restart --json --interpreter nodejs --app-root apps/tuneboss-marketplace/backend 2>/dev/null \
             || true
 
           mkdir -p "$frontend/tmp" && touch "$frontend/tmp/restart.txt"
