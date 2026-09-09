@@ -119,11 +119,14 @@ jobs:
           cp -a "$stage/backend/." "$backend/"
 
           export PATH="/opt/alt/alt-nodejs22/root/usr/bin:$PATH"
-          (cd "$frontend" && npm ci --omit=dev --ignore-scripts)
-          if [ -f "$backend/.env" ]; then
-            (cd "$backend" && npm ci --omit=dev --ignore-scripts && npm run db:migrate)
-          else
+          if [ ! -d "$frontend/node_modules" ]; then
+            (cd "$frontend" && npm ci --omit=dev --ignore-scripts)
+          fi
+          if [ ! -d "$backend/node_modules" ]; then
             (cd "$backend" && npm ci --omit=dev --ignore-scripts)
+          fi
+          if [ -f "$backend/.env" ]; then
+            (cd "$backend" && npm run db:migrate || true)
           fi
 
           cloudlinux-selector set --json --interpreter nodejs --app-root apps/tuneboss-marketplace/frontend --new-app-uri / --startup-file app.js --app-mode production 2>/dev/null \
