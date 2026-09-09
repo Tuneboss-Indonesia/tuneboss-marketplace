@@ -100,8 +100,8 @@ export function getBaseEmail(title: string, preheader: string, content: string):
         <div class="container">
           <!-- Header -->
           <div class="header">
-            <a href="https://tuneboss.co.id" target="_blank" style="text-decoration: none;">
-              <img src="https://tuneboss.co.id/tuneboss-logo.png" alt="TuneBoss" width="180" style="display: block; margin: 0 auto; max-width: 100%; height: auto; border: 0;" />
+            <a href="https://tuneboss.id" target="_blank" style="text-decoration: none;">
+              <img src="https://tuneboss.id/tuneboss-logo.png" alt="TuneBoss" width="180" style="display: block; margin: 0 auto; max-width: 100%; height: auto; border: 0;" />
             </a>
           </div>
           
@@ -112,12 +112,12 @@ export function getBaseEmail(title: string, preheader: string, content: string):
           
           <!-- Footer -->
           <div class="footer">
-            <p class="mb-4">&copy; ${new Date().getFullYear()} TUNEBOSS.CO.ID. All Rights Reserved.</p>
+            <p class="mb-4">&copy; ${new Date().getFullYear()} TUNEBOSS.ID. All Rights Reserved.</p>
             <p style="margin-bottom: 16px;">This is an automated email. Please do not reply.</p>
             <div>
-              <a href="https://tuneboss.co.id" style="color: #71717a; text-decoration: underline;">Website</a> &nbsp;&bull;&nbsp;
-              <a href="https://tuneboss.co.id/privacy" style="color: #71717a; text-decoration: underline;">Privacy Policy</a> &nbsp;&bull;&nbsp;
-              <a href="https://tuneboss.co.id/terms" style="color: #71717a; text-decoration: underline;">Terms of Service</a>
+              <a href="https://tuneboss.id" style="color: #71717a; text-decoration: underline;">Website</a> &nbsp;&bull;&nbsp;
+              <a href="https://tuneboss.id/privacy" style="color: #71717a; text-decoration: underline;">Privacy Policy</a> &nbsp;&bull;&nbsp;
+              <a href="https://tuneboss.id/terms" style="color: #71717a; text-decoration: underline;">Terms of Service</a>
             </div>
           </div>
         </div>

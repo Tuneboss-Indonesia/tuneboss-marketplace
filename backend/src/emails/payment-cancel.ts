@@ -27,7 +27,7 @@ export function getPaymentCancelEmail(name: string, details: PaymentDetails): st
     <p class="text">If you change your mind or want to order other products, please visit the TuneBoss Marketplace website.</p>
     
     <div class="text-center mt-6">
-      <a href="https://tuneboss.co.id" class="btn">Shop Again</a>
+      <a href="https://tuneboss.id" class="btn">Shop Again</a>
     </div>
   `;
   

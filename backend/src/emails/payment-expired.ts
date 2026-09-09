@@ -27,7 +27,7 @@ export function getPaymentExpiredEmail(name: string, details: PaymentDetails): s
     <p class="text">Don't worry, you can create a new order for the same products if you still want to proceed.</p>
     
     <div class="text-center mt-6">
-      <a href="https://tuneboss.co.id" class="btn">Create New Order</a>
+      <a href="https://tuneboss.id" class="btn">Create New Order</a>
     </div>
   `;
   

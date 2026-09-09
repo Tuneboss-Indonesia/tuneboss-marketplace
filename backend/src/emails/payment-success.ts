@@ -72,7 +72,7 @@ export function getPaymentSuccessEmail(name: string, details: PaymentDetails): s
     </table>
     
     <div class="text-center mt-6">
-      <a href="https://tuneboss.co.id/orders/${details.orderId}" class="btn">View Order Details</a>
+      <a href="https://tuneboss.id/orders/${details.orderId}" class="btn">View Order Details</a>
     </div>
   `;
   
