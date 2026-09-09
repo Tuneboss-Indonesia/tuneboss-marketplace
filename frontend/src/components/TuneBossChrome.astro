@@ -1152,7 +1152,12 @@ import AlertDialog from "./AlertDialog.astro";
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.message || data.error || "Request failed");
+    if (!response.ok) {
+      const error = new Error(data.message || data.error || "Request failed") as Error & { code?: string, status?: number };
+      error.code = data.code;
+      error.status = response.status;
+      throw error;
+    }
     return data;
   };
 
@@ -1509,7 +1514,7 @@ import AlertDialog from "./AlertDialog.astro";
   const otpInputs = Array.from(document.querySelectorAll("[data-otp-input]"));
   const otpError = document.querySelector("[data-otp-error]");
   let pendingOtpEmail = "";
-  let pendingOtpComplete: (() => void) | null = null;
+  let pendingOtpComplete: (() => void | Promise<void>) | null = null;
   let otpTimerId: number | undefined;
 
   const verifiedEmails = () => JSON.parse(localStorage.getItem("tuneboss-verified-emails") || "[]");
@@ -1596,7 +1601,7 @@ import AlertDialog from "./AlertDialog.astro";
       markOtpVerified(pendingOtpEmail);
       localStorage.removeItem("tuneboss-pending-otp");
       if (otpDialog instanceof HTMLDialogElement) otpDialog.close();
-      pendingOtpComplete?.();
+      await pendingOtpComplete?.();
     } catch (error) {
       if (otpError) {
         otpError.textContent = error instanceof Error ? error.message : (root.lang === "en" ? "Invalid code" : "Kode tidak valid");
@@ -1946,6 +1951,20 @@ import AlertDialog from "./AlertDialog.astro";
           completeAuth(mode);
         }
       } catch (error) {
+        const authError = error as Error & { code?: string };
+        if (mode === "login" && authError.code === "email_unverified") {
+          try {
+            await apiRequest("/auth/email-verification/request", { email });
+            form.closest("dialog")?.close();
+            openOtpDialog(email, async () => {
+              await apiRequest("/auth/login", { email, password: formData.password });
+              completeAuth(mode);
+            });
+            return;
+          } catch (resendError) {
+            error = resendError;
+          }
+        }
         const errorEl = form.querySelector("[data-auth-form-error]");
         if (errorEl instanceof HTMLElement) {
           errorEl.textContent = error instanceof Error ? error.message : (root.lang === "en" ? "Request failed" : "Permintaan gagal");
