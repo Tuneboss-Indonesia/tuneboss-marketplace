@@ -81,6 +81,13 @@ export async function register(req: Request, res: Response) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
+  const [existing] = await db.select({ emailVerified: user.emailVerified }).from(user).where(eq(user.email, parsed.data.email)).limit(1);
+  if (existing) {
+    return existing.emailVerified
+      ? res.status(409).json({ message: "Email sudah terdaftar. Silakan login atau gunakan email lain.", code: "email_registered" })
+      : res.status(409).json({ message: "Email sudah terdaftar tetapi belum diverifikasi. Silakan login untuk meminta OTP ulang.", code: "email_unverified" });
+  }
+
   try {
     const id = randomUUID();
     await db.insert(user).values({
@@ -101,7 +108,7 @@ export async function register(req: Request, res: Response) {
     await createSession(res, id, req);
     return res.status(201).json({ user: created });
   } catch {
-    return res.status(409).json({ message: "Email sudah terdaftar." });
+    return res.status(409).json({ message: "Email sudah terdaftar. Silakan login atau gunakan email lain.", code: "email_registered" });
   }
 }
 
@@ -112,6 +119,9 @@ export async function login(req: Request, res: Response) {
   const [found] = await db.select().from(user).where(eq(user.email, parsed.data.email)).limit(1);
   if (!found || !verifyPassword(parsed.data.password, found.passwordHash)) {
     return res.status(401).json({ message: "Email atau password salah." });
+  }
+  if (found.role === "customer" && !found.emailVerified) {
+    return res.status(403).json({ message: "Email belum diverifikasi. Kami akan mengirim ulang OTP.", code: "email_unverified" });
   }
 
   await createSession(res, found.id, req, found.role === "admin" || found.role === "staff" ? staffSessionMs : customerSessionMs);

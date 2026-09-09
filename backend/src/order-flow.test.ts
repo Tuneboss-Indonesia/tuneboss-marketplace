@@ -165,6 +165,25 @@ test("admin product images appear on public product detail", async () => {
   }
 });
 
+test("unverified customer login explains that email verification is required", async () => {
+  const fx = await fixture();
+  try {
+    await db.update(users).set({ emailVerified: false }).where(eq(users.id, fx.userId));
+    const [account] = await db.select({ email: users.email }).from(users).where(eq(users.id, fx.userId));
+    assert.ok(account);
+
+    const response = await postRaw("/api/auth/login", "", { email: account.email, password: "password123" });
+    const body = await response.json() as { code?: string; message?: string };
+    assert.equal(response.status, 403);
+    assert.deepEqual(body, {
+      code: "email_unverified",
+      message: "Email belum diverifikasi. Kami akan mengirim ulang OTP.",
+    });
+  } finally {
+    await fx.cleanup();
+  }
+});
+
 test("admin login uses shorter session expiry", async () => {
   const fx = await fixture(5, "admin");
   try {
