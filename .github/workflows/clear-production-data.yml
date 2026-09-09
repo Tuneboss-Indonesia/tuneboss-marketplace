@@ -1,0 +1,147 @@
+name: Clear production data
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type: CONFIRM ADMIN ONLY"
+        required: true
+        type: string
+
+jobs:
+  clear-production-data:
+    if: inputs.confirmation == 'CONFIRM ADMIN ONLY'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start SSH agent
+        shell: bash
+        env:
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          eval "$(ssh-agent -s)"
+          printf '%s\n' "$CPANEL_SSH_KEY" | ssh-add -
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+
+      - name: Add cPanel host key
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -T 15 -p "$CPANEL_PORT" "$CPANEL_HOST" >> ~/.ssh/known_hosts
+
+      - name: Backup and clear production data
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+          CPANEL_USER: ${{ secrets.CPANEL_SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh_opts=(-o ServerAliveInterval=30 -o ServerAliveCountMax=10 -p "$CPANEL_PORT")
+          ssh "${ssh_opts[@]}" "$CPANEL_USER@$CPANEL_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          marketplace_env="$HOME/apps/tuneboss-marketplace/backend/.env"
+          inventory_env="$HOME/api.tuneboss.id/.env"
+          backup_dir="$HOME/private/tuneboss-backups"
+
+          test -f "$marketplace_env"
+          test -f "$inventory_env"
+          mkdir -p "$backup_dir"
+
+          python3 - "$marketplace_env" "$inventory_env" "$backup_dir" <<'PY'
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          from urllib.parse import unquote, urlparse
+
+          marketplace_env, inventory_env, backup_dir = map(Path, sys.argv[1:])
+          backup_dir.mkdir(parents=True, exist_ok=True)
+
+          def read_env(path):
+              values = {}
+              for raw in path.read_text().splitlines():
+                  line = raw.strip()
+                  if not line or line.startswith("#") or "=" not in line:
+                      continue
+                  key, value = line.split("=", 1)
+                  value = value.strip()
+                  if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                      value = value[1:-1]
+                  values[key] = value
+              return values
+
+          def mysql_config(env, url_key=None):
+              if url_key:
+                  parsed = urlparse(env[url_key])
+                  if parsed.scheme not in ("mysql", "mariadb"):
+                      raise RuntimeError(f"unsupported database scheme: {parsed.scheme}")
+                  return {
+                      "host": parsed.hostname or "127.0.0.1",
+                      "port": str(parsed.port or 3306),
+                      "user": unquote(parsed.username or ""),
+                      "password": unquote(parsed.password or ""),
+                      "database": parsed.path.lstrip("/").split("?", 1)[0],
+                  }
+              return {
+                  "host": env["DB_HOST"],
+                  "port": env.get("DB_PORT", "3306"),
+                  "user": env["DB_USERNAME"],
+                  "password": env.get("DB_PASSWORD", ""),
+                  "database": env["DB_DATABASE"],
+              }
+
+          def mysql(config, sql):
+              process_env = os.environ.copy()
+              process_env["MYSQL_PWD"] = config["password"]
+              result = subprocess.run(
+                  ["mysql", "--batch", "--skip-column-names", "--host", config["host"], "--port", config["port"], "--user", config["user"], config["database"], "-e", sql],
+                  env=process_env,
+                  text=True,
+                  capture_output=True,
+                  check=True,
+              )
+              return result.stdout.strip()
+
+          def backup(config, name):
+              filename = backup_dir / f"{name}-{os.getpid()}.sql"
+              process_env = os.environ.copy()
+              process_env["MYSQL_PWD"] = config["password"]
+              with filename.open("wb") as output:
+                  subprocess.run(
+                      ["mysqldump", "--single-transaction", "--quick", "--routines", "--triggers", "--host", config["host"], "--port", config["port"], "--user", config["user"], config["database"]],
+                      env=process_env,
+                      stdout=output,
+                      check=True,
+                  )
+              if filename.stat().st_size == 0:
+                  raise RuntimeError(f"empty backup: {name}")
+              print(f"backup={filename.name} size={filename.stat().st_size}")
+
+          def clear(config, account_table):
+              tables = mysql(config, "SHOW TABLES").splitlines()
+              preserved = {account_table, "migrations", "__drizzle_migrations"}
+              quote = lambda name: "`" + name.replace("`", "``") + "`"
+              truncates = [f"TRUNCATE TABLE {quote(table)}" for table in tables if table and table not in preserved]
+              if truncates:
+                  mysql(config, "SET FOREIGN_KEY_CHECKS=0;\n" + ";\n".join(truncates) + ";\nSET FOREIGN_KEY_CHECKS=1")
+              mysql(config, f"DELETE FROM {quote(account_table)} WHERE role <> 'admin'")
+              remaining = mysql(config, f"SELECT COUNT(*) FROM {quote(account_table)}")
+              admins = mysql(config, f"SELECT COUNT(*) FROM {quote(account_table)} WHERE role = 'admin'")
+              print(f"accounts={remaining} admins={admins}")
+
+          marketplace = mysql_config(read_env(marketplace_env), "DATABASE_URL")
+          inventory = mysql_config(read_env(inventory_env))
+          backup(marketplace, "marketplace")
+          backup(inventory, "inventory")
+          clear(marketplace, "user")
+          clear(inventory, "users")
+          print("production data cleared; admin accounts preserved")
+          PY
+          REMOTE
